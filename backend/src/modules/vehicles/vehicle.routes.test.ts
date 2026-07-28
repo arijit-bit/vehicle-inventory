@@ -2,7 +2,11 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../app.js';
 import type { TokenVerifier } from '../auth/auth.types.js';
-import { VehicleNotFoundError, type VehicleRecord } from './vehicle.types.js';
+import {
+  InsufficientStockError,
+  VehicleNotFoundError,
+  type VehicleRecord,
+} from './vehicle.types.js';
 
 const vehicle: VehicleRecord = {
   id: 'a104ce48-e57f-4fb0-8793-57c8b9a2c913',
@@ -22,6 +26,8 @@ describe('vehicle HTTP API', () => {
     search: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    purchase: vi.fn(),
+    restock: vi.fn(),
   };
   const tokenVerifier: TokenVerifier = {
     verify: vi.fn(),
@@ -34,6 +40,8 @@ describe('vehicle HTTP API', () => {
     vehicleService.search.mockResolvedValue([vehicle]);
     vehicleService.update.mockResolvedValue(vehicle);
     vehicleService.delete.mockResolvedValue(undefined);
+    vehicleService.purchase.mockResolvedValue({ ...vehicle, quantity: 3 });
+    vehicleService.restock.mockResolvedValue({ ...vehicle, quantity: 6 });
     vi.mocked(tokenVerifier.verify).mockReturnValue({
       sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
       email: 'admin@example.com',
@@ -95,7 +103,13 @@ describe('vehicle HTTP API', () => {
     });
   });
 
-  it('allows an administrator to create a normalized vehicle', async () => {
+  it('allows an authenticated user to create a normalized vehicle', async () => {
+    vi.mocked(tokenVerifier.verify).mockReturnValue({
+      sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
+      email: 'driver@example.com',
+      role: 'USER',
+    });
+
     const response = await request(app()).post('/api/vehicles').set(authorized()).send({
       make: ' Toyota ',
       model: ' Camry ',
@@ -114,30 +128,26 @@ describe('vehicle HTTP API', () => {
     });
   });
 
-  it.each([
-    ['post', '/api/vehicles'],
-    ['put', `/api/vehicles/${vehicle.id}`],
-    ['delete', `/api/vehicles/${vehicle.id}`],
-  ] as const)('denies a regular user from %s %s', async (method, path) => {
+  it('denies a regular user from deleting a vehicle', async () => {
     vi.mocked(tokenVerifier.verify).mockReturnValue({
       sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
       email: 'driver@example.com',
       role: 'USER',
     });
 
-    const response = await request(app())[method](path).set(authorized()).send({
-      make: 'Toyota',
-      model: 'Camry',
-      category: 'Sedan',
-      price: 32999.9,
-      quantity: 4,
-    });
+    const response = await request(app()).delete(`/api/vehicles/${vehicle.id}`).set(authorized());
 
     expect(response.status).toBe(403);
     expect(response.body.error.code).toBe('FORBIDDEN');
   });
 
-  it('updates a vehicle as an administrator', async () => {
+  it('updates a vehicle as an authenticated user', async () => {
+    vi.mocked(tokenVerifier.verify).mockReturnValue({
+      sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
+      email: 'driver@example.com',
+      role: 'USER',
+    });
+
     const response = await request(app())
       .put(`/api/vehicles/${vehicle.id}`)
       .set(authorized())
@@ -183,5 +193,61 @@ describe('vehicle HTTP API', () => {
         message: 'Vehicle not found',
       },
     });
+  });
+
+  it('purchases a requested quantity as an authenticated user', async () => {
+    vi.mocked(tokenVerifier.verify).mockReturnValue({
+      sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
+      email: 'driver@example.com',
+      role: 'USER',
+    });
+
+    const response = await request(app())
+      .post(`/api/vehicles/${vehicle.id}/purchase`)
+      .set(authorized())
+      .send({ quantity: 1 });
+
+    expect(response.status).toBe(200);
+    expect(vehicleService.purchase).toHaveBeenCalledWith(vehicle.id, 1);
+    expect(response.body.vehicle.quantity).toBe(3);
+  });
+
+  it('returns 409 when a purchase exceeds available stock', async () => {
+    vehicleService.purchase.mockRejectedValue(new InsufficientStockError());
+
+    const response = await request(app())
+      .post(`/api/vehicles/${vehicle.id}/purchase`)
+      .set(authorized())
+      .send({ quantity: 5 });
+
+    expect(response.status).toBe(409);
+    expect(response.body.error.code).toBe('INSUFFICIENT_STOCK');
+  });
+
+  it('allows an administrator to restock a vehicle', async () => {
+    const response = await request(app())
+      .post(`/api/vehicles/${vehicle.id}/restock`)
+      .set(authorized())
+      .send({ quantity: 2 });
+
+    expect(response.status).toBe(200);
+    expect(vehicleService.restock).toHaveBeenCalledWith(vehicle.id, 2);
+    expect(response.body.vehicle.quantity).toBe(6);
+  });
+
+  it('denies a regular user from restocking a vehicle', async () => {
+    vi.mocked(tokenVerifier.verify).mockReturnValue({
+      sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
+      email: 'driver@example.com',
+      role: 'USER',
+    });
+
+    const response = await request(app())
+      .post(`/api/vehicles/${vehicle.id}/restock`)
+      .set(authorized())
+      .send({ quantity: 2 });
+
+    expect(response.status).toBe(403);
+    expect(vehicleService.restock).not.toHaveBeenCalled();
   });
 });

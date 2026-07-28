@@ -22,6 +22,8 @@ describe('PrismaVehicleRepository', () => {
       findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+      updateManyAndReturn: vi.fn(),
+      findUnique: vi.fn(),
     },
   };
   const repository = new PrismaVehicleRepository(database as unknown as DatabaseClient);
@@ -32,6 +34,8 @@ describe('PrismaVehicleRepository', () => {
     database.vehicle.findMany.mockResolvedValue([storedVehicle]);
     database.vehicle.update.mockResolvedValue(storedVehicle);
     database.vehicle.delete.mockResolvedValue({ id: storedVehicle.id });
+    database.vehicle.updateManyAndReturn.mockResolvedValue([{ ...storedVehicle, quantity: 3 }]);
+    database.vehicle.findUnique.mockResolvedValue({ id: storedVehicle.id });
   });
 
   it('persists a vehicle and serializes its decimal price exactly', async () => {
@@ -102,5 +106,56 @@ describe('PrismaVehicleRepository', () => {
     database.vehicle.delete.mockRejectedValue({ code: 'P2025' });
 
     await expect(repository.delete(storedVehicle.id)).resolves.toBe(false);
+  });
+
+  it('atomically purchases only when sufficient stock exists', async () => {
+    await expect(repository.purchase(storedVehicle.id, 1)).resolves.toMatchObject({
+      status: 'UPDATED',
+      vehicle: {
+        id: storedVehicle.id,
+        quantity: 3,
+      },
+    });
+    expect(database.vehicle.updateManyAndReturn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: storedVehicle.id,
+          quantity: { gte: 1 },
+        },
+        data: {
+          quantity: { decrement: 1 },
+        },
+      }),
+    );
+  });
+
+  it('distinguishes insufficient stock from a missing purchase target', async () => {
+    database.vehicle.updateManyAndReturn.mockResolvedValue([]);
+
+    await expect(repository.purchase(storedVehicle.id, 5)).resolves.toEqual({
+      status: 'INSUFFICIENT_STOCK',
+    });
+
+    database.vehicle.findUnique.mockResolvedValue(null);
+
+    await expect(repository.purchase(storedVehicle.id, 1)).resolves.toEqual({
+      status: 'NOT_FOUND',
+    });
+  });
+
+  it('atomically increments stock during restock', async () => {
+    database.vehicle.update.mockResolvedValue({ ...storedVehicle, quantity: 6 });
+
+    await expect(repository.restock(storedVehicle.id, 2)).resolves.toMatchObject({
+      quantity: 6,
+    });
+    expect(database.vehicle.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: storedVehicle.id },
+        data: {
+          quantity: { increment: 2 },
+        },
+      }),
+    );
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   createVehicleSchema,
+  inventoryMutationSchema,
   searchVehiclesSchema,
   updateVehicleSchema,
 } from './vehicle.schemas.js';
@@ -64,5 +65,14 @@ describe('vehicle schemas', () => {
         maxPrice: '10000',
       }),
     ).toThrow();
+  });
+
+  it('defaults an inventory mutation to one vehicle and accepts a positive quantity', () => {
+    expect(inventoryMutationSchema.parse({})).toEqual({ quantity: 1 });
+    expect(inventoryMutationSchema.parse({ quantity: 3 })).toEqual({ quantity: 3 });
+  });
+
+  it.each([0, -1, 1.5, '2'])('rejects invalid inventory quantity %s', (quantity) => {
+    expect(() => inventoryMutationSchema.parse({ quantity })).toThrow();
   });
 });
