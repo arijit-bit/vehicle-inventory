@@ -5,7 +5,7 @@ PostgreSQL/Supabase, Prisma, Tailwind CSS, JWT, and bcrypt.
 
 ## Current status
 
-Milestone 2 is complete:
+Milestone 3 is complete:
 
 - Secure registration and login REST endpoints
 - Lowercase, trimmed email normalization on the client and server
@@ -16,10 +16,14 @@ Milestone 2 is complete:
 - Environment-seeded administrator; public registration is always `USER`
 - Responsive login and registration UI using shadcn-style source components
 - Session restoration, logout, and protected React routes
-- 43 automated tests across the API and SPA
+- Protected vehicle listing and combined make, model, category, and price-range search
+- Authenticated vehicle creation and partial updates; administrator-only deletion
+- Exact two-decimal price serialization and non-negative stock validation
+- Prisma persistence with stable not-found handling
+- Atomic purchasing with oversell prevention and administrator-only restocking
+- 91 automated tests across the API and SPA
 
-Vehicle CRUD, search, purchase/restock workflows, and the completed dashboard belong to later
-milestones.
+The completed vehicle dashboard and administrator interface belong to later milestones.
 
 ## Architecture
 
@@ -137,6 +141,60 @@ Use protected endpoints with:
 Authorization: Bearer <token>
 ```
 
+## Vehicle API
+
+Vehicle prices are returned as two-decimal strings so JSON clients do not lose decimal precision.
+All endpoints require a bearer JWT. Authenticated `USER` and `ADMIN` accounts can list, search,
+create, update, and purchase inventory. Delete and restock operations require an `ADMIN` role.
+
+| Method   | Endpoint                     | Access     | Result                                      |
+| -------- | ---------------------------- | ---------- | ------------------------------------------- |
+| `GET`    | `/api/vehicles`              | Bearer JWT | Lists every inventory record                |
+| `GET`    | `/api/vehicles/search`       | Bearer JWT | Searches with combinable query parameters   |
+| `POST`   | `/api/vehicles`              | Bearer JWT | Creates a vehicle                           |
+| `PUT`    | `/api/vehicles/:id`          | Bearer JWT | Updates one or more supplied vehicle fields |
+| `DELETE` | `/api/vehicles/:id`          | Admin      | Deletes a vehicle                           |
+| `POST`   | `/api/vehicles/:id/purchase` | Bearer JWT | Atomically decreases available quantity     |
+| `POST`   | `/api/vehicles/:id/restock`  | Admin      | Atomically increases available quantity     |
+
+Create body:
+
+```json
+{
+  "make": "Toyota",
+  "model": "Camry",
+  "category": "Sedan",
+  "price": "32999.90",
+  "quantity": 4
+}
+```
+
+`price` accepts a JSON number or decimal string with at most two fractional digits. `quantity`
+must be a non-negative integer. Names are trimmed, required, and limited to 100 characters.
+
+Search parameters are optional and combined with AND semantics:
+
+```http
+GET /api/vehicles/search?make=toy&model=cam&category=sedan&minPrice=10000&maxPrice=40000
+```
+
+Text matching is case-insensitive and contains-based. Price bounds are inclusive. An inverted or
+malformed range returns `400 VALIDATION_ERROR`; a missing update/delete target returns
+`404 VEHICLE_NOT_FOUND`.
+
+Purchase and restock accept an optional positive integer quantity:
+
+```json
+{
+  "quantity": 2
+}
+```
+
+Omitting the body defaults to one vehicle. Purchasing uses one conditional database
+`UPDATE ... WHERE quantity >= requested RETURNING ...` statement, preventing concurrent requests
+from overselling stock. Insufficient quantity returns `409 INSUFFICIENT_STOCK`. Restocking uses an
+atomic database increment and remains administrator-only.
+
 ## Security decisions
 
 - Passwords are never returned or stored in plaintext.
@@ -165,12 +223,12 @@ GitHub Actions runs the same checks on every push and pull request. See
 
 ## Documented inventory assumptions
 
-- Create, update, delete, and restock operations are admin-only.
+- Create and update require authentication; delete and restock require an administrator.
 - Purchase and restock accept a positive integer quantity.
 - Zero-stock vehicles remain visible but cannot be purchased.
 - Insufficient stock returns `409 Conflict`.
 - Search filters are combinable, case-insensitive, and validate price ranges.
-- `PUT` performs a complete vehicle replacement.
+- `PUT` updates only the supplied vehicle fields and rejects an empty body.
 
 ## My AI Usage
 
@@ -183,9 +241,11 @@ diffs, and Supabase security checks.
 
 AI was most useful for accelerating repetitive setup and expanding edge-case coverage, including
 email normalization, bcrypt's 72-byte input boundary, generic login failures, JWT claim
-verification, and role middleware. The important lesson was that generated code still required
-human-style verification: static analysis caught a React state-effect issue, and an architecture
-review found the missing administrator seed path. Both were corrected before handoff.
+verification, role middleware, decimal money validation, combined inventory filters, and missing
+database records. The important lesson was that generated code still required human-style
+verification: static analysis caught a React state-effect issue, an architecture review found the
+missing administrator seed path, and live query planning confirmed which inventory index the
+combined search actually used. Each issue was checked before handoff.
 
 Every AI-assisted commit includes:
 

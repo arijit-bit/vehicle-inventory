@@ -1,0 +1,78 @@
+import { describe, expect, it } from 'vitest';
+import {
+  createVehicleSchema,
+  inventoryMutationSchema,
+  searchVehiclesSchema,
+  updateVehicleSchema,
+} from './vehicle.schemas.js';
+
+describe('vehicle schemas', () => {
+  it('normalizes a valid vehicle payload', () => {
+    expect(
+      createVehicleSchema.parse({
+        make: '  Toyota ',
+        model: ' Camry ',
+        category: ' Sedan ',
+        price: 32999.9,
+        quantity: 4,
+      }),
+    ).toEqual({
+      make: 'Toyota',
+      model: 'Camry',
+      category: 'Sedan',
+      price: '32999.90',
+      quantity: 4,
+    });
+  });
+
+  it.each([
+    [{ make: '', model: 'Camry', category: 'Sedan', price: 1, quantity: 1 }],
+    [{ make: 'Toyota', model: '', category: 'Sedan', price: 1, quantity: 1 }],
+    [{ make: 'Toyota', model: 'Camry', category: '', price: 1, quantity: 1 }],
+    [{ make: 'Toyota', model: 'Camry', category: 'Sedan', price: -1, quantity: 1 }],
+    [{ make: 'Toyota', model: 'Camry', category: 'Sedan', price: '1.999', quantity: 1 }],
+    [{ make: 'Toyota', model: 'Camry', category: 'Sedan', price: 1, quantity: -1 }],
+    [{ make: 'Toyota', model: 'Camry', category: 'Sedan', price: 1, quantity: 1.5 }],
+  ])('rejects an invalid create payload', (payload) => {
+    expect(() => createVehicleSchema.parse(payload)).toThrow();
+  });
+
+  it('requires an update to contain at least one supported field', () => {
+    expect(() => updateVehicleSchema.parse({})).toThrow();
+    expect(() => updateVehicleSchema.parse({ unsupported: true })).toThrow();
+  });
+
+  it('normalizes search filters and rejects an inverted price range', () => {
+    expect(
+      searchVehiclesSchema.parse({
+        make: '  toy ',
+        model: ' cam ',
+        category: ' sedan ',
+        minPrice: '10000',
+        maxPrice: '40000.5',
+      }),
+    ).toEqual({
+      make: 'toy',
+      model: 'cam',
+      category: 'sedan',
+      minPrice: '10000.00',
+      maxPrice: '40000.50',
+    });
+
+    expect(() =>
+      searchVehiclesSchema.parse({
+        minPrice: '40000',
+        maxPrice: '10000',
+      }),
+    ).toThrow();
+  });
+
+  it('defaults an inventory mutation to one vehicle and accepts a positive quantity', () => {
+    expect(inventoryMutationSchema.parse({})).toEqual({ quantity: 1 });
+    expect(inventoryMutationSchema.parse({ quantity: 3 })).toEqual({ quantity: 3 });
+  });
+
+  it.each([0, -1, 1.5, '2'])('rejects invalid inventory quantity %s', (quantity) => {
+    expect(() => inventoryMutationSchema.parse({ quantity })).toThrow();
+  });
+});
