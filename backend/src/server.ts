@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { createApp } from './app.js';
 import { loadEnv } from './config/env.js';
 import { createPrismaClient } from './infrastructure/database/prisma.js';
+import { AdminSeeder } from './modules/auth/admin-seeder.js';
 import { AuthService } from './modules/auth/auth.service.js';
 import { BcryptPasswordHasher } from './modules/auth/bcrypt-password-hasher.js';
 import { JwtTokenService } from './modules/auth/jwt-token.service.js';
@@ -18,6 +19,13 @@ const tokens = new JwtTokenService({
   audience: env.JWT_AUDIENCE,
 });
 const authService = new AuthService(users, passwords, tokens);
+const adminCredentials =
+  env.ADMIN_EMAIL && env.ADMIN_PASSWORD
+    ? { email: env.ADMIN_EMAIL, password: env.ADMIN_PASSWORD }
+    : undefined;
+
+await new AdminSeeder(users, passwords).seed(adminCredentials);
+
 const app = createApp({
   authService,
   tokenVerifier: tokens,

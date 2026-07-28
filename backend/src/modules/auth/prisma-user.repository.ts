@@ -1,4 +1,5 @@
 import type { DatabaseClient } from '../../infrastructure/database/prisma.js';
+import type { AdminRepository } from './admin-seeder.js';
 import {
   DuplicateEmailError,
   type CreateUserInput,
@@ -12,7 +13,7 @@ const isUniqueConstraintError = (error: unknown) =>
   'code' in error &&
   (error as { code: unknown }).code === 'P2002';
 
-export class PrismaUserRepository implements UserRepository {
+export class PrismaUserRepository implements UserRepository, AdminRepository {
   constructor(private readonly database: DatabaseClient) {}
 
   async findByEmail(email: string): Promise<UserRecord | null> {
@@ -45,5 +46,20 @@ export class PrismaUserRepository implements UserRepository {
 
       throw error;
     }
+  }
+
+  async upsertAdmin(input: { email: string; passwordHash: string }): Promise<void> {
+    await this.database.user.upsert({
+      where: { email: input.email },
+      update: {
+        passwordHash: input.passwordHash,
+        role: 'ADMIN',
+      },
+      create: {
+        email: input.email,
+        passwordHash: input.passwordHash,
+        role: 'ADMIN',
+      },
+    });
   }
 }

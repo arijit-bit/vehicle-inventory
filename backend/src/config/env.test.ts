@@ -14,15 +14,15 @@ describe('loadEnv', () => {
     expect(env.ADMIN_PASSWORD).toBeUndefined();
   });
 
-  it.each([
-    { ADMIN_EMAIL: 'admin@example.com' },
-    { ADMIN_PASSWORD: 'AdminPass123!' },
-  ])('rejects incomplete administrator credentials: %o', (partialAdmin) => {
-    expect(() =>
-      loadEnv({
-        ...validEnvironment,
-        ...partialAdmin,
-      }),
-    ).toThrow(/ADMIN_EMAIL and ADMIN_PASSWORD must be provided together/);
-  });
+  it.each([{ ADMIN_EMAIL: 'admin@example.com' }, { ADMIN_PASSWORD: 'AdminPass123!' }])(
+    'rejects incomplete administrator credentials: %o',
+    (partialAdmin) => {
+      expect(() =>
+        loadEnv({
+          ...validEnvironment,
+          ...partialAdmin,
+        }),
+      ).toThrow(/ADMIN_EMAIL and ADMIN_PASSWORD must be provided together/);
+    },
+  );
 });
