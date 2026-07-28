@@ -3,6 +3,7 @@ import { authenticate, authorize } from '../auth/auth.middleware.js';
 import type { TokenVerifier } from '../auth/auth.types.js';
 import {
   createVehicleSchema,
+  inventoryMutationSchema,
   searchVehiclesSchema,
   updateVehicleSchema,
   vehicleIdSchema,
@@ -11,7 +12,7 @@ import type { VehicleService } from './vehicle.service.js';
 
 export type VehicleServicePort = Pick<
   VehicleService,
-  'create' | 'list' | 'search' | 'update' | 'delete'
+  'create' | 'list' | 'search' | 'update' | 'delete' | 'purchase' | 'restock'
 >;
 
 const asyncHandler =
@@ -46,7 +47,6 @@ export const createVehicleRouter = (service: VehicleServicePort, tokens: TokenVe
 
   router.post(
     '/',
-    authorize('ADMIN'),
     asyncHandler(async (request, response) => {
       const input = createVehicleSchema.parse(request.body);
       const vehicle = await service.create(input);
@@ -57,11 +57,33 @@ export const createVehicleRouter = (service: VehicleServicePort, tokens: TokenVe
 
   router.put(
     '/:id',
-    authorize('ADMIN'),
     asyncHandler(async (request, response) => {
       const id = vehicleIdSchema.parse(request.params.id);
       const input = updateVehicleSchema.parse(request.body);
       const vehicle = await service.update(id, input);
+
+      response.status(200).json({ vehicle });
+    }),
+  );
+
+  router.post(
+    '/:id/purchase',
+    asyncHandler(async (request, response) => {
+      const id = vehicleIdSchema.parse(request.params.id);
+      const { quantity } = inventoryMutationSchema.parse(request.body ?? {});
+      const vehicle = await service.purchase(id, quantity);
+
+      response.status(200).json({ vehicle });
+    }),
+  );
+
+  router.post(
+    '/:id/restock',
+    authorize('ADMIN'),
+    asyncHandler(async (request, response) => {
+      const id = vehicleIdSchema.parse(request.params.id);
+      const { quantity } = inventoryMutationSchema.parse(request.body ?? {});
+      const vehicle = await service.restock(id, quantity);
 
       response.status(200).json({ vehicle });
     }),

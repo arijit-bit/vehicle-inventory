@@ -19,6 +19,7 @@ const priceSchema = z.preprocess(
 );
 
 const quantitySchema = z.number().int().min(0).max(2_147_483_647);
+const inventoryQuantitySchema = z.number().int().positive().max(2_147_483_647);
 
 export const createVehicleSchema = z.strictObject({
   make: vehicleTextSchema,
@@ -54,6 +55,10 @@ export const searchVehiclesSchema = z
   );
 
 export const vehicleIdSchema = z.uuid();
+
+export const inventoryMutationSchema = z.strictObject({
+  quantity: inventoryQuantitySchema.default(1),
+});
 
 export type CreateVehicleInput = z.infer<typeof createVehicleSchema>;
 export type UpdateVehicleInput = z.infer<typeof updateVehicleSchema>;

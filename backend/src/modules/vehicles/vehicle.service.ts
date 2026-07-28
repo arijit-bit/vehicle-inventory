@@ -4,6 +4,7 @@ import type {
   VehicleSearchFilters,
 } from './vehicle.schemas.js';
 import {
+  InsufficientStockError,
   VehicleNotFoundError,
   type VehicleRecord,
   type VehicleRepository,
@@ -40,5 +41,29 @@ export class VehicleService {
     if (!deleted) {
       throw new VehicleNotFoundError();
     }
+  }
+
+  async purchase(id: string, quantity: number): Promise<VehicleRecord> {
+    const result = await this.vehicles.purchase(id, quantity);
+
+    if (result.status === 'NOT_FOUND') {
+      throw new VehicleNotFoundError();
+    }
+
+    if (result.status === 'INSUFFICIENT_STOCK') {
+      throw new InsufficientStockError();
+    }
+
+    return result.vehicle;
+  }
+
+  async restock(id: string, quantity: number): Promise<VehicleRecord> {
+    const vehicle = await this.vehicles.restock(id, quantity);
+
+    if (!vehicle) {
+      throw new VehicleNotFoundError();
+    }
+
+    return vehicle;
   }
 }

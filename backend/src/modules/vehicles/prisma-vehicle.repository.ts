@@ -5,7 +5,7 @@ import type {
   UpdateVehicleInput,
   VehicleSearchFilters,
 } from './vehicle.schemas.js';
-import type { VehicleRecord, VehicleRepository } from './vehicle.types.js';
+import type { PurchaseResult, VehicleRecord, VehicleRepository } from './vehicle.types.js';
 
 const vehicleSelection = {
   id: true,
@@ -134,6 +134,59 @@ export class PrismaVehicleRepository implements VehicleRepository {
     } catch (error) {
       if (isMissingRecordError(error)) {
         return false;
+      }
+
+      throw error;
+    }
+  }
+
+  async purchase(id: string, quantity: number): Promise<PurchaseResult> {
+    const [vehicle] = await this.database.vehicle.updateManyAndReturn({
+      where: {
+        id,
+        quantity: {
+          gte: quantity,
+        },
+      },
+      data: {
+        quantity: {
+          decrement: quantity,
+        },
+      },
+      select: vehicleSelection,
+    });
+
+    if (vehicle) {
+      return {
+        status: 'UPDATED',
+        vehicle: toVehicleRecord(vehicle),
+      };
+    }
+
+    const existingVehicle = await this.database.vehicle.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    return existingVehicle ? { status: 'INSUFFICIENT_STOCK' } : { status: 'NOT_FOUND' };
+  }
+
+  async restock(id: string, quantity: number): Promise<VehicleRecord | null> {
+    try {
+      const vehicle = await this.database.vehicle.update({
+        where: { id },
+        data: {
+          quantity: {
+            increment: quantity,
+          },
+        },
+        select: vehicleSelection,
+      });
+
+      return toVehicleRecord(vehicle);
+    } catch (error) {
+      if (isMissingRecordError(error)) {
+        return null;
       }
 
       throw error;
