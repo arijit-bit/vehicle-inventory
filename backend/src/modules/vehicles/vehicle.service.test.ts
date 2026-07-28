@@ -78,7 +78,7 @@ describe('VehicleService', () => {
   it('reports a missing vehicle during update', async () => {
     vi.mocked(repository.update).mockResolvedValue(null);
 
-    await expect(service.update(vehicle.id, { quantity: 2 })).rejects.toBeInstanceOf(
+    await expect(service.update(vehicle.id, { price: '31999.00' })).rejects.toBeInstanceOf(
       VehicleNotFoundError,
     );
   });

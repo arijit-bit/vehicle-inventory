@@ -47,6 +47,7 @@ export const createVehicleRouter = (service: VehicleServicePort, tokens: TokenVe
 
   router.post(
     '/',
+    authorize('ADMIN'),
     asyncHandler(async (request, response) => {
       const input = createVehicleSchema.parse(request.body);
       const vehicle = await service.create(input);
@@ -57,6 +58,7 @@ export const createVehicleRouter = (service: VehicleServicePort, tokens: TokenVe
 
   router.put(
     '/:id',
+    authorize('ADMIN'),
     asyncHandler(async (request, response) => {
       const id = vehicleIdSchema.parse(request.params.id);
       const input = updateVehicleSchema.parse(request.body);

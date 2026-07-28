@@ -10,6 +10,13 @@ const envSchema = z
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     CORS_ORIGIN: z.string().url().default('http://localhost:5173'),
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+    DATABASE_LOCK_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).default(2_000),
+    DATABASE_STATEMENT_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(500)
+      .max(60_000)
+      .default(10_000),
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must contain at least 32 characters'),
     JWT_EXPIRES_IN: durationSchema.default('15m'),
     JWT_ISSUER: z.string().min(1).default('vehicle-inventory-api'),
@@ -24,6 +31,14 @@ const envSchema = z
         code: 'custom',
         message: 'ADMIN_EMAIL and ADMIN_PASSWORD must be provided together',
         path: ['ADMIN_EMAIL'],
+      });
+    }
+
+    if (env.DATABASE_LOCK_TIMEOUT_MS >= env.DATABASE_STATEMENT_TIMEOUT_MS) {
+      context.addIssue({
+        code: 'custom',
+        message: 'DATABASE_LOCK_TIMEOUT_MS must be lower than DATABASE_STATEMENT_TIMEOUT_MS',
+        path: ['DATABASE_LOCK_TIMEOUT_MS'],
       });
     }
   });
