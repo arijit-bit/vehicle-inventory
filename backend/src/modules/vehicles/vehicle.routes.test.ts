@@ -212,6 +212,15 @@ describe('vehicle HTTP API', () => {
     expect(response.body.vehicle.quantity).toBe(3);
   });
 
+  it('purchases one vehicle when quantity is omitted', async () => {
+    const response = await request(app())
+      .post(`/api/vehicles/${vehicle.id}/purchase`)
+      .set(authorized());
+
+    expect(response.status).toBe(200);
+    expect(vehicleService.purchase).toHaveBeenCalledWith(vehicle.id, 1);
+  });
+
   it('returns 409 when a purchase exceeds available stock', async () => {
     vehicleService.purchase.mockRejectedValue(new InsufficientStockError());
 
@@ -233,6 +242,15 @@ describe('vehicle HTTP API', () => {
     expect(response.status).toBe(200);
     expect(vehicleService.restock).toHaveBeenCalledWith(vehicle.id, 2);
     expect(response.body.vehicle.quantity).toBe(6);
+  });
+
+  it('restocks one vehicle when quantity is omitted', async () => {
+    const response = await request(app())
+      .post(`/api/vehicles/${vehicle.id}/restock`)
+      .set(authorized());
+
+    expect(response.status).toBe(200);
+    expect(vehicleService.restock).toHaveBeenCalledWith(vehicle.id, 1);
   });
 
   it('denies a regular user from restocking a vehicle', async () => {

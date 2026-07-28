@@ -158,4 +158,10 @@ describe('PrismaVehicleRepository', () => {
       }),
     );
   });
+
+  it('returns null when Prisma reports a missing restock target', async () => {
+    database.vehicle.update.mockRejectedValue({ code: 'P2025' });
+
+    await expect(repository.restock(storedVehicle.id, 2)).resolves.toBeNull();
+  });
 });
