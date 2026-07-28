@@ -25,3 +25,8 @@ and transparent AI usage.
 Supabase Auth so the assignment's JWT, password-hashing, and role-authorization requirements remain
 visible and testable. Keep a local PostgreSQL 17 Docker service for offline development and CI-style
 verification.
+
+**Connection setup:** The user supplied a Supabase project connection and database credential.
+Secrets were excluded from Git and this prompt log. The initial schema was deployed and verified
+through the authenticated Supabase connector. The supplied password was rejected by PostgreSQL, so
+the one-time Prisma migration baseline must be completed after the database password is rotated.
