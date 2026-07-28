@@ -2,7 +2,7 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../app.js';
 import type { TokenVerifier } from '../auth/auth.types.js';
-import type { VehicleRecord } from './vehicle.types.js';
+import { VehicleNotFoundError, type VehicleRecord } from './vehicle.types.js';
 
 const vehicle: VehicleRecord = {
   id: 'a104ce48-e57f-4fb0-8793-57c8b9a2c913',
@@ -168,5 +168,22 @@ describe('vehicle HTTP API', () => {
 
     expect(response.status).toBe(400);
     expect(vehicleService.update).not.toHaveBeenCalled();
+  });
+
+  it('returns a stable 404 error when a vehicle no longer exists', async () => {
+    vehicleService.update.mockRejectedValue(new VehicleNotFoundError());
+
+    const response = await request(app())
+      .put(`/api/vehicles/${vehicle.id}`)
+      .set(authorized())
+      .send({ quantity: 3 });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({
+      error: {
+        code: 'VEHICLE_NOT_FOUND',
+        message: 'Vehicle not found',
+      },
+    });
   });
 });
