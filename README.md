@@ -17,12 +17,13 @@ Milestone 3 is complete:
 - Responsive login and registration UI using shadcn-style source components
 - Session restoration, logout, and protected React routes
 - Protected vehicle listing and combined make, model, category, and price-range search
-- Administrator-only vehicle creation, partial updates, and deletion
+- Authenticated vehicle creation and partial updates; administrator-only deletion
 - Exact two-decimal price serialization and non-negative stock validation
 - Prisma persistence with stable not-found handling
-- 74 automated tests across the API and SPA
+- Atomic purchasing with oversell prevention and administrator-only restocking
+- 91 automated tests across the API and SPA
 
-Atomic purchase/restock workflows and the completed dashboard belong to later milestones.
+The completed vehicle dashboard and administrator interface belong to later milestones.
 
 ## Architecture
 
@@ -143,16 +144,18 @@ Authorization: Bearer <token>
 ## Vehicle API
 
 Vehicle prices are returned as two-decimal strings so JSON clients do not lose decimal precision.
-All endpoints require a bearer JWT. Catalog mutations require an `ADMIN` role; authenticated
-`USER` and `ADMIN` accounts can list and search inventory.
+All endpoints require a bearer JWT. Authenticated `USER` and `ADMIN` accounts can list, search,
+create, update, and purchase inventory. Delete and restock operations require an `ADMIN` role.
 
-| Method   | Endpoint               | Access     | Result                                      |
-| -------- | ---------------------- | ---------- | ------------------------------------------- |
-| `GET`    | `/api/vehicles`        | Bearer JWT | Lists every inventory record                |
-| `GET`    | `/api/vehicles/search` | Bearer JWT | Searches with combinable query parameters   |
-| `POST`   | `/api/vehicles`        | Admin      | Creates a vehicle                           |
-| `PUT`    | `/api/vehicles/:id`    | Admin      | Updates one or more supplied vehicle fields |
-| `DELETE` | `/api/vehicles/:id`    | Admin      | Deletes a vehicle                           |
+| Method   | Endpoint                     | Access     | Result                                      |
+| -------- | ---------------------------- | ---------- | ------------------------------------------- |
+| `GET`    | `/api/vehicles`              | Bearer JWT | Lists every inventory record                |
+| `GET`    | `/api/vehicles/search`       | Bearer JWT | Searches with combinable query parameters   |
+| `POST`   | `/api/vehicles`              | Bearer JWT | Creates a vehicle                           |
+| `PUT`    | `/api/vehicles/:id`          | Bearer JWT | Updates one or more supplied vehicle fields |
+| `DELETE` | `/api/vehicles/:id`          | Admin      | Deletes a vehicle                           |
+| `POST`   | `/api/vehicles/:id/purchase` | Bearer JWT | Atomically decreases available quantity     |
+| `POST`   | `/api/vehicles/:id/restock`  | Admin      | Atomically increases available quantity     |
 
 Create body:
 
@@ -178,6 +181,19 @@ GET /api/vehicles/search?make=toy&model=cam&category=sedan&minPrice=10000&maxPri
 Text matching is case-insensitive and contains-based. Price bounds are inclusive. An inverted or
 malformed range returns `400 VALIDATION_ERROR`; a missing update/delete target returns
 `404 VEHICLE_NOT_FOUND`.
+
+Purchase and restock accept an optional positive integer quantity:
+
+```json
+{
+  "quantity": 2
+}
+```
+
+Omitting the body defaults to one vehicle. Purchasing uses one conditional database
+`UPDATE ... WHERE quantity >= requested RETURNING ...` statement, preventing concurrent requests
+from overselling stock. Insufficient quantity returns `409 INSUFFICIENT_STOCK`. Restocking uses an
+atomic database increment and remains administrator-only.
 
 ## Security decisions
 
@@ -207,7 +223,7 @@ GitHub Actions runs the same checks on every push and pull request. See
 
 ## Documented inventory assumptions
 
-- Create, update, delete, and restock operations are admin-only.
+- Create and update require authentication; delete and restock require an administrator.
 - Purchase and restock accept a positive integer quantity.
 - Zero-stock vehicles remain visible but cannot be purchased.
 - Insufficient stock returns `409 Conflict`.
