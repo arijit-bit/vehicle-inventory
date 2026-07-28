@@ -90,7 +90,9 @@ export const AuthPage = ({ mode }: AuthPageProps) => {
             </div>
           </div>
 
-          <p className="text-xs text-slate-600">Purpose-built for accountable vehicle operations.</p>
+          <p className="text-xs text-slate-600">
+            Purpose-built for accountable vehicle operations.
+          </p>
         </section>
 
         <section className="flex min-h-screen items-center justify-center px-5 py-8 sm:px-8 lg:px-12">

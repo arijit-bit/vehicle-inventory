@@ -93,10 +93,7 @@ describe('AuthService', () => {
     });
 
     expect(repository.findByEmail).toHaveBeenCalledWith('driver@example.com');
-    expect(passwordHasher.compare).toHaveBeenCalledWith(
-      'SafePass123!',
-      'stored-password-hash',
-    );
+    expect(passwordHasher.compare).toHaveBeenCalledWith('SafePass123!', 'stored-password-hash');
     expect(result.user.email).toBe('driver@example.com');
     expect(result.token).toBe('signed.jwt.token');
   });

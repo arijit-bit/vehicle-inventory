@@ -1,12 +1,7 @@
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import { z } from 'zod';
 import { normalizedEmailSchema } from './auth.schemas.js';
-import type {
-  AuthClaims,
-  PublicUser,
-  TokenIssuer,
-  TokenVerifier,
-} from './auth.types.js';
+import type { AuthClaims, PublicUser, TokenIssuer, TokenVerifier } from './auth.types.js';
 
 const authClaimsSchema = z.object({
   sub: z.string().uuid(),

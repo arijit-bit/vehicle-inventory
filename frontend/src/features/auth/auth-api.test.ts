@@ -62,8 +62,6 @@ describe('auth API client', () => {
         email: 'driver@example.com',
         password: 'WrongPass123!',
       }),
-    ).rejects.toEqual(
-      new AuthApiError('Invalid email or password', 'INVALID_CREDENTIALS', 400),
-    );
+    ).rejects.toEqual(new AuthApiError('Invalid email or password', 'INVALID_CREDENTIALS', 400));
   });
 });

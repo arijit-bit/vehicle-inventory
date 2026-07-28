@@ -1,9 +1,6 @@
 import type { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
-import {
-  DuplicateEmailError,
-  InvalidCredentialsError,
-} from '../modules/auth/auth.types.js';
+import { DuplicateEmailError, InvalidCredentialsError } from '../modules/auth/auth.types.js';
 
 export const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
   void _next;
