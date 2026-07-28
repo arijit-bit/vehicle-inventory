@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: vehicle_inventory
+      POSTGRES_USER: inventory
+      POSTGRES_PASSWORD: inventory
+    ports:
+      - '5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U inventory -d vehicle_inventory']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - vehicle_inventory_data:/var/lib/postgresql/data
+
+volumes:
+  vehicle_inventory_data:
