@@ -177,6 +177,7 @@ GitHub Actions runs the same checks on every push and pull request. See
 I used OpenAI Codex as a co-development assistant during planning and implementation. It helped me
 turn the assignment into milestones, research current library/security guidance, draft Red tests,
 implement the matching Green code, inspect architecture and unused files, and improve documentation.
+It also generated the single MotorVault social-preview image from a project-specific visual brief.
 I reviewed the resulting behavior through tests, linting, type checking, production builds, Git
 diffs, and Supabase security checks.
 

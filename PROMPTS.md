@@ -65,6 +65,8 @@ using shadcn-style components.
 - Removed only verified-unused Vite starter assets.
 - Ran formatting, linting, TypeScript checks, 43 tests, coverage, and production builds.
 - Checked Supabase security/performance advisors and verified RLS plus revoked browser-role DML.
+- Generated one MotorVault social-preview image using a navy/cyan enterprise visual brief and wired
+  it into Open Graph and Twitter metadata.
 
 **Review decisions:**
 
@@ -75,3 +77,8 @@ using shadcn-style components.
   DML privileges and Express is the only public data boundary.
 - An unrelated warning for an existing Supabase Storage bucket was documented but not modified
   because it is outside this repository's scope.
+
+**Image-generation prompt summary:** Create a landscape MotorVault social card with a midnight navy
+technical backdrop, one modern vehicle with cyan rim lighting, negative space for exact MotorVault
+title text, and a restrained enterprise-security aesthetic. Avoid real vehicle brands, people,
+watermarks, visual clutter, and generic stock-photo styling.
