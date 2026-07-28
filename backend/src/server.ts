@@ -1,9 +1,36 @@
 import 'dotenv/config';
 import { createApp } from './app.js';
+import { loadEnv } from './config/env.js';
+import { createPrismaClient } from './infrastructure/database/prisma.js';
+import { AdminSeeder } from './modules/auth/admin-seeder.js';
+import { AuthService } from './modules/auth/auth.service.js';
+import { BcryptPasswordHasher } from './modules/auth/bcrypt-password-hasher.js';
+import { JwtTokenService } from './modules/auth/jwt-token.service.js';
+import { PrismaUserRepository } from './modules/auth/prisma-user.repository.js';
 
-const port = Number(process.env.PORT ?? 3000);
-const app = createApp();
+const env = loadEnv();
+const database = createPrismaClient(env.DATABASE_URL);
+const users = new PrismaUserRepository(database);
+const passwords = new BcryptPasswordHasher(env.BCRYPT_ROUNDS);
+const tokens = new JwtTokenService({
+  secret: env.JWT_SECRET,
+  expiresIn: env.JWT_EXPIRES_IN,
+  issuer: env.JWT_ISSUER,
+  audience: env.JWT_AUDIENCE,
+});
+const authService = new AuthService(users, passwords, tokens);
+const adminCredentials =
+  env.ADMIN_EMAIL && env.ADMIN_PASSWORD
+    ? { email: env.ADMIN_EMAIL, password: env.ADMIN_PASSWORD }
+    : undefined;
 
-app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`);
+await new AdminSeeder(users, passwords).seed(adminCredentials);
+
+const app = createApp({
+  authService,
+  tokenVerifier: tokens,
+});
+
+app.listen(env.PORT, () => {
+  console.log(`API listening on http://localhost:${env.PORT}`);
 });

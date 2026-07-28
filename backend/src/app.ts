@@ -1,8 +1,16 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import { errorHandler } from './middleware/error-handler.js';
+import { createAuthRouter, type AuthServicePort } from './modules/auth/auth.routes.js';
+import type { TokenVerifier } from './modules/auth/auth.types.js';
 
-export const createApp = () => {
+interface AppDependencies {
+  authService?: AuthServicePort;
+  tokenVerifier?: TokenVerifier;
+}
+
+export const createApp = ({ authService, tokenVerifier }: AppDependencies = {}) => {
   const app = express();
 
   app.use(helmet());
@@ -20,6 +28,10 @@ export const createApp = () => {
     });
   });
 
+  if (authService && tokenVerifier) {
+    app.use('/api/auth', createAuthRouter(authService, tokenVerifier));
+  }
+
   app.use((_request, response) => {
     response.status(404).json({
       error: {
@@ -28,6 +40,8 @@ export const createApp = () => {
       },
     });
   });
+
+  app.use(errorHandler);
 
   return app;
 };
