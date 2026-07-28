@@ -1,6 +1,7 @@
 import type { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 import { DuplicateEmailError, InvalidCredentialsError } from '../modules/auth/auth.types.js';
+import { VehicleNotFoundError } from '../modules/vehicles/vehicle.types.js';
 
 export const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
   void _next;
@@ -33,6 +34,16 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     response.status(401).json({
       error: {
         code: 'INVALID_CREDENTIALS',
+        message: error.message,
+      },
+    });
+    return;
+  }
+
+  if (error instanceof VehicleNotFoundError) {
+    response.status(404).json({
+      error: {
+        code: 'VEHICLE_NOT_FOUND',
         message: error.message,
       },
     });
