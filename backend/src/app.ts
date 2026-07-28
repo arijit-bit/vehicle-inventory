@@ -4,10 +4,7 @@ import helmet from 'helmet';
 import { errorHandler } from './middleware/error-handler.js';
 import { createAuthRouter, type AuthServicePort } from './modules/auth/auth.routes.js';
 import type { TokenVerifier } from './modules/auth/auth.types.js';
-import {
-  createVehicleRouter,
-  type VehicleServicePort,
-} from './modules/vehicles/vehicle.routes.js';
+import { createVehicleRouter, type VehicleServicePort } from './modules/vehicles/vehicle.routes.js';
 
 interface AppDependencies {
   authService?: AuthServicePort;

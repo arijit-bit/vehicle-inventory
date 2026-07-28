@@ -82,3 +82,41 @@ using shadcn-style components.
 technical backdrop, one modern vehicle with cyan rim lighting, negative space for exact MotorVault
 title text, and a restrained enterprise-security aesthetic. Avoid real vehicle brands, people,
 watermarks, visual clutter, and generic stock-photo styling.
+
+## 2026-07-29 - Milestone 3 vehicle CRUD and search
+
+**User prompt summary:** Continue the project after the first two published milestones, follow the
+provided seven-milestone delivery order, work carefully, and preserve the special Git rule that
+every AI-assisted commit includes an AI co-author trailer.
+
+**AI-assisted work:**
+
+- Audited the completed authentication branch, full assignment brief, existing Git history, and
+  two unrelated uncommitted root package changes before editing.
+- Created a dedicated Milestone 3 branch while preserving and excluding those existing changes.
+- Defined failing backend contracts first for vehicle validation, protected reads, administrator
+  mutation guards, combined search filters, and missing-record behavior.
+- Implemented strict trimmed catalog fields, exact two-decimal money handling, non-negative integer
+  stock validation, and inclusive price-range validation.
+- Added protected vehicle list/search endpoints and administrator-only create/update/delete
+  endpoints with stable validation, authorization, and not-found error responses.
+- Added a service/repository boundary and Prisma persistence with case-insensitive contains filters,
+  AND semantics, exact decimal serialization, partial updates, and Prisma `P2025` handling.
+- Added direct regression tests for Prisma query construction and persistence edge cases.
+- Consulted current Supabase changelog and database guidance before verification.
+- Verified the live Supabase vehicle schema, database constraints, indexes, RLS, revoked browser
+  privileges, security/performance advisors, and an `EXPLAIN` plan showing price-index use.
+- Ran formatting, linting, TypeScript checks, 74 tests, coverage, and production builds.
+
+**Review decisions:**
+
+- Both `USER` and `ADMIN` may list and search; catalog mutation is administrator-only to match the
+  specified admin interface and least-privilege design.
+- Vehicle prices cross the JSON boundary as two-decimal strings to preserve PostgreSQL `DECIMAL`
+  precision.
+- Zero-stock records remain visible so the later dashboard can disable purchase without hiding
+  inventory.
+- Search fields combine with AND semantics; text uses case-insensitive contains matching and price
+  bounds are inclusive.
+- Existing informational Supabase no-policy notices remain intentional because Express is the only
+  public data boundary and browser roles have no table DML privileges.

@@ -151,9 +151,7 @@ describe('vehicle HTTP API', () => {
   });
 
   it('deletes a vehicle as an administrator', async () => {
-    const response = await request(app())
-      .delete(`/api/vehicles/${vehicle.id}`)
-      .set(authorized());
+    const response = await request(app()).delete(`/api/vehicles/${vehicle.id}`).set(authorized());
 
     expect(response.status).toBe(204);
     expect(response.body).toEqual({});

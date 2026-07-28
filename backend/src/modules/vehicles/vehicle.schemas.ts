@@ -7,7 +7,10 @@ const priceSchema = z.preprocess(
   z
     .string()
     .trim()
-    .regex(/^\d{1,10}(?:\.\d{1,2})?$/, 'Price must be a non-negative amount with at most 2 decimals')
+    .regex(
+      /^\d{1,10}(?:\.\d{1,2})?$/,
+      'Price must be a non-negative amount with at most 2 decimals',
+    )
     .transform((value) => {
       const [whole, fraction = ''] = value.split('.');
 
