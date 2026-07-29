@@ -23,7 +23,13 @@ describe('AuthForm', () => {
     await user.type(screen.getByLabelText(/^password$/i), 'SafePass123!');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
 
-    expect(await screen.findByText(/valid email.*@.*domain/i)).toBeInTheDocument();
+    const error = await screen.findByText(/valid email.*@.*domain/i);
+    expect(error).toBeInTheDocument();
+    expect(screen.getByLabelText(/email address/i)).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByLabelText(/email address/i)).toHaveAttribute(
+      'aria-describedby',
+      error.id,
+    );
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
