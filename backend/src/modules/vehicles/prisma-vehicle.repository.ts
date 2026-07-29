@@ -65,7 +65,9 @@ const isRetryableDatabaseTimeout = (error: unknown): boolean => {
 
   if (
     typeof candidate.message === 'string' &&
-    /(lock timeout|statement timeout|transaction.*timed out)/i.test(candidate.message)
+    /(lock timeout|statement timeout|transaction.*timed out|unable to start a transaction in the given time)/i.test(
+      candidate.message,
+    )
   ) {
     return true;
   }
@@ -106,6 +108,7 @@ export class PrismaVehicleRepository implements VehicleRepository {
           return operation(transaction);
         },
         {
+          maxWait: this.timeouts.statementTimeoutMs,
           timeout: this.timeouts.statementTimeoutMs + 1_000,
         },
       );
