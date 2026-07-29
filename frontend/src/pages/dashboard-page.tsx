@@ -8,11 +8,13 @@ import {
   Plus,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   ShoppingCart,
   Trash2,
+  UserRoundCheck,
   X,
 } from 'lucide-react';
-import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useId, useState, type FormEvent, type ReactNode } from 'react';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
@@ -37,6 +39,8 @@ interface Feedback {
   tone: 'error' | 'success';
   message: string;
 }
+
+type AvailabilityFilter = 'all' | 'available' | 'sold-out';
 
 const currency = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -229,6 +233,22 @@ export const DashboardPage = () => {
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [filters, setFilters] = useState<VehicleSearchFilters>({});
+  const [availability, setAvailability] = useState<AvailabilityFilter>('all');
+
+  const handleInventoryError = useCallback(
+    (error: unknown) => {
+      if (
+        error instanceof VehicleApiError &&
+        (error.status === 401 || error.code === 'UNAUTHENTICATED')
+      ) {
+        logout();
+        return;
+      }
+
+      setFeedback({ tone: 'error', message: readableInventoryError(error) });
+    },
+    [logout],
+  );
 
   useEffect(() => {
     if (!token) {
@@ -247,7 +267,7 @@ export const DashboardPage = () => {
       })
       .catch((error: unknown) => {
         if (active) {
-          setFeedback({ tone: 'error', message: readableInventoryError(error) });
+          handleInventoryError(error);
         }
       })
       .finally(() => {
@@ -259,7 +279,7 @@ export const DashboardPage = () => {
     return () => {
       active = false;
     };
-  }, [token]);
+  }, [handleInventoryError, token]);
 
   const runAction = async (key: string, action: () => Promise<void>) => {
     setPendingAction(key);
@@ -268,7 +288,7 @@ export const DashboardPage = () => {
     try {
       await action();
     } catch (error) {
-      setFeedback({ tone: 'error', message: readableInventoryError(error) });
+      handleInventoryError(error);
     } finally {
       setPendingAction(null);
     }
@@ -388,6 +408,21 @@ export const DashboardPage = () => {
   const totalUnits = vehicles.reduce((sum, vehicle) => sum + vehicle.quantity, 0);
   const availableModels = vehicles.filter((vehicle) => vehicle.quantity > 0).length;
   const isAdmin = user?.role === 'ADMIN';
+  const visibleVehicles = vehicles.filter((vehicle) => {
+    if (availability === 'available') {
+      return vehicle.quantity > 0;
+    }
+
+    if (availability === 'sold-out') {
+      return vehicle.quantity === 0;
+    }
+
+    return true;
+  });
+  const resultLabel = `${visibleVehicles.length} ${
+    visibleVehicles.length === 1 ? 'vehicle' : 'vehicles'
+  }`;
+  const accountInitial = user?.email.charAt(0).toUpperCase() ?? 'M';
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-8">
@@ -405,14 +440,23 @@ export const DashboardPage = () => {
               <p className="text-xs text-slate-500">Atomic vehicle inventory</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="hidden items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-400/8 px-3 py-2 text-xs font-medium text-emerald-300 sm:inline-flex">
-              <ShieldCheck aria-hidden="true" className="size-4" />
-              {isAdmin ? 'Administrator' : 'Verified buyer'}
-            </span>
-            <Button onClick={logout} variant="outline">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] py-2 pl-2 pr-4 sm:flex">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-cyan-400/10 text-sm font-bold text-cyan-300 ring-1 ring-cyan-300/15">
+                {accountInitial}
+              </span>
+              <div className="min-w-0">
+                <p className="max-w-52 truncate text-xs font-semibold text-slate-200">
+                  {user?.email}
+                </p>
+                <p className="mt-0.5 flex items-center gap-1 text-[11px] text-emerald-300">
+                  <ShieldCheck aria-hidden="true" className="size-3" />
+                  {isAdmin ? 'Administrator' : 'Verified buyer'}
+                </p>
+              </div>
+            </div>
+            <Button aria-label="Sign out" onClick={logout} size="icon" variant="outline">
               <LogOut aria-hidden="true" className="size-4" />
-              Sign out
             </Button>
           </div>
         </header>
@@ -523,6 +567,44 @@ export const DashboardPage = () => {
         )}
 
         <section aria-busy={isLoading} aria-label="Vehicle inventory" className="py-8">
+          <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                <SlidersHorizontal aria-hidden="true" className="size-4 text-cyan-300" />
+                Inventory view
+              </p>
+              <p aria-live="polite" className="mt-1 text-xs text-slate-500">
+                {resultLabel}
+              </p>
+            </div>
+            <div
+              aria-label="Filter inventory by availability"
+              className="grid grid-cols-3 rounded-xl border border-white/10 bg-slate-900/70 p-1"
+              role="group"
+            >
+              {(
+                [
+                  ['all', 'All'],
+                  ['available', 'Available'],
+                  ['sold-out', 'Sold out'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  aria-pressed={availability === value}
+                  className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
+                    availability === value
+                      ? 'bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/10'
+                      : 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
+                  }`}
+                  key={value}
+                  onClick={() => setAvailability(value)}
+                  type="button"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           {isLoading ? (
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {[0, 1, 2].map((item) => (
@@ -533,17 +615,17 @@ export const DashboardPage = () => {
                 />
               ))}
             </div>
-          ) : vehicles.length === 0 ? (
+          ) : visibleVehicles.length === 0 ? (
             <Card className="rounded-3xl p-12 text-center">
               <CarFront aria-hidden="true" className="mx-auto size-10 text-slate-600" />
               <h2 className="mt-4 text-lg font-semibold text-white">No vehicles found</h2>
               <p className="mt-2 text-sm text-slate-500">
-                Change your filters or add the first vehicle to this inventory.
+                Change the search or availability filter to explore the inventory.
               </p>
             </Card>
           ) : (
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {vehicles.map((vehicle) => {
+              {visibleVehicles.map((vehicle) => {
                 const soldOut = vehicle.quantity === 0;
                 const buying = pendingAction === `purchase-${vehicle.id}`;
 
@@ -583,6 +665,10 @@ export const DashboardPage = () => {
                       </div>
                     </div>
                     <div className="p-6">
+                      <p className="mb-4 flex items-center gap-2 text-xs font-medium text-slate-500">
+                        <UserRoundCheck aria-hidden="true" className="size-4 text-cyan-400" />
+                        Protected purchase workflow
+                      </p>
                       <div className="flex items-center gap-2 text-2xl font-semibold text-white">
                         <CircleDollarSign aria-hidden="true" className="size-5 text-cyan-400" />
                         {currency.format(Number(vehicle.price))}

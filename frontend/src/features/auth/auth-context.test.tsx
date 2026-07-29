@@ -23,7 +23,7 @@ const SessionProbe = () => {
 
   return (
     <div>
-      <p>{isLoading ? 'Restoring' : user?.email ?? 'Anonymous'}</p>
+      <p>{isLoading ? 'Restoring' : (user?.email ?? 'Anonymous')}</p>
       <button onClick={logout} type="button">
         Sign out
       </button>

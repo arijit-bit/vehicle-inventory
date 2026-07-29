@@ -26,10 +26,7 @@ describe('AuthForm', () => {
     const error = await screen.findByText(/valid email.*@.*domain/i);
     expect(error).toBeInTheDocument();
     expect(screen.getByLabelText(/email address/i)).toHaveAttribute('aria-invalid', 'true');
-    expect(screen.getByLabelText(/email address/i)).toHaveAttribute(
-      'aria-describedby',
-      error.id,
-    );
+    expect(screen.getByLabelText(/email address/i)).toHaveAttribute('aria-describedby', error.id);
     expect(onSubmit).not.toHaveBeenCalled();
   });
 

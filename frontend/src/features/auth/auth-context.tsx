@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { authApi, type AuthCredentials, type AuthUser } from './auth-api';
 import { AuthContext, type AuthContextValue } from './auth-context-value';
 
@@ -14,19 +14,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    let active = true;
+
     authApi
       .me(token)
       .then(({ user: currentUser }) => {
-        setUser(currentUser);
+        if (active) {
+          setUser(currentUser);
+        }
       })
       .catch(() => {
-        sessionStorage.removeItem(tokenStorageKey);
-        setToken(null);
-        setUser(null);
+        if (active) {
+          sessionStorage.removeItem(tokenStorageKey);
+          setToken(null);
+          setUser(null);
+        }
       })
       .finally(() => {
-        setIsLoading(false);
+        if (active) {
+          setIsLoading(false);
+        }
       });
+
+    return () => {
+      active = false;
+    };
   }, [token]);
 
   const authenticate = async (
@@ -42,12 +54,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = (credentials: AuthCredentials) => authenticate(authApi.login, credentials);
   const register = (credentials: AuthCredentials) => authenticate(authApi.register, credentials);
-  const logout = () => {
+  const logout = useCallback(() => {
     sessionStorage.removeItem(tokenStorageKey);
     setToken(null);
     setUser(null);
     setIsLoading(false);
-  };
+  }, []);
 
   const value: AuthContextValue = {
     user,
