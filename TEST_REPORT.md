@@ -6,24 +6,27 @@ Recorded on 2026-07-29 using Node.js `v24.8.0` and npm `11.6.0` on Windows.
 
 | Area        | Test files | Tests | Result |
 | ----------- | ---------: | ----: | ------ |
-| Express API |         13 |    91 | Passed |
-| React SPA   |          5 |    18 | Passed |
-| Total       |         18 |   109 | Passed |
+| Express API |         14 |    92 | Passed |
+| React SPA   |          6 |    22 | Passed |
+| Total       |         20 |   114 | Passed |
 
 ## Coverage
 
 | Area        | Statements | Branches | Functions |  Lines |
 | ----------- | ---------: | -------: | --------: | -----: |
 | Express API |     91.95% |   87.96% |    90.36% | 91.81% |
-| React SPA   |     81.25% |   79.02% |    78.57% | 80.66% |
+| React SPA   |     84.63% |   80.60% |    82.90% | 84.30% |
 
 Vehicle routes and schemas have 100% statement, branch, function, and line coverage. The vehicle
 service, Prisma adapter, decimal serialization, combined search query, partial updates, conditional
 purchase, atomic restock, transaction-local timeouts, pool-acquisition timeouts, default
 quantities, insufficient stock, and missing-record paths have direct regression coverage. The React
-suite covers authenticated inventory requests, combined search, sold-out purchase disabling,
-committed stock updates, retryable contention feedback, and administrator create, edit, restock,
-and delete workflows. Lower aggregate coverage primarily reflects the authentication Prisma
+suite covers authenticated inventory requests, combined search, availability filtering, sold-out
+purchase disabling, committed stock updates, retryable contention feedback, expired-session
+logout, logout/profile-response race handling, accessible validation errors, and administrator
+create, edit, restock, and delete workflows. A backend integration test uses the real bcrypt and
+JWT services to cross registration, profile restoration, protected inventory, and role
+authorization boundaries. Lower aggregate coverage primarily reflects the authentication Prisma
 repository and server bootstrap, which require a live database integration environment.
 
 ## Quality gate

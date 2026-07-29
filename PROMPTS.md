@@ -196,3 +196,35 @@ updates, and stable `409`, `403`, and related API errors.
   stock remains a non-retryable `409` business conflict.
 - No migration was needed because existing `UPDATE`/`DELETE` statements acquire row locks and the
   non-negative stock constraint already provides defense in depth.
+
+## 2026-07-29 - Milestone 5 React authentication and dashboard
+
+**User prompt summary:** Continue the project with Milestone 5, act as a strong frontend and backend
+developer, use shadcn-style UI elements to create polished authentication and dashboard pages,
+validate the backend boundary, follow the repository's AI co-author rule, and commit the work.
+
+**AI-assisted work:**
+
+- Audited the earlier authentication and atomic-inventory milestones so Milestone 5 extended the
+  existing React experience instead of duplicating it.
+- Defined failing frontend contracts for session-restoration cancellation, expired-token logout,
+  accessible auth error associations, signed-in identity display, and availability filtering.
+- Prevented a late `/auth/me` response from restoring identity after logout.
+- Cleared the tab-scoped session whenever a protected inventory call returns an unauthenticated
+  `401` response.
+- Connected validation messages to their inputs with `aria-invalid` and `aria-describedby`.
+- Refined the responsive shadcn-style dashboard with a verified identity/role surface,
+  all/available/sold-out tabs, announced result counts, and clearer protected-purchase context.
+- Added a backend integration proof using the real bcrypt and JWT services from registration
+  through `/auth/me`, protected inventory loading, and administrator-role denial.
+- Ran 114 tests, coverage, linting, TypeScript checks, formatting, and production builds.
+
+**Review decisions:**
+
+- Existing Express JWT authentication remains the system of record; no second frontend or platform
+  authentication stack was introduced.
+- Availability tabs filter the server-returned collection locally and do not issue redundant API
+  calls.
+- The authenticated email and role come from verified server claims, never from editable client
+  input.
+- User-owned root package changes were preserved outside Milestone 5 commits.
