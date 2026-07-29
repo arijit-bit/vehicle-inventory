@@ -1,9 +1,9 @@
 import { ArrowUpRight, ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import blackVehicle from '../../assets/svg/Middle-black-car.svg';
-import whiteVehicle from '../../assets/svg/White-RR.svg';
-import blueVehicle from '../../assets/svg/blue-buggati.svg';
+import blackVehicle from '../../assets/svg/Middle-black-car-centered.svg';
+import whiteVehicle from '../../assets/svg/White-RR-centered.svg';
+import blueVehicle from '../../assets/svg/blue-bugatti-centered(1).svg';
 import greenVehicle from '../../assets/svg/green-lambo.svg';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';

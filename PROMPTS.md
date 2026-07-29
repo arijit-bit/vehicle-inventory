@@ -451,3 +451,26 @@ vehicles.
 - The Supabase connector exposed a different empty project than `backend/.env`; the configured
   runtime project was therefore migrated through Prisma and verified through its direct backend
   connection instead of mutating the unrelated connector project.
+
+## 2026-07-30 - Centered collection artwork replacement
+
+**User prompt summary:** Replace the former Bugatti, White-RR, and middle-black-car collection SVGs
+with newly supplied centered versions and update the database mapping if required.
+
+**AI-assisted work:**
+
+- Confirmed the former SVGs were removed and the three centered replacement files were present in
+  `frontend/src/assets/svg`.
+- Added failing card-level regression tests proving each persisted artwork key resolves to its
+  matching centered file.
+- Updated the card asset map to import `White-RR-centered.svg`,
+  `blue-bugatti-centered(1).svg`, and `Middle-black-car-centered.svg`.
+- Verified the live API already stores the stable `WHITE_RR`, `BLUE_BUGATTI`, and `BLACK_CAR`
+  values, so no database mutation or migration was needed.
+- Ran all 34 frontend tests plus coverage, lint, TypeScript checking, and the production build.
+
+**Architecture decision:**
+
+- Database rows continue to store semantic artwork keys rather than filesystem names. Replacing a
+  presentation asset therefore requires one frontend mapping change without rewriting product
+  records or coupling database data to Vite filenames.

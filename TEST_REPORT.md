@@ -7,8 +7,8 @@ Recorded on 2026-07-30 using Node.js `v24.8.0` and npm `11.6.0` on Windows.
 | Area        | Test files | Tests | Result |
 | ----------- | ---------: | ----: | ------ |
 | Express API |         17 |   112 | Passed |
-| React SPA   |          6 |    31 | Passed |
-| Total       |         23 |   143 | Passed |
+| React SPA   |          7 |    34 | Passed |
+| Total       |         24 |   146 | Passed |
 
 ## Coverage
 
@@ -23,9 +23,10 @@ validation, combined search query, partial updates, conditional purchase, atomic
 transaction-local timeouts, pool-acquisition timeouts, default quantities, insufficient stock, and
 missing-record paths have direct regression coverage. The React suite covers the luxury root-route
 hero, shared navigation across public routes, guest inventory browsing, authenticated purchases,
-combined search, brand filtering, price sorting, database-selected non-hero vehicle artwork,
-expanded engine/fuel details, social-provider removal, the accessible Shadcn account-type selector,
-Employee inventory controls, and Administrator create, edit, restock, and delete workflows.
+combined search, brand filtering, price sorting, explicit database-key mapping to the centered
+White-RR, Bugatti, and black-car artwork, expanded engine/fuel details, social-provider removal, the
+accessible Shadcn account-type selector, Employee inventory controls, and Administrator create,
+edit, restock, and delete workflows.
 Backend tests cover Customer, Employee, and Administrator route boundaries plus Admin-only user
 CRUD and role assignment. Integration tests use real bcrypt and JWT services to cross
 registration, profile restoration, protected inventory, role authorization, and

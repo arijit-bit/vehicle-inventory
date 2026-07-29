@@ -38,7 +38,7 @@ Milestone 7 is complete:
 - Accessible dialogs with Escape, backdrop, focus trapping, and scroll handling
 - Real signed-token verification that `DELETE /api/vehicles/:id` is administrator-only
 - End-to-end auth boundary proof from registration through profile restore and protected inventory
-- 143 automated tests across the API and SPA
+- 146 automated tests across the API and SPA
 
 ## Architecture
 
@@ -322,10 +322,10 @@ Navigation Menu now spans Home, Inventory, Login, and Register. Radix-powered Sh
 provide brand filtering, price sorting, and expandable advanced search. Availability tabs switch
 locally between all, purchasable, and sold-out records without another network request.
 
-Vehicle cards use the repository's non-hero transparent automotive assets with database-backed
-color, artwork selection, transmission, model year, engine, fuel, description, price, and stock.
-Expanded details show the persisted specification instead of frontend placeholders. Guest visitors
-can browse and filter but must sign in before reserving a vehicle.
+Vehicle cards use the repository's centered, non-hero transparent automotive assets with
+database-backed color, artwork selection, transmission, model year, engine, fuel, description,
+price, and stock. Expanded details show the persisted specification instead of frontend
+placeholders. Guest visitors can browse and filter but must sign in before reserving a vehicle.
 
 The glass navigation header shows the verified email and effective role returned by `/api/auth/me`.
 Expired or rejected bearer tokens immediately clear the tab-scoped session and return the user to
