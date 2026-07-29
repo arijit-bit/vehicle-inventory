@@ -2,7 +2,10 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import type { DatabaseClient } from '../../infrastructure/database/prisma.js';
 import type {
   CreateVehicleInput,
+  FuelType,
+  Transmission,
   UpdateVehicleInput,
+  VehicleImageKey,
   VehicleSearchFilters,
 } from './vehicle.schemas.js';
 import {
@@ -16,7 +19,15 @@ const vehicleSelection = {
   id: true,
   make: true,
   model: true,
+  year: true,
   category: true,
+  imageKey: true,
+  colorName: true,
+  colorHex: true,
+  engine: true,
+  transmission: true,
+  fuelType: true,
+  details: true,
   price: true,
   quantity: true,
   createdAt: true,
@@ -27,8 +38,16 @@ interface StoredVehicle {
   id: string;
   make: string;
   model: string;
+  year: number;
   category: string;
-  price: { toString(): string };
+  imageKey: VehicleImageKey;
+  colorName: string;
+  colorHex: string;
+  engine: string;
+  transmission: Transmission;
+  fuelType: FuelType;
+  details: string;
+  price: { toFixed(decimalPlaces: number): string };
   quantity: number;
   createdAt: Date;
   updatedAt: Date;
@@ -36,7 +55,7 @@ interface StoredVehicle {
 
 const toVehicleRecord = (vehicle: StoredVehicle): VehicleRecord => ({
   ...vehicle,
-  price: vehicle.price.toString(),
+  price: vehicle.price.toFixed(2),
 });
 
 const isMissingRecordError = (error: unknown) =>
@@ -177,7 +196,15 @@ export class PrismaVehicleRepository implements VehicleRepository {
     const data: Prisma.VehicleUpdateInput = {
       ...(input.make !== undefined && { make: input.make }),
       ...(input.model !== undefined && { model: input.model }),
+      ...(input.year !== undefined && { year: input.year }),
       ...(input.category !== undefined && { category: input.category }),
+      ...(input.imageKey !== undefined && { imageKey: input.imageKey }),
+      ...(input.colorName !== undefined && { colorName: input.colorName }),
+      ...(input.colorHex !== undefined && { colorHex: input.colorHex }),
+      ...(input.engine !== undefined && { engine: input.engine }),
+      ...(input.transmission !== undefined && { transmission: input.transmission }),
+      ...(input.fuelType !== undefined && { fuelType: input.fuelType }),
+      ...(input.details !== undefined && { details: input.details }),
       ...(input.price !== undefined && { price: input.price }),
     };
 

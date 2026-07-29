@@ -32,7 +32,15 @@ const vehicles: Vehicle[] = [
     id: 'a104ce48-e57f-4fb0-8793-57c8b9a2c913',
     make: 'Toyota',
     model: 'Camry',
+    year: 2025,
     category: 'Sedan',
+    imageKey: 'WHITE_RR',
+    colorName: 'Frozen Silver',
+    colorHex: '#C8C9C7',
+    engine: '2.5L Hybrid',
+    transmission: 'AUTOMATIC',
+    fuelType: 'HYBRID',
+    details: 'Executive hybrid sedan.',
     price: '32999.90',
     quantity: 2,
     createdAt: '2026-01-01T00:00:00.000Z',
@@ -42,7 +50,15 @@ const vehicles: Vehicle[] = [
     id: '82e88523-f566-4bb2-b9b0-54c5ecf59db7',
     make: 'Ford',
     model: 'Mustang',
+    year: 2024,
     category: 'Coupe',
+    imageKey: 'BLACK_CAR',
+    colorName: 'Obsidian Black',
+    colorHex: '#333336',
+    engine: '5.0L V8',
+    transmission: 'MANUAL',
+    fuelType: 'PETROL',
+    details: 'Naturally aspirated performance coupe.',
     price: '58999.00',
     quantity: 0,
     createdAt: '2026-01-02T00:00:00.000Z',
@@ -161,6 +177,7 @@ describe('DashboardPage', () => {
   });
 
   it('renders the premium collection chrome and vehicle metadata', async () => {
+    const user = userEvent.setup();
     mockAuth('CUSTOMER');
 
     render(<DashboardPage />);
@@ -173,14 +190,19 @@ describe('DashboardPage', () => {
     );
     expect(screen.getByRole('combobox', { name: 'Filter By Brand' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Sort By Price' })).toBeInTheDocument();
-    expect(screen.getAllByText('Automatic')).toHaveLength(2);
+    expect(screen.getByText('Automatic')).toBeInTheDocument();
+    expect(screen.getByText('Manual')).toBeInTheDocument();
     expect(screen.getByText('Frozen Silver')).toHaveClass('rounded-full', 'border');
-    expect(screen.getAllByText('Automatic')[0]).toHaveClass('rounded-full', 'border');
+    expect(screen.getByText('Automatic')).toHaveClass('rounded-full', 'border');
     expect(screen.getAllByLabelText(/view .* details/i)).toHaveLength(2);
     expect(screen.getByRole('img', { name: 'Toyota Camry' })).not.toHaveAttribute(
       'src',
       expect.stringContaining('Final-CarHero'),
     );
+
+    await user.click(screen.getByRole('button', { name: 'View Toyota Camry details' }));
+    expect(screen.getByText('2.5L Hybrid')).toBeInTheDocument();
+    expect(screen.getByText('Hybrid')).toBeInTheDocument();
   });
 
   it('filters by brand and sorts the collection by price', async () => {
@@ -311,6 +333,11 @@ describe('DashboardPage', () => {
     await user.type(screen.getByLabelText('Make'), 'Volvo');
     await user.type(screen.getByLabelText('Model'), 'XC90');
     await user.type(screen.getByLabelText('Category'), 'SUV');
+    await user.type(screen.getByLabelText('Engine'), '2.0L Turbo Hybrid');
+    await user.type(
+      screen.getByLabelText('Vehicle details'),
+      'A refined seven-seat luxury utility vehicle.',
+    );
     await user.type(screen.getByLabelText('Price'), '72000');
     await user.type(screen.getByLabelText('Initial quantity'), '3');
     await user.click(screen.getByRole('button', { name: 'Create vehicle' }));
@@ -318,7 +345,15 @@ describe('DashboardPage', () => {
     expect(vehicleApi.create).toHaveBeenCalledWith('secure-token', {
       make: 'Volvo',
       model: 'XC90',
+      year: new Date().getUTCFullYear(),
       category: 'SUV',
+      imageKey: 'WHITE_RR',
+      colorName: 'Frozen Silver',
+      colorHex: '#C8C9C7',
+      engine: '2.0L Turbo Hybrid',
+      transmission: 'AUTOMATIC',
+      fuelType: 'PETROL',
+      details: 'A refined seven-seat luxury utility vehicle.',
       price: 72000,
       quantity: 3,
     });
@@ -335,7 +370,15 @@ describe('DashboardPage', () => {
       {
         make: 'Toyota',
         model: 'Camry',
+        year: 2025,
         category: 'Sedan',
+        imageKey: 'WHITE_RR',
+        colorName: 'Frozen Silver',
+        colorHex: '#C8C9C7',
+        engine: '2.5L Hybrid',
+        transmission: 'AUTOMATIC',
+        fuelType: 'HYBRID',
+        details: 'Executive hybrid sedan.',
         price: 31999,
       },
     );

@@ -1,6 +1,9 @@
 import type {
   CreateVehicleInput,
+  FuelType,
+  Transmission,
   UpdateVehicleInput,
+  VehicleImageKey,
   VehicleSearchFilters,
 } from './vehicle.schemas.js';
 
@@ -8,7 +11,15 @@ export interface VehicleRecord {
   id: string;
   make: string;
   model: string;
+  year: number;
   category: string;
+  imageKey: VehicleImageKey;
+  colorName: string;
+  colorHex: string;
+  engine: string;
+  transmission: Transmission;
+  fuelType: FuelType;
+  details: string;
   price: string;
   quantity: number;
   createdAt: Date;

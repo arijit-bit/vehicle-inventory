@@ -1,8 +1,20 @@
+export type VehicleImageKey = 'WHITE_RR' | 'BLUE_BUGATTI' | 'GREEN_LAMBO' | 'BLACK_CAR';
+export type Transmission = 'MANUAL' | 'AUTOMATIC';
+export type FuelType = 'PETROL' | 'DIESEL' | 'HYBRID' | 'ELECTRIC';
+
 export interface Vehicle {
   id: string;
   make: string;
   model: string;
+  year: number;
   category: string;
+  imageKey: VehicleImageKey;
+  colorName: string;
+  colorHex: string;
+  engine: string;
+  transmission: Transmission;
+  fuelType: FuelType;
+  details: string;
   price: string;
   quantity: number;
   createdAt: string;
@@ -20,7 +32,15 @@ export interface VehicleSearchFilters {
 export interface CreateVehicleInput {
   make: string;
   model: string;
+  year: number;
   category: string;
+  imageKey: VehicleImageKey;
+  colorName: string;
+  colorHex: string;
+  engine: string;
+  transmission: Transmission;
+  fuelType: FuelType;
+  details: string;
   price: number;
   quantity: number;
 }

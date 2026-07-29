@@ -8,14 +8,21 @@ import greenVehicle from '../../assets/svg/green-lambo.svg';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { cn } from '../../lib/utils';
-import type { Vehicle } from './vehicle-api';
+import type { Vehicle, VehicleImageKey } from './vehicle-api';
 
-const presentation = [
-  { color: 'Frozen Silver', dot: '#c8c9c7', image: whiteVehicle },
-  { color: 'Midnight Blue', dot: '#233b72', image: blueVehicle },
-  { color: 'Verde Mantis', dot: '#4d8d42', image: greenVehicle },
-  { color: 'Obsidian Black', dot: '#333336', image: blackVehicle },
-] as const;
+const vehicleImages: Record<VehicleImageKey, string> = {
+  WHITE_RR: whiteVehicle,
+  BLUE_BUGATTI: blueVehicle,
+  GREEN_LAMBO: greenVehicle,
+  BLACK_CAR: blackVehicle,
+};
+
+const titleCaseSpecification = (value: string) =>
+  value
+    .toLowerCase()
+    .split('_')
+    .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`)
+    .join(' ');
 
 const currency = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -25,17 +32,14 @@ const currency = new Intl.NumberFormat('en-US', {
 
 interface VehicleCardProps {
   vehicle: Vehicle;
-  index: number;
   token: string | null;
   isBuying: boolean;
   onPurchase(vehicle: Vehicle): void;
 }
 
-export const VehicleCard = ({ vehicle, index, token, isBuying, onPurchase }: VehicleCardProps) => {
+export const VehicleCard = ({ vehicle, token, isBuying, onPurchase }: VehicleCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const style = presentation[index % presentation.length]!;
   const soldOut = vehicle.quantity === 0;
-  const year = new Date(vehicle.createdAt).getUTCFullYear();
 
   return (
     <Card
@@ -48,16 +52,16 @@ export const VehicleCard = ({ vehicle, index, token, isBuying, onPurchase }: Veh
           <span
             aria-hidden="true"
             className="size-2 rounded-full ring-1 ring-white/15"
-            style={{ backgroundColor: style.dot }}
+            style={{ backgroundColor: vehicle.colorHex }}
           />
-          {style.color}
+          {vehicle.colorName}
         </span>
         <span className="flex items-center gap-3">
           <span className={cn(soldOut && 'text-red-300')}>
             {soldOut ? 'Sold out' : `${vehicle.quantity} in stock`}
           </span>
           <span className="rounded-full border border-white/15 bg-black/20 px-3 py-1.5 text-primary">
-            Automatic
+            {titleCaseSpecification(vehicle.transmission)}
           </span>
         </span>
       </div>
@@ -70,7 +74,7 @@ export const VehicleCard = ({ vehicle, index, token, isBuying, onPurchase }: Veh
         <img
           alt={`${vehicle.make} ${vehicle.model}`}
           className="relative h-[90%] w-full object-contain drop-shadow-[0_24px_22px_rgba(0,0,0,0.8)] transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-          src={style.image}
+          src={vehicleImages[vehicle.imageKey]}
         />
       </div>
 
@@ -78,7 +82,7 @@ export const VehicleCard = ({ vehicle, index, token, isBuying, onPurchase }: Veh
         <div className="flex items-end justify-between gap-4">
           <div>
             <p className="inline-flex rounded-full border border-white/15 bg-black/20 px-2.5 py-1 text-[9px] font-medium text-secondary">
-              {year}
+              {vehicle.year}
             </p>
             <h2 className="mt-2 text-xl font-semibold leading-tight tracking-[-0.035em] text-primary sm:text-2xl">
               {vehicle.make} {vehicle.model}
@@ -102,16 +106,29 @@ export const VehicleCard = ({ vehicle, index, token, isBuying, onPurchase }: Veh
         </div>
 
         {isExpanded && (
-          <div className="mt-5 grid grid-cols-2 border-t border-border pt-4 text-xs">
-            <div>
-              <p className="text-secondary">Category</p>
-              <p className="mt-1 font-medium text-primary">{vehicle.category}</p>
-            </div>
-            <div>
-              <p className="text-secondary">Availability</p>
-              <p className="mt-1 font-medium text-primary">
-                {soldOut ? 'Sold out' : `${vehicle.quantity} available`}
-              </p>
+          <div className="mt-5 border-t border-border pt-4 text-xs">
+            <p className="leading-5 text-secondary">{vehicle.details}</p>
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-secondary">Engine</p>
+                <p className="mt-1 font-medium text-primary">{vehicle.engine}</p>
+              </div>
+              <div>
+                <p className="text-secondary">Fuel</p>
+                <p className="mt-1 font-medium text-primary">
+                  {titleCaseSpecification(vehicle.fuelType)}
+                </p>
+              </div>
+              <div>
+                <p className="text-secondary">Category</p>
+                <p className="mt-1 font-medium text-primary">{vehicle.category}</p>
+              </div>
+              <div>
+                <p className="text-secondary">Availability</p>
+                <p className="mt-1 font-medium text-primary">
+                  {soldOut ? 'Sold out' : `${vehicle.quantity} available`}
+                </p>
+              </div>
             </div>
           </div>
         )}

@@ -7,9 +7,18 @@ const storedVehicle = {
   id: 'a104ce48-e57f-4fb0-8793-57c8b9a2c913',
   make: 'Toyota',
   model: 'Camry',
+  year: 2025,
   category: 'Sedan',
+  imageKey: 'WHITE_RR' as const,
+  colorName: 'Frozen Silver',
+  colorHex: '#C8C9C7',
+  engine: '2.5L Hybrid',
+  transmission: 'AUTOMATIC' as const,
+  fuelType: 'HYBRID' as const,
+  details: 'Executive hybrid sedan.',
   price: {
-    toString: () => '32999.90',
+    toString: () => '32999.9',
+    toFixed: () => '32999.90',
   },
   quantity: 4,
   createdAt: new Date('2026-07-29T00:00:00.000Z'),
@@ -49,7 +58,15 @@ describe('PrismaVehicleRepository', () => {
     const input = {
       make: 'Toyota',
       model: 'Camry',
+      year: 2025,
       category: 'Sedan',
+      imageKey: 'WHITE_RR' as const,
+      colorName: 'Frozen Silver',
+      colorHex: '#C8C9C7',
+      engine: '2.5L Hybrid',
+      transmission: 'AUTOMATIC' as const,
+      fuelType: 'HYBRID' as const,
+      details: 'Executive hybrid sedan.',
       price: '32999.90',
       quantity: 4,
     };
@@ -57,6 +74,7 @@ describe('PrismaVehicleRepository', () => {
     await expect(repository.create(input)).resolves.toMatchObject({
       ...input,
       id: storedVehicle.id,
+      price: '32999.90',
     });
     expect(database.vehicle.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -89,6 +107,7 @@ describe('PrismaVehicleRepository', () => {
   it('sends only supplied fields during a partial update', async () => {
     await repository.update(storedVehicle.id, {
       price: '31999.00',
+      engine: '2.5L Plug-in Hybrid',
     });
 
     expect(database.vehicle.update).toHaveBeenCalledWith(
@@ -96,6 +115,7 @@ describe('PrismaVehicleRepository', () => {
         where: { id: storedVehicle.id },
         data: {
           price: '31999.00',
+          engine: '2.5L Plug-in Hybrid',
         },
       }),
     );

@@ -25,6 +25,8 @@ Milestone 7 is complete:
 - Prisma persistence with stable not-found handling
 - Atomic purchasing and restocking with row-lock serialization and transaction-local deadlines
 - Retryable `503 INVENTORY_BUSY` responses for database and connection-pool contention
+- Persisted catalog year, artwork key, color, engine, transmission, fuel type, and description
+- An idempotent four-vehicle starter collection applied through the Prisma migration history
 - Dark-luxury collection with transparent vehicle artwork, brand filtering, price sorting, search,
   stock-aware purchasing, and sold-out states
 - Signed-in identity and role surface with responsive availability tabs and live result counts
@@ -36,7 +38,7 @@ Milestone 7 is complete:
 - Accessible dialogs with Escape, backdrop, focus trapping, and scroll handling
 - Real signed-token verification that `DELETE /api/vehicles/:id` is administrator-only
 - End-to-end auth boundary proof from registration through profile restore and protected inventory
-- 138 automated tests across the API and SPA
+- 143 automated tests across the API and SPA
 
 ## Architecture
 
@@ -118,6 +120,18 @@ The `users` and `vehicles` tables have RLS enabled. Supabase `anon` and `authent
 no table DML privileges because Express is the only public data boundary. No permissive RLS policy
 is intentionally defined.
 
+Vehicle SVGs remain versioned with the frontend bundle. The database stores a validated
+`imageKey`, so each catalog row chooses its artwork without storing a fragile build filename or
+duplicating repository-owned files in object storage. If future administrators upload arbitrary
+media, move those uploads to a dedicated public Supabase Storage bucket, keep write operations
+server-controlled, and persist the resulting object path rather than a temporary signed URL.
+
+Verify the live table security and seeded catalog count with:
+
+```bash
+npm run verify:database-security --workspace backend
+```
+
 ### Local PostgreSQL fallback
 
 ```bash
@@ -168,10 +182,34 @@ and update vehicles, while only `ADMIN` can delete or restock.
 | `GET`    | `/api/vehicles`              | Public     | Lists every inventory record                       |
 | `GET`    | `/api/vehicles/search`       | Public     | Searches with combinable query parameters          |
 | `POST`   | `/api/vehicles`              | Employee+  | Creates a vehicle with its initial quantity        |
-| `PUT`    | `/api/vehicles/:id`          | Employee+  | Updates make, model, category, and/or price        |
+| `PUT`    | `/api/vehicles/:id`          | Employee+  | Updates supplied catalog fields, excluding stock   |
 | `DELETE` | `/api/vehicles/:id`          | Admin      | Deletes a vehicle in a short protected transaction |
 | `POST`   | `/api/vehicles/:id/purchase` | Bearer JWT | Atomically decreases available quantity            |
 | `POST`   | `/api/vehicles/:id/restock`  | Admin      | Atomically increases available quantity            |
+
+Create payload:
+
+```json
+{
+  "make": "Lamborghini",
+  "model": "Revuelto",
+  "year": 2024,
+  "category": "Supercar",
+  "imageKey": "GREEN_LAMBO",
+  "colorName": "Verde Mantis",
+  "colorHex": "#4D8D42",
+  "engine": "6.5L V12 Hybrid",
+  "transmission": "AUTOMATIC",
+  "fuelType": "HYBRID",
+  "details": "A V12 flagship enhanced by three electric motors.",
+  "price": 620000,
+  "quantity": 2
+}
+```
+
+`imageKey` accepts `WHITE_RR`, `BLUE_BUGATTI`, `GREEN_LAMBO`, or `BLACK_CAR`.
+`transmission` accepts `MANUAL` or `AUTOMATIC`; `fuelType` accepts `PETROL`, `DIESEL`, `HYBRID`,
+or `ELECTRIC`.
 
 ## Administrator user API
 
@@ -284,16 +322,10 @@ Navigation Menu now spans Home, Inventory, Login, and Register. Radix-powered Sh
 provide brand filtering, price sorting, and expandable advanced search. Availability tabs switch
 locally between all, purchasable, and sold-out records without another network request.
 
-Vehicle cards use the repository's non-hero transparent automotive assets with pill metadata,
-prominent vehicle artwork, year, make/model, price, stock, expandable details, and the existing
-authenticated purchase workflow. Guest visitors can browse and filter but must sign in before
-reserving a vehicle.
-
-The current API does not yet persist catalog artwork, color, model year, engine, transmission, fuel,
-or long-form details. Until that schema is introduced, artwork and color cycle through a frontend
-presentation map, model year is derived from the creation timestamp, and transmission displays as a
-temporary `Automatic` label. These fields should move to persisted vehicle metadata before a
-production catalog import.
+Vehicle cards use the repository's non-hero transparent automotive assets with database-backed
+color, artwork selection, transmission, model year, engine, fuel, description, price, and stock.
+Expanded details show the persisted specification instead of frontend placeholders. Guest visitors
+can browse and filter but must sign in before reserving a vehicle.
 
 The glass navigation header shows the verified email and effective role returned by `/api/auth/me`.
 Expired or rejected bearer tokens immediately clear the tab-scoped session and return the user to
@@ -366,7 +398,9 @@ GitHub Actions runs the same checks on every push and pull request. See
 - Insufficient stock returns `409 Conflict`.
 - Transient lock, statement, and pool-acquisition timeouts return retryable `503 Service Unavailable`.
 - Search filters are combinable, case-insensitive, and validate price ranges.
-- `PUT` updates only supplied metadata fields, rejects stock, and rejects an empty body.
+- `PUT` updates only supplied catalog metadata fields, rejects stock, and rejects an empty body.
+- Static repository-owned SVGs are selected by a validated database `imageKey`; Supabase Storage is
+  reserved for future user-managed media uploads.
 
 ## My AI Usage
 

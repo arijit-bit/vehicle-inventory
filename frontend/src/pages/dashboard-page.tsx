@@ -17,6 +17,13 @@ import { Dialog, DialogContent } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -30,8 +37,11 @@ import {
   VehicleApiError,
   vehicleApi,
   type CreateVehicleInput,
+  type FuelType,
+  type Transmission,
   type UpdateVehicleInput,
   type Vehicle,
+  type VehicleImageKey,
   type VehicleSearchFilters,
 } from '../features/vehicles/vehicle-api';
 import { VehicleCard } from '../features/vehicles/vehicle-card';
@@ -103,7 +113,15 @@ const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps)
     const details = {
       make: String(form.get('make')).trim(),
       model: String(form.get('model')).trim(),
+      year: Number(form.get('year')),
       category: String(form.get('category')).trim(),
+      imageKey: String(form.get('imageKey')) as VehicleImageKey,
+      colorName: String(form.get('colorName')).trim(),
+      colorHex: String(form.get('colorHex')).trim(),
+      engine: String(form.get('engine')).trim(),
+      transmission: String(form.get('transmission')) as Transmission,
+      fuelType: String(form.get('fuelType')) as FuelType,
+      details: String(form.get('details')).trim(),
       price: Number(form.get('price')),
     };
 
@@ -140,6 +158,18 @@ const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps)
         </FormField>
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
+        <FormField id="vehicle-year" label="Model year">
+          <Input
+            defaultValue={vehicle?.year ?? new Date().getUTCFullYear()}
+            id="vehicle-year"
+            max="2100"
+            min="1886"
+            name="year"
+            required
+            step="1"
+            type="number"
+          />
+        </FormField>
         <FormField id="vehicle-category" label="Category">
           <Input
             defaultValue={vehicle?.category}
@@ -149,6 +179,89 @@ const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps)
             required
           />
         </FormField>
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <FormField id="vehicle-artwork" label="Vehicle artwork">
+          <Select defaultValue={vehicle?.imageKey ?? 'WHITE_RR'} name="imageKey">
+            <SelectTrigger aria-label="Vehicle artwork" className="w-full" id="vehicle-artwork">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="WHITE_RR">Silver grand tourer</SelectItem>
+              <SelectItem value="BLUE_BUGATTI">Blue hypercar</SelectItem>
+              <SelectItem value="GREEN_LAMBO">Green supercar</SelectItem>
+              <SelectItem value="BLACK_CAR">Black supercar</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+        <FormField id="vehicle-color-name" label="Color name">
+          <Input
+            defaultValue={vehicle?.colorName ?? 'Frozen Silver'}
+            id="vehicle-color-name"
+            maxLength={100}
+            name="colorName"
+            required
+          />
+        </FormField>
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <FormField id="vehicle-color-hex" label="Color hex">
+          <Input
+            defaultValue={vehicle?.colorHex ?? '#C8C9C7'}
+            id="vehicle-color-hex"
+            maxLength={7}
+            name="colorHex"
+            pattern="^#[0-9A-Fa-f]{6}$"
+            required
+          />
+        </FormField>
+        <FormField id="vehicle-engine" label="Engine">
+          <Input
+            defaultValue={vehicle?.engine}
+            id="vehicle-engine"
+            maxLength={160}
+            name="engine"
+            required
+          />
+        </FormField>
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <FormField id="vehicle-transmission" label="Transmission">
+          <Select defaultValue={vehicle?.transmission ?? 'AUTOMATIC'} name="transmission">
+            <SelectTrigger aria-label="Transmission" className="w-full" id="vehicle-transmission">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="AUTOMATIC">Automatic</SelectItem>
+              <SelectItem value="MANUAL">Manual</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+        <FormField id="vehicle-fuel-type" label="Fuel type">
+          <Select defaultValue={vehicle?.fuelType ?? 'PETROL'} name="fuelType">
+            <SelectTrigger aria-label="Fuel type" className="w-full" id="vehicle-fuel-type">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="PETROL">Petrol</SelectItem>
+              <SelectItem value="DIESEL">Diesel</SelectItem>
+              <SelectItem value="HYBRID">Hybrid</SelectItem>
+              <SelectItem value="ELECTRIC">Electric</SelectItem>
+            </SelectContent>
+          </Select>
+        </FormField>
+      </div>
+      <FormField id="vehicle-details" label="Vehicle details">
+        <textarea
+          className="min-h-28 w-full resize-y rounded-[var(--radius)] border border-border bg-card px-4 py-3 text-sm text-primary outline-none transition-colors placeholder:text-secondary/70 focus:border-secondary/60 focus:ring-2 focus:ring-primary/20"
+          defaultValue={vehicle?.details}
+          id="vehicle-details"
+          maxLength={2000}
+          name="details"
+          required
+        />
+      </FormField>
+      <div className="grid gap-5 sm:grid-cols-2">
         <FormField id="vehicle-price" label="Price">
           <Input
             defaultValue={vehicle?.price}
@@ -160,20 +273,20 @@ const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps)
             type="number"
           />
         </FormField>
+        {mode === 'create' && (
+          <FormField id="vehicle-quantity" label="Initial quantity">
+            <Input
+              defaultValue="0"
+              id="vehicle-quantity"
+              min="0"
+              name="quantity"
+              required
+              step="1"
+              type="number"
+            />
+          </FormField>
+        )}
       </div>
-      {mode === 'create' && (
-        <FormField id="vehicle-quantity" label="Initial quantity">
-          <Input
-            defaultValue="0"
-            id="vehicle-quantity"
-            min="0"
-            name="quantity"
-            required
-            step="1"
-            type="number"
-          />
-        </FormField>
-      )}
       {mode === 'edit' && (
         <p className="rounded-[var(--radius)] border border-border bg-background/45 px-4 py-3 text-xs leading-5 text-secondary">
           Stock changes remain on the purchase and restock workflows to protect inventory accuracy.
@@ -663,7 +776,6 @@ export const DashboardPage = () => {
                 <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                   {visibleVehicles.map((vehicle) => (
                     <VehicleCard
-                      index={vehicles.indexOf(vehicle)}
                       isBuying={pendingAction === `purchase-${vehicle.id}`}
                       key={vehicle.id}
                       onPurchase={purchase}

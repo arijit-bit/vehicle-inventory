@@ -415,3 +415,39 @@ asset, and report the recommended persisted product schema and implementation as
   contract are approved.
 - Existing inventory CRUD, search, purchase, restock, sold-out, and role-specific management
   workflows remain the source of truth and were not replaced with static mock data.
+
+## 2026-07-30 - Persisted catalog specifications and starter inventory
+
+**User prompt summary:** Store the complete product information in the database, decide whether the
+vehicle SVGs should use Supabase Storage, and fix the localhost Inventory page showing zero
+vehicles.
+
+**AI-assisted work:**
+
+- Verified both the live API and database state before implementation; the configured vehicles
+  table contained zero rows.
+- Reviewed current Supabase Storage and migration guidance, including public-bucket serving and
+  write-access behavior.
+- Added failing backend and frontend tests for year, artwork key, color, engine, transmission, fuel,
+  description, and database-driven card presentation.
+- Extended the Prisma schema, strict Zod contracts, repository mapping, API types, React cards, and
+  Employee/Administrator vehicle forms with the complete catalog specification.
+- Added an idempotent Prisma migration that creates the catalog enums/columns, enforces a unique
+  make/model/year identity, and seeds Rolls-Royce, Bugatti, Lamborghini, and McLaren records.
+- Corrected live decimal serialization to always return exactly two fractional digits.
+- Applied the migration through the configured Supabase session pooler and verified four live
+  records, seven available units, RLS enabled, and no table privileges for browser database roles.
+- Verified the actual localhost dashboard renders all four vehicles and that expanded card details
+  show persisted engine, fuel, category, and description data.
+- Ran 143 tests with coverage plus lint, type checking, and production builds.
+
+**Architecture decisions:**
+
+- Static repository-owned SVG files remain in the Vite bundle and are selected by a validated
+  database `imageKey`. This keeps hashed deploy assets versioned with the code and avoids creating a
+  publicly writable media surface for four fixed files.
+- A dedicated Supabase Storage bucket is the planned option for future administrator-uploaded
+  media. In that design the server controls writes and the database stores a stable object path.
+- The Supabase connector exposed a different empty project than `backend/.env`; the configured
+  runtime project was therefore migrated through Prisma and verified through its direct backend
+  connection instead of mutating the unrelated connector project.

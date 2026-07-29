@@ -12,17 +12,60 @@ describe('vehicle schemas', () => {
       createVehicleSchema.parse({
         make: '  Toyota ',
         model: ' Camry ',
+        year: 2025,
         category: ' Sedan ',
+        imageKey: 'WHITE_RR',
+        colorName: ' Frozen Silver ',
+        colorHex: '#C8C9C7',
+        engine: ' 2.5L Hybrid ',
+        transmission: 'AUTOMATIC',
+        fuelType: 'HYBRID',
+        details: ' Executive hybrid sedan. ',
         price: 32999.9,
         quantity: 4,
       }),
     ).toEqual({
       make: 'Toyota',
       model: 'Camry',
+      year: 2025,
       category: 'Sedan',
+      imageKey: 'WHITE_RR',
+      colorName: 'Frozen Silver',
+      colorHex: '#C8C9C7',
+      engine: '2.5L Hybrid',
+      transmission: 'AUTOMATIC',
+      fuelType: 'HYBRID',
+      details: 'Executive hybrid sedan.',
       price: '32999.90',
       quantity: 4,
     });
+  });
+
+  it.each([
+    { year: 1800 },
+    { imageKey: 'HERO_CAR' },
+    { colorHex: 'silver' },
+    { transmission: 'CVT' },
+    { fuelType: 'STEAM' },
+  ])('rejects invalid catalog metadata %o', (override) => {
+    expect(() =>
+      createVehicleSchema.parse({
+        make: 'Toyota',
+        model: 'Camry',
+        year: 2025,
+        category: 'Sedan',
+        imageKey: 'WHITE_RR',
+        colorName: 'Frozen Silver',
+        colorHex: '#C8C9C7',
+        engine: '2.5L Hybrid',
+        transmission: 'AUTOMATIC',
+        fuelType: 'HYBRID',
+        details: 'Executive hybrid sedan.',
+        price: 32999.9,
+        quantity: 4,
+        ...override,
+      }),
+    ).toThrow();
   });
 
   it.each([
