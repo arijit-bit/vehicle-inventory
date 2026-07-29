@@ -5,7 +5,7 @@ PostgreSQL/Supabase, Prisma, Tailwind CSS, JWT, and bcrypt.
 
 ## Current status
 
-Milestone 5 is complete:
+Milestone 6 is complete:
 
 - Secure registration and login REST endpoints
 - Lowercase, trimmed email normalization on the client and server
@@ -26,9 +26,12 @@ Milestone 5 is complete:
 - Signed-in identity and role surface with responsive availability tabs and live result counts
 - Session-race protection and automatic logout when protected APIs reject an expired token
 - Accessible form errors linked to the affected authentication controls
-- Administrator create, edit, restock, and delete forms with confirmation workflows
+- Dedicated administrator workspace with responsive inventory management table
+- Administrator add, edit, restock, and delete forms with explicit destructive confirmation
+- Mobile bottom-sheet dialogs with Escape, backdrop, focus, and scroll handling
+- Real signed-token verification that `DELETE /api/vehicles/:id` is administrator-only
 - End-to-end auth boundary proof from registration through profile restore and protected inventory
-- 114 automated tests across the API and SPA
+- 117 automated tests across the API and SPA
 
 ## Architecture
 
@@ -272,6 +275,19 @@ response rather than guessing the new quantity locally. Administrators additiona
 - a positive-quantity Restock form;
 - a destructive Delete confirmation.
 
+### Administrator interface
+
+Only verified `ADMIN` users receive the **Manage inventory** workspace switcher. The administrator
+view uses a shadcn-style responsive table: less important columns collapse at smaller breakpoints,
+vehicle context remains visible, and touch-sized edit, restock, and delete controls stay available
+without duplicating the DOM.
+
+Create, edit, restock, and delete dialogs behave as centered modals on larger screens and
+bottom-aligned sheets on mobile. They lock background scrolling, dismiss with Escape or a backdrop
+press, and restore focus to the triggering control. Delete confirmation identifies the exact
+vehicle, current stock, permanence, and database-serialization behavior before calling
+`DELETE /api/vehicles/:id`.
+
 Transient `INVENTORY_BUSY` responses tell the user to retry. `INSUFFICIENT_STOCK` explains that the
 vehicle sold out, while authorization errors remain distinct.
 
@@ -290,6 +306,10 @@ vehicle sold out, while authorization errors remain distinct.
 - Any protected inventory `401` clears the client session instead of leaving stale dashboard
   access visible.
 - Role checks return `401` for missing/invalid identity and `403` for insufficient permissions.
+- Administrator navigation is hidden for regular users, while Express independently enforces the
+  role boundary for every mutation.
+- A real-JWT integration test proves that regular users receive `403` from vehicle deletion and
+  administrators reach the delete service.
 - Generic updates cannot write stock; only relative purchase/restock operations can mutate it.
 - Database lock and statement limits are transaction-local and safe with pooled connections.
 

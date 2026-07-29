@@ -228,3 +228,39 @@ validate the backend boundary, follow the repository's AI co-author rule, and co
 - The authenticated email and role come from verified server claims, never from editable client
   input.
 - User-owned root package changes were preserved outside Milestone 5 commits.
+
+## 2026-07-29 - Milestone 6 administrator interface and responsive polish
+
+**User prompt summary:** Act as a strong full-stack developer and complete Milestone 6 with a
+polished responsive administrator interface, forms to add/update/delete vehicles, special emphasis
+on administrator-only `DELETE /api/vehicles/:id`, documentation, AI-coauthored commits, and GitHub
+publication.
+
+**AI-assisted work:**
+
+- Audited the existing dashboard, role middleware, vehicle routes, tests, and uncommitted user
+  assets before extending the interface.
+- Defined frontend contracts for admin-only navigation, a dedicated management table, create,
+  update, restock, delete confirmation, and Escape-based modal dismissal.
+- Added a backend integration test with real signed `USER` and `ADMIN` JWTs to prove the delete
+  endpoint returns `403` before the service for users and reaches the service for administrators.
+- Built a dedicated administrator workspace with a responsive shadcn-style table and concise
+  role-specific navigation.
+- Centralized management actions in the admin workspace while keeping purchasing in the catalog
+  view.
+- Polished dialogs into mobile bottom sheets and desktop modals with background scroll locking,
+  Escape and backdrop dismissal, focused entry, focus restoration, bounded height, and safe
+  scrolling.
+- Strengthened deletion copy with exact vehicle identity, current stock, permanence, and
+  concurrency behavior.
+- Ran 117 tests, coverage, formatting, linting, TypeScript checks, and both production builds.
+
+**Review decisions:**
+
+- Frontend role-aware visibility improves usability but never replaces backend authorization.
+- `DELETE /api/vehicles/:id` remains protected by JWT verification and `ADMIN` authorization before
+  input reaches the vehicle service.
+- One responsive semantic table avoids rendering duplicate mobile and desktop action controls.
+- Quantity remains excluded from generic edit forms; restocking stays on its atomic endpoint.
+- Existing root Supabase manifest changes and user-supplied vehicle artwork were preserved outside
+  Milestone 6 commits.
