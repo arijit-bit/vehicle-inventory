@@ -29,10 +29,10 @@ describe('App authentication routes', () => {
     expect(primaryNavigation.getByText(/^about$/i)).toHaveAttribute('aria-disabled', 'true');
     expect(primaryNavigation.getByText(/^services$/i)).toHaveAttribute('aria-disabled', 'true');
     expect(primaryNavigation.getByText(/^contact$/i)).toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getByRole('img', { name: /exotic performance car/i })).toHaveAttribute(
-      'src',
-      expect.stringContaining('Final-CarHero'),
-    );
+    const heroVehicle = screen.getByRole('img', { name: /exotic performance car/i });
+
+    expect(heroVehicle).toHaveAttribute('src', expect.stringContaining('Final-CarHero'));
+    expect(heroVehicle).toHaveClass('lg:left-[43%]', 'lg:bottom-[15%]');
   });
 
   it('renders the login experience at /login', () => {

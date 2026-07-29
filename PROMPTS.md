@@ -366,3 +366,16 @@ About, Services, and Contact. Defer the Inventory, About, Services, and Contact 
   supplied.
 - The supplied repository SVG is used directly, so no generated or third-party hero artwork was
   introduced.
+
+## 2026-07-30 - Landing hero artwork positioning
+
+**User prompt summary:** On the root landing page, add more right-side margin around the car SVG and
+raise the vehicle slightly.
+
+**AI-assisted work:**
+
+- Added a failing layout assertion for the large-screen vehicle position.
+- Shifted the desktop hero vehicle five percentage points left to create right-edge breathing room.
+- Raised the desktop vehicle from a 10% to a 15% bottom offset while preserving its mobile
+  placement and scale.
+- Ran all 31 frontend tests plus lint, TypeScript checking, and the production build.
