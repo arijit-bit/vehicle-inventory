@@ -5,7 +5,7 @@ PostgreSQL/Supabase, Prisma, Tailwind CSS, JWT, and bcrypt.
 
 ## Current status
 
-Milestone 4 is complete:
+Milestone 5 is complete:
 
 - Secure registration and login REST endpoints
 - Lowercase, trimmed email normalization on the client and server
@@ -23,8 +23,12 @@ Milestone 4 is complete:
 - Atomic purchasing and restocking with row-lock serialization and transaction-local deadlines
 - Retryable `503 INVENTORY_BUSY` responses for database and connection-pool contention
 - Responsive inventory dashboard with search, stock-aware purchasing, and sold-out states
+- Signed-in identity and role surface with responsive availability tabs and live result counts
+- Session-race protection and automatic logout when protected APIs reject an expired token
+- Accessible form errors linked to the affected authentication controls
 - Administrator create, edit, restock, and delete forms with confirmation workflows
-- 109 automated tests across the API and SPA
+- End-to-end auth boundary proof from registration through profile restore and protected inventory
+- 114 automated tests across the API and SPA
 
 ## Architecture
 
@@ -251,8 +255,14 @@ All errors use `{ "error": { "code": "...", "message": "..." } }`.
 ## Inventory interface
 
 The protected React dashboard lists current stock and provides combined make, model, category, and
-price filters. Every available card has a one-unit Purchase button. A zero-stock card remains
-visible but renders a disabled **Out of stock** button.
+price filters. Availability tabs switch locally between all, purchasable, and sold-out records
+without another network request, while an announced result count keeps the current view clear.
+Every available card has a one-unit Purchase button. A zero-stock card remains visible in the
+default view but renders a disabled **Out of stock** button.
+
+The dashboard header shows the verified email and effective role returned by `/api/auth/me`.
+Expired or rejected bearer tokens immediately clear the tab-scoped session and return the user to
+the login route. A late profile response cannot restore identity after the user has signed out.
 
 After purchase or restock, the UI replaces the card with the vehicle returned by the committed API
 response rather than guessing the new quantity locally. Administrators additionally receive:
@@ -275,6 +285,10 @@ vehicle sold out, while authorization errors remain distinct.
 - Tokens are kept in `sessionStorage`, limiting persistence to the current browser tab. An
   HTTP-only secure-cookie design would be preferred when refresh tokens and CSRF protection are
   introduced.
+- Session restoration responses are ignored after logout, preventing a stale request from
+  resurrecting local identity.
+- Any protected inventory `401` clears the client session instead of leaving stale dashboard
+  access visible.
 - Role checks return `401` for missing/invalid identity and `403` for insufficient permissions.
 - Generic updates cannot write stock; only relative purchase/restock operations can mutate it.
 - Database lock and statement limits are transaction-local and safe with pooled connections.

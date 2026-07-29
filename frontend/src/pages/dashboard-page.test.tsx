@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../features/auth/auth-context-value';
@@ -93,6 +93,46 @@ describe('DashboardPage', () => {
       1,
     );
     expect(within(camry).getByText('1 in stock')).toBeInTheDocument();
+  });
+
+  it('shows the signed-in identity and filters the catalog by availability', async () => {
+    const user = userEvent.setup();
+    mockAuth('USER');
+
+    render(<DashboardPage />);
+
+    expect(await screen.findByText('user@example.com')).toBeInTheDocument();
+    expect(screen.getByText('2 vehicles')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Available' }));
+
+    expect(screen.getByRole('article', { name: 'Toyota Camry' })).toBeInTheDocument();
+    expect(screen.queryByRole('article', { name: 'Ford Mustang' })).not.toBeInTheDocument();
+    expect(screen.getByText('1 vehicle')).toBeInTheDocument();
+  });
+
+  it('ends the local session when the API rejects an expired token', async () => {
+    mockAuth('USER');
+    const logout = vi.fn();
+    vi.mocked(useAuth).mockReturnValue({
+      user: {
+        id: 'user-1',
+        email: 'user@example.com',
+        role: 'USER',
+      },
+      token: 'expired-token',
+      isLoading: false,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout,
+    });
+    vi.mocked(vehicleApi.list).mockRejectedValue(
+      new VehicleApiError('Authentication is required', 'UNAUTHENTICATED', 401),
+    );
+
+    render(<DashboardPage />);
+
+    await waitFor(() => expect(logout).toHaveBeenCalledOnce());
   });
 
   it('searches by combined inventory filters', async () => {

@@ -32,6 +32,9 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
   const [errors, setErrors] = useState<FormErrors>({});
 
   const isRegistration = mode === 'register';
+  const emailErrorId = `${mode}-email-error`;
+  const passwordErrorId = `${mode}-password-error`;
+  const confirmPasswordErrorId = `${mode}-confirm-password-error`;
 
   const validate = () => {
     const nextErrors: FormErrors = {};
@@ -99,6 +102,8 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
             className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-500"
           />
           <Input
+            aria-describedby={errors.email ? emailErrorId : undefined}
+            aria-invalid={Boolean(errors.email)}
             autoComplete="email"
             className="pl-11"
             id={`${mode}-email`}
@@ -113,7 +118,11 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
             value={email}
           />
         </div>
-        {errors.email && <p className="text-sm text-rose-300">{errors.email}</p>}
+        {errors.email && (
+          <p className="text-sm text-rose-300" id={emailErrorId}>
+            {errors.email}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
@@ -129,6 +138,8 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
             className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-500"
           />
           <Input
+            aria-describedby={errors.password ? passwordErrorId : undefined}
+            aria-invalid={Boolean(errors.password)}
             autoComplete={isRegistration ? 'new-password' : 'current-password'}
             className="px-11"
             id={`${mode}-password`}
@@ -153,13 +164,19 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
             )}
           </button>
         </div>
-        {errors.password && <p className="text-sm text-rose-300">{errors.password}</p>}
+        {errors.password && (
+          <p className="text-sm text-rose-300" id={passwordErrorId}>
+            {errors.password}
+          </p>
+        )}
       </div>
 
       {isRegistration && (
         <div className="space-y-2">
           <Label htmlFor="register-confirm-password">Confirm password</Label>
           <Input
+            aria-describedby={errors.confirmPassword ? confirmPasswordErrorId : undefined}
+            aria-invalid={Boolean(errors.confirmPassword)}
             autoComplete="new-password"
             id="register-confirm-password"
             onChange={(event) => {
@@ -175,7 +192,9 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
             value={confirmPassword}
           />
           {errors.confirmPassword && (
-            <p className="text-sm text-rose-300">{errors.confirmPassword}</p>
+            <p className="text-sm text-rose-300" id={confirmPasswordErrorId}>
+              {errors.confirmPassword}
+            </p>
           )}
         </div>
       )}
