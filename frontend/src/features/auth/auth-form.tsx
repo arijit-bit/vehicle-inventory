@@ -3,6 +3,13 @@ import { useState, type FormEvent } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
 import type { AuthCredentials, RegistrableRole } from './auth-api';
 
 type AuthMode = 'login' | 'register';
@@ -178,15 +185,19 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
       {isRegistration && (
         <div className="space-y-2">
           <Label htmlFor="register-role">Account type</Label>
-          <select
-            className="flex h-11 w-full rounded-[var(--radius)] border border-border bg-background/65 px-4 text-sm text-primary outline-none transition hover:border-secondary/50 focus:border-secondary focus:ring-2 focus:ring-primary/15"
-            id="register-role"
-            onChange={(event) => setRole(event.target.value as RegistrableRole)}
-            value={role}
-          >
-            <option value="CUSTOMER">Customer — browse and purchase</option>
-            <option value="EMPLOYEE">Employee — manage inventory</option>
-          </select>
+          <Select onValueChange={(value) => setRole(value as RegistrableRole)} value={role}>
+            <SelectTrigger
+              aria-label="Account type"
+              className="w-full bg-background/65 text-sm"
+              id="register-role"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="CUSTOMER">Customer — browse and purchase</SelectItem>
+              <SelectItem value="EMPLOYEE">Employee — manage inventory</SelectItem>
+            </SelectContent>
+          </Select>
           <p className="text-xs leading-5 text-secondary">
             Employees can add and update vehicles, but only administrators can delete or restock.
           </p>

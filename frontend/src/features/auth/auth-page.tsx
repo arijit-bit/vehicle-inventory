@@ -1,8 +1,6 @@
-import { Apple, CarFront } from 'lucide-react';
-import { useState } from 'react';
+import { CarFront } from 'lucide-react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import heroVehicle from '../../assets/svg/Final-CarHero Page.svg';
-import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import type { AuthCredentials } from './auth-api';
 import { useAuth } from './auth-context-value';
@@ -15,7 +13,6 @@ interface AuthPageProps {
 export const AuthPage = ({ mode }: AuthPageProps) => {
   const { user, isLoading, login, register } = useAuth();
   const navigate = useNavigate();
-  const [socialNotice, setSocialNotice] = useState<string | null>(null);
   const isRegistration = mode === 'register';
 
   if (!isLoading && user) {
@@ -27,20 +24,17 @@ export const AuthPage = ({ mode }: AuthPageProps) => {
     navigate('/dashboard', { replace: true });
   };
 
-  const announceSocialSetup = (provider: 'Google' | 'Apple') => {
-    setSocialNotice(`${provider} sign-in will be available after provider credentials are added.`);
-  };
-
   return (
     <main className="relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-background px-5 py-12 text-primary">
       <div aria-hidden="true" className="luxury-grid absolute inset-0 opacity-70" />
       <div
         aria-hidden="true"
-        className="absolute inset-x-0 bottom-[-10%] mx-auto h-[48vh] max-w-6xl opacity-[0.08]"
+        className="absolute inset-x-0 bottom-[-4%] mx-auto h-[58vh] max-w-7xl opacity-[0.08]"
+        data-testid="auth-vehicle-art"
       >
         <img
           alt=""
-          className="size-full object-contain object-bottom grayscale"
+          className="size-full -translate-y-2 scale-110 object-contain object-bottom grayscale"
           src={heroVehicle}
         />
       </div>
@@ -69,43 +63,6 @@ export const AuthPage = ({ mode }: AuthPageProps) => {
           </CardHeader>
 
           <CardContent className="px-6 pb-7 sm:px-8 sm:pb-8">
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                aria-label="Continue with Google"
-                onClick={() => announceSocialSetup('Google')}
-                type="button"
-                variant="outline"
-              >
-                <span aria-hidden="true" className="text-sm font-bold">
-                  G
-                </span>
-                Google
-              </Button>
-              <Button
-                aria-label="Continue with Apple"
-                onClick={() => announceSocialSetup('Apple')}
-                type="button"
-                variant="outline"
-              >
-                <Apple aria-hidden="true" className="size-4" />
-                Apple
-              </Button>
-            </div>
-
-            {socialNotice && (
-              <p className="mt-3 text-center text-xs leading-5 text-secondary" role="status">
-                {socialNotice}
-              </p>
-            )}
-
-            <div className="my-6 flex items-center gap-3">
-              <span className="h-px flex-1 bg-border" />
-              <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-secondary">
-                or continue with email
-              </span>
-              <span className="h-px flex-1 bg-border" />
-            </div>
-
             <AuthForm mode={mode} onSubmit={handleSubmit} />
 
             <div className="mt-7 border-t border-border pt-6 text-center text-sm text-secondary">

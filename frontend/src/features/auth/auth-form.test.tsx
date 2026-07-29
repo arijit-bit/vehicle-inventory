@@ -69,7 +69,8 @@ describe('AuthForm', () => {
     await user.type(screen.getByLabelText(/email address/i), 'sales@example.com');
     await user.type(screen.getByLabelText(/^password$/i), 'SafePass123!');
     await user.type(screen.getByLabelText(/confirm password/i), 'SafePass123!');
-    await user.selectOptions(screen.getByLabelText(/account type/i), 'EMPLOYEE');
+    await user.click(screen.getByRole('combobox', { name: /account type/i }));
+    await user.click(screen.getByRole('option', { name: /employee.*manage inventory/i }));
     await user.click(screen.getByRole('button', { name: /create account/i }));
 
     expect(onSubmit).toHaveBeenCalledWith({

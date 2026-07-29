@@ -16,8 +16,9 @@ describe('App authentication routes', () => {
       'href',
       '/register',
     );
-    expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /continue with apple/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /continue with google/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /continue with apple/i })).not.toBeInTheDocument();
+    expect(screen.getByTestId('auth-vehicle-art')).toHaveClass('max-w-7xl', 'bottom-[-4%]');
   });
 
   it('renders the registration experience at /register', () => {
@@ -29,5 +30,8 @@ describe('App authentication routes', () => {
 
     expect(screen.getByRole('heading', { name: /create your account/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: /account type/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /continue with google/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /continue with apple/i })).not.toBeInTheDocument();
   });
 });

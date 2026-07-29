@@ -306,3 +306,28 @@ TDD, clean-code, documentation, and AI-transparency requirements.
   requested.
 - The remaining router audit advisory is specific to React Server Component action handling; this
   Vite SPA uses `BrowserRouter` only and exposes no RSC actions.
+
+## 2026-07-30 - Authentication interface refinement
+
+**User prompt summary:** Remove Google and Apple login options from login and registration, enlarge
+and lift the authentication-page vehicle SVG, and rebuild the registration account-type dropdown
+with Shadcn UI.
+
+**AI-assisted work:**
+
+- Added failing route and form tests for removing both social-provider controls, enlarging and
+  lifting the shared vehicle artwork, and selecting the Employee role through an accessible Radix
+  combobox.
+- Removed the unused social-login controls, provider notice state, and email separator from both
+  authentication routes.
+- Increased the vehicle-art container and raised/scaled the existing transparent SVG on login and
+  registration.
+- Replaced the native account-type select with the shared Shadcn/Radix Select primitives while
+  preserving Customer as the default and Employee registration behavior.
+- Ran all 30 frontend tests plus lint, TypeScript checking, and the production build.
+
+**Review decisions:**
+
+- The shared authentication page keeps both routes visually consistent without duplicating markup.
+- The account selector retains a programmatic accessible name and keyboard-operable Radix options.
+- Existing authentication and role-submission contracts remain unchanged.

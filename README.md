@@ -14,7 +14,7 @@ Milestone 7 is complete:
 - Short-lived HS256 JWTs with issuer and audience verification
 - Authentication middleware and reusable role authorization
 - Environment-seeded administrator; public registration supports `CUSTOMER` and `EMPLOYEE`
-- Premium centered login and registration flows with email/password and social-provider controls
+- Premium centered login and registration flows with email/password authentication
 - Session restoration, logout, and protected React routes
 - Protected vehicle listing and combined make, model, category, and price-range search
 - Employee/Admin vehicle creation and updates; Administrator-only deletion and restocking

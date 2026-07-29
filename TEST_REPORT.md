@@ -1,6 +1,6 @@
 # Test Report
 
-Recorded on 2026-07-29 using Node.js `v24.8.0` and npm `11.6.0` on Windows.
+Recorded on 2026-07-30 using Node.js `v24.8.0` and npm `11.6.0` on Windows.
 
 ## Result
 
@@ -22,8 +22,9 @@ service, Prisma adapter, decimal serialization, combined search query, partial u
 purchase, atomic restock, transaction-local timeouts, pool-acquisition timeouts, default
 quantities, insufficient stock, and missing-record paths have direct regression coverage. The React
 suite covers guest inventory browsing, authenticated purchases, combined search, brand filtering,
-price sorting, premium card metadata, social-provider controls, role selection during registration,
-Employee inventory controls, and Administrator create, edit, restock, and delete workflows.
+price sorting, premium card metadata, social-provider removal, the accessible Shadcn account-type
+selector, Employee inventory controls, and Administrator create, edit, restock, and delete
+workflows.
 Backend tests cover Customer, Employee, and Administrator route boundaries plus Admin-only user
 CRUD and role assignment. Integration tests use real bcrypt and JWT services to cross
 registration, profile restoration, protected inventory, role authorization, and
@@ -31,7 +32,7 @@ administrator-only deletion boundaries.
 
 ## Quality gate
 
-The following commands passed for this RBAC change:
+The following commands passed after the authentication interface update:
 
 ```text
 npm run lint
