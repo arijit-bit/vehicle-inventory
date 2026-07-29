@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../features/auth/auth-context-value';
-import { vehicleApi, type Vehicle } from '../features/vehicles/vehicle-api';
+import { VehicleApiError, vehicleApi, type Vehicle } from '../features/vehicles/vehicle-api';
 import { DashboardPage } from './dashboard-page';
 
 vi.mock('../features/auth/auth-context-value', () => ({
@@ -114,6 +114,22 @@ describe('DashboardPage', () => {
     });
   });
 
+  it('explains retryable inventory contention to the buyer', async () => {
+    const user = userEvent.setup();
+    mockAuth('USER');
+    vi.mocked(vehicleApi.purchase).mockRejectedValue(
+      new VehicleApiError('Inventory is busy; retry the request', 'INVENTORY_BUSY', 503),
+    );
+
+    render(<DashboardPage />);
+    const camry = await screen.findByRole('article', { name: 'Toyota Camry' });
+    await user.click(within(camry).getByRole('button', { name: 'Purchase Toyota Camry' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Inventory is processing another update. Wait a moment, then retry.',
+    );
+  });
+
   it('gives administrators create, edit, restock, and delete workflows', async () => {
     const user = userEvent.setup();
     mockAuth('ADMIN');
@@ -127,6 +143,9 @@ describe('DashboardPage', () => {
       quantity: 3,
     };
     vi.mocked(vehicleApi.create).mockResolvedValue({ vehicle: created });
+    vi.mocked(vehicleApi.update).mockResolvedValue({
+      vehicle: { ...vehicles[0]!, price: '31999.00' },
+    });
     vi.mocked(vehicleApi.restock).mockResolvedValue({
       vehicle: { ...vehicles[0]!, quantity: 7 },
     });
@@ -151,6 +170,22 @@ describe('DashboardPage', () => {
       quantity: 3,
     });
     expect(await screen.findByRole('article', { name: 'Volvo XC90' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Edit Toyota Camry' }));
+    await user.clear(screen.getByLabelText('Price'));
+    await user.type(screen.getByLabelText('Price'), '31999');
+    expect(screen.queryByLabelText('Initial quantity')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(vehicleApi.update).toHaveBeenCalledWith(
+      'secure-token',
+      'a104ce48-e57f-4fb0-8793-57c8b9a2c913',
+      {
+        make: 'Toyota',
+        model: 'Camry',
+        category: 'Sedan',
+        price: 31999,
+      },
+    );
 
     await user.click(screen.getByRole('button', { name: 'Restock Toyota Camry' }));
     await user.clear(screen.getByLabelText('Restock quantity'));
