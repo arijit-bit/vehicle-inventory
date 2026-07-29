@@ -14,6 +14,8 @@ Milestone 7 is complete:
 - Short-lived HS256 JWTs with issuer and audience verification
 - Authentication middleware and reusable role authorization
 - Environment-seeded administrator; public registration supports `CUSTOMER` and `EMPLOYEE`
+- Reference-led dark-luxury landing page with metallic hero typography, responsive navigation, and
+  the repository's exotic vehicle artwork
 - Premium centered login and registration flows with email/password authentication
 - Session restoration, logout, and protected React routes
 - Protected vehicle listing and combined make, model, category, and price-range search
@@ -33,7 +35,7 @@ Milestone 7 is complete:
 - Accessible dialogs with Escape, backdrop, focus trapping, and scroll handling
 - Real signed-token verification that `DELETE /api/vehicles/:id` is administrator-only
 - End-to-end auth boundary proof from registration through profile restore and protected inventory
-- 137 automated tests across the API and SPA
+- 138 automated tests across the API and SPA
 
 ## Architecture
 

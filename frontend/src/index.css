@@ -99,6 +99,28 @@ button,
   mask-image: linear-gradient(to bottom, black, transparent 82%);
 }
 
+.hero-metal-text {
+  color: transparent;
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #f2f2f2 24%,
+    #77787b 58%,
+    #f7f7f7 82%,
+    #a3a4a7 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  filter: drop-shadow(0 20px 35px rgba(0, 0, 0, 0.7));
+}
+
+.hero-ghost-word {
+  color: transparent;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.015));
+  background-clip: text;
+  -webkit-background-clip: text;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

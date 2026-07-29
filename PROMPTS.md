@@ -331,3 +331,38 @@ with Shadcn UI.
 - The shared authentication page keeps both routes visually consistent without duplicating markup.
 - The account selector retains a programmatic accessible name and keyboard-operable Radix options.
 - Existing authentication and role-submission contracts remain unchanged.
+
+## 2026-07-30 - Reference-led luxury landing page
+
+**User prompt summary:** Create the Home/Landing page for the luxury automotive platform using the
+provided dark automotive reference image. Use a split hero with the uppercase heading “ENGINEERED
+PERFECTION,” an outlined CTA, a dominant exotic car rendered from the existing
+`Final-CarHero Page.svg`, and a reference-inspired navigation bar containing Home, Inventory,
+About, Services, and Contact. Defer the Inventory, About, Services, and Contact page work.
+
+**Reference image:** `E:/Sreenshorts/imgdownloader-0591b916.png`
+
+**AI-assisted work:**
+
+- Analyzed the reference hierarchy: thin divided navigation, compact wordmark, centered navigation,
+  oversized metallic typography, dominant overlapping vehicle artwork, and restrained supporting
+  copy.
+- Added a failing root-route contract before replacing the former dashboard redirect with a
+  dedicated landing page.
+- Built an original responsive hero using silver-gradient display text, the repository vehicle
+  SVG, an outlined collection CTA, ambient lighting, and concise collection metadata.
+- Added a Radix/Shadcn navigation rail with Home selected, Inventory connected to the existing
+  collection, deferred labels for future pages, and a responsive menu.
+- Preserved the existing login, registration, dashboard, RBAC, and inventory workflows.
+- Ran all 31 frontend tests plus lint, TypeScript checking, and the production build.
+
+**Review decisions:**
+
+- The reference informed visual hierarchy and spacing without copying its branding or exact
+  composition.
+- Inventory remains available at the existing `/dashboard` route; no replacement inventory page
+  was added.
+- About, Services, and Contact are intentionally non-interactive until their page requirements are
+  supplied.
+- The supplied repository SVG is used directly, so no generated or third-party hero artwork was
+  introduced.

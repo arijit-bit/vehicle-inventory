@@ -7,8 +7,8 @@ Recorded on 2026-07-30 using Node.js `v24.8.0` and npm `11.6.0` on Windows.
 | Area        | Test files | Tests | Result |
 | ----------- | ---------: | ----: | ------ |
 | Express API |         17 |   107 | Passed |
-| React SPA   |          6 |    30 | Passed |
-| Total       |         23 |   137 | Passed |
+| React SPA   |          6 |    31 | Passed |
+| Total       |         23 |   138 | Passed |
 
 ## Coverage
 
@@ -21,10 +21,10 @@ Vehicle routes and schemas have 100% statement, branch, function, and line cover
 service, Prisma adapter, decimal serialization, combined search query, partial updates, conditional
 purchase, atomic restock, transaction-local timeouts, pool-acquisition timeouts, default
 quantities, insufficient stock, and missing-record paths have direct regression coverage. The React
-suite covers guest inventory browsing, authenticated purchases, combined search, brand filtering,
-price sorting, premium card metadata, social-provider removal, the accessible Shadcn account-type
-selector, Employee inventory controls, and Administrator create, edit, restock, and delete
-workflows.
+suite covers the luxury root-route hero and navigation, guest inventory browsing, authenticated
+purchases, combined search, brand filtering, price sorting, premium card metadata, social-provider
+removal, the accessible Shadcn account-type selector, Employee inventory controls, and
+Administrator create, edit, restock, and delete workflows.
 Backend tests cover Customer, Employee, and Administrator route boundaries plus Admin-only user
 CRUD and role assignment. Integration tests use real bcrypt and JWT services to cross
 registration, profile restoration, protected inventory, role authorization, and
@@ -32,7 +32,7 @@ administrator-only deletion boundaries.
 
 ## Quality gate
 
-The following commands passed after the authentication interface update:
+The following commands passed after the landing-page implementation:
 
 ```text
 npm run lint

@@ -1,9 +1,40 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { App } from './App';
 
 describe('App authentication routes', () => {
+  it('renders the luxury landing hero at the root route', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('heading', { name: /engineered perfection/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /explore the collection/i })).toHaveAttribute(
+      'href',
+      '/dashboard',
+    );
+    const primaryNavigation = within(screen.getByRole('navigation', { name: /primary/i }));
+
+    expect(primaryNavigation.getByRole('link', { name: /^home$/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(primaryNavigation.getByRole('link', { name: /^inventory$/i })).toHaveAttribute(
+      'href',
+      '/dashboard',
+    );
+    expect(primaryNavigation.getByText(/^about$/i)).toHaveAttribute('aria-disabled', 'true');
+    expect(primaryNavigation.getByText(/^services$/i)).toHaveAttribute('aria-disabled', 'true');
+    expect(primaryNavigation.getByText(/^contact$/i)).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('img', { name: /exotic performance car/i })).toHaveAttribute(
+      'src',
+      expect.stringContaining('Final-CarHero'),
+    );
+  });
+
   it('renders the login experience at /login', () => {
     render(
       <MemoryRouter initialEntries={['/login']}>
