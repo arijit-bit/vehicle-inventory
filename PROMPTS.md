@@ -151,3 +151,48 @@ category, price, and stock quantity.
 - Purchase distinguishes insufficient stock from a nonexistent vehicle without weakening the
   atomic decrement.
 - No new schema or extension was needed, so no migration was introduced.
+
+## 2026-07-29 - Milestone 4 atomic purchasing, restocking, and inventory UI
+
+**User prompt summary:** Implement atomic, thread-safe purchasing and administrator inventory
+management. Add a Purchase button disabled at zero stock, administrator add/update/delete forms,
+database concurrency handling, lock-timeout behavior, simultaneous administrator/user stock
+updates, and stable `409`, `403`, and related API errors.
+
+**AI-assisted work:**
+
+- Reviewed current Supabase/PostgreSQL pooling and locking guidance before changing the repository.
+- Defined Red tests for transaction-local lock deadlines, retryable contention errors, admin-only
+  CRUD, rejection of stock in generic updates, authenticated vehicle requests, sold-out controls,
+  combined search, and administrator dialogs.
+- Wrapped existing-row mutations in short Prisma transactions and applied PostgreSQL
+  `lock_timeout` plus `statement_timeout` with transaction-local `set_config` calls.
+- Preserved the conditional purchase decrement and atomic restock increment while preventing
+  generic `PUT` requests from replacing stock.
+- Added `503 INVENTORY_BUSY` plus `Retry-After: 1` for PostgreSQL lock/statement deadlines.
+- Built a responsive inventory dashboard with committed server-state updates, search filters,
+  purchase controls, administrator create/edit/restock/delete workflows, accessible dialogs, and
+  structured error feedback.
+- Ran a live self-cleaning Supabase race with 12 purchases against stock 5, followed by concurrent
+  purchase/restock operations.
+- The live race exposed Prisma `P2028` pool-acquisition contention. A new Red test captured it; the
+  Green fix maps it to the same retryable contract and allows transaction acquisition within the
+  configured statement deadline.
+- Verified zero temporary rows, RLS enabled, and no vehicle mutation privileges for Supabase
+  browser roles.
+- Ran 109 tests, coverage, linting, TypeScript checks, formatting, and production builds.
+
+**Review decisions:**
+
+- Milestone 4's administrator CRUD requirement supersedes Milestone 3's temporary authenticated
+  create/update access: create, update, delete, and restock are now all administrator-only.
+- Initial quantity is accepted only at creation. Later stock changes use relative purchase or
+  restock operations.
+- Purchase versus restock, update, or delete is serialized by PostgreSQL row locks. Metadata
+  updates do not write quantity, eliminating the stale-form lost-update path.
+- Lock settings are transaction-local so pooled connections cannot leak timeout configuration
+  between requests.
+- Database and transaction-start contention are retryable `503` errors; committed insufficient
+  stock remains a non-retryable `409` business conflict.
+- No migration was needed because existing `UPDATE`/`DELETE` statements acquire row locks and the
+  non-negative stock constraint already provides defense in depth.

@@ -5,7 +5,7 @@ PostgreSQL/Supabase, Prisma, Tailwind CSS, JWT, and bcrypt.
 
 ## Current status
 
-Milestone 3 is complete:
+Milestone 4 is complete:
 
 - Secure registration and login REST endpoints
 - Lowercase, trimmed email normalization on the client and server
@@ -17,13 +17,14 @@ Milestone 3 is complete:
 - Responsive login and registration UI using shadcn-style source components
 - Session restoration, logout, and protected React routes
 - Protected vehicle listing and combined make, model, category, and price-range search
-- Authenticated vehicle creation and partial updates; administrator-only deletion
+- Administrator-only vehicle creation, metadata updates, deletion, and restocking
 - Exact two-decimal price serialization and non-negative stock validation
 - Prisma persistence with stable not-found handling
-- Atomic purchasing with oversell prevention and administrator-only restocking
-- 91 automated tests across the API and SPA
-
-The completed vehicle dashboard and administrator interface belong to later milestones.
+- Atomic purchasing and restocking with row-lock serialization and transaction-local deadlines
+- Retryable `503 INVENTORY_BUSY` responses for database and connection-pool contention
+- Responsive inventory dashboard with search, stock-aware purchasing, and sold-out states
+- Administrator create, edit, restock, and delete forms with confirmation workflows
+- 109 automated tests across the API and SPA
 
 ## Architecture
 
@@ -62,19 +63,21 @@ The API starts at `http://localhost:3000` and the SPA at `http://localhost:5173`
 
 ### Environment variables
 
-| Variable         | Purpose                                                                    |
-| ---------------- | -------------------------------------------------------------------------- |
-| `DATABASE_URL`   | Runtime PostgreSQL URL; use the Supabase transaction pooler on port `6543` |
-| `DIRECT_URL`     | Prisma migration URL; use the Supabase session pooler on port `5432`       |
-| `JWT_SECRET`     | Private signing secret containing at least 32 characters                   |
-| `JWT_EXPIRES_IN` | Access-token lifetime, default `15m`                                       |
-| `JWT_ISSUER`     | Expected JWT issuer                                                        |
-| `JWT_AUDIENCE`   | Expected JWT audience                                                      |
-| `BCRYPT_ROUNDS`  | bcrypt work factor from 10 through 14, default `12`                        |
-| `ADMIN_EMAIL`    | Optional administrator email; requires `ADMIN_PASSWORD`                    |
-| `ADMIN_PASSWORD` | Optional administrator password; requires `ADMIN_EMAIL`                    |
-| `CORS_ORIGIN`    | Allowed frontend origin                                                    |
-| `VITE_API_URL`   | Browser-visible API base URL, default `http://localhost:3000/api`          |
+| Variable                        | Purpose                                                                    |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| `DATABASE_URL`                  | Runtime PostgreSQL URL; use the Supabase transaction pooler on port `6543` |
+| `DIRECT_URL`                    | Prisma migration URL; use the Supabase session pooler on port `5432`       |
+| `DATABASE_LOCK_TIMEOUT_MS`      | Per-transaction row-lock deadline, default `2000`                          |
+| `DATABASE_STATEMENT_TIMEOUT_MS` | Per-transaction SQL deadline, default `10000`; must exceed lock timeout    |
+| `JWT_SECRET`                    | Private signing secret containing at least 32 characters                   |
+| `JWT_EXPIRES_IN`                | Access-token lifetime, default `15m`                                       |
+| `JWT_ISSUER`                    | Expected JWT issuer                                                        |
+| `JWT_AUDIENCE`                  | Expected JWT audience                                                      |
+| `BCRYPT_ROUNDS`                 | bcrypt work factor from 10 through 14, default `12`                        |
+| `ADMIN_EMAIL`                   | Optional administrator email; requires `ADMIN_PASSWORD`                    |
+| `ADMIN_PASSWORD`                | Optional administrator password; requires `ADMIN_EMAIL`                    |
+| `CORS_ORIGIN`                   | Allowed frontend origin                                                    |
+| `VITE_API_URL`                  | Browser-visible API base URL, default `http://localhost:3000/api`          |
 
 Generate a development JWT secret with:
 
@@ -144,18 +147,18 @@ Authorization: Bearer <token>
 ## Vehicle API
 
 Vehicle prices are returned as two-decimal strings so JSON clients do not lose decimal precision.
-All endpoints require a bearer JWT. Authenticated `USER` and `ADMIN` accounts can list, search,
-create, update, and purchase inventory. Delete and restock operations require an `ADMIN` role.
+All endpoints require a bearer JWT. `USER` and `ADMIN` accounts can list, search, and purchase.
+Creating, updating, deleting, and restocking inventory requires an `ADMIN` role.
 
-| Method   | Endpoint                     | Access     | Result                                      |
-| -------- | ---------------------------- | ---------- | ------------------------------------------- |
-| `GET`    | `/api/vehicles`              | Bearer JWT | Lists every inventory record                |
-| `GET`    | `/api/vehicles/search`       | Bearer JWT | Searches with combinable query parameters   |
-| `POST`   | `/api/vehicles`              | Bearer JWT | Creates a vehicle                           |
-| `PUT`    | `/api/vehicles/:id`          | Bearer JWT | Updates one or more supplied vehicle fields |
-| `DELETE` | `/api/vehicles/:id`          | Admin      | Deletes a vehicle                           |
-| `POST`   | `/api/vehicles/:id/purchase` | Bearer JWT | Atomically decreases available quantity     |
-| `POST`   | `/api/vehicles/:id/restock`  | Admin      | Atomically increases available quantity     |
+| Method   | Endpoint                     | Access     | Result                                             |
+| -------- | ---------------------------- | ---------- | -------------------------------------------------- |
+| `GET`    | `/api/vehicles`              | Bearer JWT | Lists every inventory record                       |
+| `GET`    | `/api/vehicles/search`       | Bearer JWT | Searches with combinable query parameters          |
+| `POST`   | `/api/vehicles`              | Admin      | Creates a vehicle with its initial quantity        |
+| `PUT`    | `/api/vehicles/:id`          | Admin      | Updates make, model, category, and/or price        |
+| `DELETE` | `/api/vehicles/:id`          | Admin      | Deletes a vehicle in a short protected transaction |
+| `POST`   | `/api/vehicles/:id/purchase` | Bearer JWT | Atomically decreases available quantity            |
+| `POST`   | `/api/vehicles/:id/restock`  | Admin      | Atomically increases available quantity            |
 
 Create body:
 
@@ -171,6 +174,20 @@ Create body:
 
 `price` accepts a JSON number or decimal string with at most two fractional digits. `quantity`
 must be a non-negative integer. Names are trimmed, required, and limited to 100 characters.
+
+Update bodies deliberately exclude `quantity`:
+
+```json
+{
+  "make": "Toyota",
+  "model": "Camry Hybrid",
+  "category": "Sedan",
+  "price": "33999.90"
+}
+```
+
+Stock can change only through `purchase` and `restock`. This prevents a stale administrator form
+from replacing a quantity that changed while a user was purchasing.
 
 Search parameters are optional and combined with AND semantics:
 
@@ -195,6 +212,59 @@ Omitting the body defaults to one vehicle. Purchasing uses one conditional datab
 from overselling stock. Insufficient quantity returns `409 INSUFFICIENT_STOCK`. Restocking uses an
 atomic database increment and remains administrator-only.
 
+## Atomicity and concurrency strategy
+
+Every existing-row mutation runs in a short Prisma interactive transaction. Before the mutation,
+the transaction applies PostgreSQL `lock_timeout` and `statement_timeout` with
+`set_config(..., true)`. The `true` scope is transaction-local, so the setting cannot leak through
+the Supabase transaction pool to a later request.
+
+| Competing operations       | Database behavior                                                  | API outcome                                                   |
+| -------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| Purchase vs purchase       | Conditional decrements serialize on the vehicle row                | Winners return `200`; requests after stock reaches zero `409` |
+| Purchase vs restock        | Relative decrement/increment operations wait for the same row lock | Both commit in lock order; no update is lost                  |
+| Purchase vs metadata edit  | Edit waits but never writes `quantity`                             | Purchased quantity is preserved                               |
+| Purchase vs delete         | Operations serialize; the later request observes committed state   | Purchase/delete succeeds or the later target receives `404`   |
+| Lock/statement deadline    | PostgreSQL aborts and rolls back the transaction                   | `503 INVENTORY_BUSY` with `Retry-After: 1`                    |
+| Prisma pool-start deadline | No transaction begins and no data changes                          | `503 INVENTORY_BUSY` with `Retry-After: 1`                    |
+
+The lock deadline is intentionally lower than the statement deadline. A timed-out transaction is
+fully rolled back; clients should wait for the `Retry-After` delay and retry the complete operation.
+The database check constraint `quantity >= 0` remains a second line of defense.
+
+No Milestone 4 schema migration is needed: PostgreSQL row locks are acquired by the existing
+`UPDATE` and `DELETE` statements, and arithmetic stock updates preserve the existing constraint.
+
+### Inventory errors
+
+All errors use `{ "error": { "code": "...", "message": "..." } }`.
+
+| Status | Code                 | Meaning                                                    |
+| -----: | -------------------- | ---------------------------------------------------------- |
+|    400 | `VALIDATION_ERROR`   | Invalid identifier, fields, price, or quantity             |
+|    401 | `UNAUTHENTICATED`    | Missing, expired, or invalid bearer token                  |
+|    403 | `FORBIDDEN`          | A non-admin attempted an administrator operation           |
+|    404 | `VEHICLE_NOT_FOUND`  | The vehicle does not exist or was deleted concurrently     |
+|    409 | `INSUFFICIENT_STOCK` | The purchase cannot be fulfilled from committed stock      |
+|    503 | `INVENTORY_BUSY`     | Lock, statement, or transaction-start deadline was reached |
+
+## Inventory interface
+
+The protected React dashboard lists current stock and provides combined make, model, category, and
+price filters. Every available card has a one-unit Purchase button. A zero-stock card remains
+visible but renders a disabled **Out of stock** button.
+
+After purchase or restock, the UI replaces the card with the vehicle returned by the committed API
+response rather than guessing the new quantity locally. Administrators additionally receive:
+
+- an Add Vehicle form including initial quantity;
+- an Edit form for descriptive fields and price, intentionally without quantity;
+- a positive-quantity Restock form;
+- a destructive Delete confirmation.
+
+Transient `INVENTORY_BUSY` responses tell the user to retry. `INSUFFICIENT_STOCK` explains that the
+vehicle sold out, while authorization errors remain distinct.
+
 ## Security decisions
 
 - Passwords are never returned or stored in plaintext.
@@ -206,6 +276,8 @@ atomic database increment and remains administrator-only.
   HTTP-only secure-cookie design would be preferred when refresh tokens and CSRF protection are
   introduced.
 - Role checks return `401` for missing/invalid identity and `403` for insufficient permissions.
+- Generic updates cannot write stock; only relative purchase/restock operations can mutate it.
+- Database lock and statement limits are transaction-local and safe with pooled connections.
 
 ## Quality commands
 
@@ -223,12 +295,13 @@ GitHub Actions runs the same checks on every push and pull request. See
 
 ## Documented inventory assumptions
 
-- Create and update require authentication; delete and restock require an administrator.
+- Create, update, delete, and restock require an administrator.
 - Purchase and restock accept a positive integer quantity.
 - Zero-stock vehicles remain visible but cannot be purchased.
 - Insufficient stock returns `409 Conflict`.
+- Transient lock, statement, and pool-acquisition timeouts return retryable `503 Service Unavailable`.
 - Search filters are combinable, case-insensitive, and validate price ranges.
-- `PUT` updates only the supplied vehicle fields and rejects an empty body.
+- `PUT` updates only supplied metadata fields, rejects stock, and rejects an empty body.
 
 ## My AI Usage
 

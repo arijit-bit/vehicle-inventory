@@ -65,12 +65,15 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
   }
 
   if (error instanceof InventoryBusyError) {
-    response.set('Retry-After', '1').status(503).json({
-      error: {
-        code: 'INVENTORY_BUSY',
-        message: error.message,
-      },
-    });
+    response
+      .set('Retry-After', '1')
+      .status(503)
+      .json({
+        error: {
+          code: 'INVENTORY_BUSY',
+          message: error.message,
+        },
+      });
     return;
   }
 

@@ -72,9 +72,7 @@ const isRetryableDatabaseTimeout = (error: unknown): boolean => {
     return true;
   }
 
-  return (
-    isRetryableDatabaseTimeout(candidate.meta) || isRetryableDatabaseTimeout(candidate.cause)
-  );
+  return isRetryableDatabaseTimeout(candidate.meta) || isRetryableDatabaseTimeout(candidate.cause);
 };
 
 export interface InventoryTimeouts {
