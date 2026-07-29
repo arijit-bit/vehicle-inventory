@@ -7,6 +7,7 @@ import { AuthService } from './modules/auth/auth.service.js';
 import { BcryptPasswordHasher } from './modules/auth/bcrypt-password-hasher.js';
 import { JwtTokenService } from './modules/auth/jwt-token.service.js';
 import { PrismaUserRepository } from './modules/auth/prisma-user.repository.js';
+import { UserManagementService } from './modules/auth/user-management.service.js';
 import { PrismaVehicleRepository } from './modules/vehicles/prisma-vehicle.repository.js';
 import { VehicleService } from './modules/vehicles/vehicle.service.js';
 
@@ -21,6 +22,7 @@ const tokens = new JwtTokenService({
   audience: env.JWT_AUDIENCE,
 });
 const authService = new AuthService(users, passwords, tokens);
+const userManagementService = new UserManagementService(users, passwords);
 const vehicles = new PrismaVehicleRepository(database, {
   lockTimeoutMs: env.DATABASE_LOCK_TIMEOUT_MS,
   statementTimeoutMs: env.DATABASE_STATEMENT_TIMEOUT_MS,
@@ -37,6 +39,7 @@ const app = createApp({
   authService,
   tokenVerifier: tokens,
   vehicleService,
+  userManagementService,
 });
 
 app.listen(env.PORT, () => {

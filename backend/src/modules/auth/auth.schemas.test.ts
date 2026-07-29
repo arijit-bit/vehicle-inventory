@@ -9,6 +9,25 @@ describe('authentication schemas', () => {
     });
 
     expect(result.email).toBe('driver@example.com');
+    expect(result.role).toBe('CUSTOMER');
+  });
+
+  it('allows customer and employee self-registration but never administrator registration', () => {
+    expect(
+      registrationSchema.parse({
+        email: 'sales@example.com',
+        password: 'SafePass123!',
+        role: 'EMPLOYEE',
+      }).role,
+    ).toBe('EMPLOYEE');
+
+    expect(
+      registrationSchema.safeParse({
+        email: 'attacker@example.com',
+        password: 'SafePass123!',
+        role: 'ADMIN',
+      }).success,
+    ).toBe(false);
   });
 
   it.each(['driver.example.com', 'driver@example', 'driver@.com', '@example.com'])(

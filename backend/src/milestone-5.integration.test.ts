@@ -62,7 +62,7 @@ describe('Milestone 5 authentication to dashboard boundary', () => {
     expect(registration.body.user).toEqual({
       id: userId,
       email: 'driver@example.com',
-      role: 'USER',
+      role: 'CUSTOMER',
     });
 
     const authorization = `Bearer ${registration.body.token as string}`;

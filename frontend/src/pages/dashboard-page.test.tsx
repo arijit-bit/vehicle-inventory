@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuth } from '../features/auth/auth-context-value';
 import { VehicleApiError, vehicleApi, type Vehicle } from '../features/vehicles/vehicle-api';
@@ -49,7 +50,7 @@ const vehicles: Vehicle[] = [
   },
 ];
 
-const mockAuth = (role: 'USER' | 'ADMIN') => {
+const mockAuth = (role: 'CUSTOMER' | 'EMPLOYEE' | 'ADMIN') => {
   vi.mocked(useAuth).mockReturnValue({
     user: {
       id: 'user-1',
@@ -73,7 +74,7 @@ describe('DashboardPage', () => {
 
   it('lets a user purchase available stock and disables sold-out vehicles', async () => {
     const user = userEvent.setup();
-    mockAuth('USER');
+    mockAuth('CUSTOMER');
     vi.mocked(vehicleApi.purchase).mockResolvedValue({
       vehicle: { ...vehicles[0]!, quantity: 1 },
     });
@@ -95,13 +96,61 @@ describe('DashboardPage', () => {
     expect(within(camry).getByText('1 in stock')).toBeInTheDocument();
   });
 
+  it('lets guests browse and search while requiring sign-in for purchase', async () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      token: null,
+      isLoading: false,
+      login: vi.fn(),
+      register: vi.fn(),
+      logout: vi.fn(),
+    });
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+
+    const camry = await screen.findByRole('article', { name: 'Toyota Camry' });
+    expect(vehicleApi.list).toHaveBeenCalledWith(null);
+    expect(
+      within(camry).getByRole('link', { name: /sign in to purchase toyota camry/i }),
+    ).toHaveAttribute('href', '/login');
+    expect(screen.getByRole('link', { name: 'Request access' })).toHaveAttribute(
+      'href',
+      '/register',
+    );
+  });
+
+  it('gives employees create and edit access without restock or delete controls', async () => {
+    const user = userEvent.setup();
+    mockAuth('EMPLOYEE');
+
+    render(<DashboardPage />);
+    await screen.findByRole('article', { name: 'Toyota Camry' });
+    await user.click(screen.getByRole('button', { name: 'Manage inventory' }));
+
+    const management = screen.getByRole('region', { name: 'Inventory management' });
+    expect(within(management).getByRole('button', { name: 'Add vehicle' })).toBeInTheDocument();
+    expect(
+      within(management).getByRole('button', { name: 'Edit Toyota Camry' }),
+    ).toBeInTheDocument();
+    expect(
+      within(management).queryByRole('button', { name: 'Restock Toyota Camry' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(management).queryByRole('button', { name: 'Delete Toyota Camry' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows the signed-in identity and filters the catalog by availability', async () => {
     const user = userEvent.setup();
-    mockAuth('USER');
+    mockAuth('CUSTOMER');
 
     render(<DashboardPage />);
 
-    expect(await screen.findByText('user@example.com')).toBeInTheDocument();
+    expect(await screen.findByText('customer@example.com')).toBeInTheDocument();
     expect(screen.getByText('2 vehicles')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Available' }));
@@ -111,8 +160,44 @@ describe('DashboardPage', () => {
     expect(screen.getByText('1 vehicle')).toBeInTheDocument();
   });
 
+  it('renders the premium collection chrome and vehicle metadata', async () => {
+    mockAuth('CUSTOMER');
+
+    render(<DashboardPage />);
+
+    expect(await screen.findByRole('heading', { name: 'Our Collection' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Filter By Brand' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Sort By Price' })).toBeInTheDocument();
+    expect(screen.getAllByText('Automatic')).toHaveLength(2);
+    expect(screen.getByText('Frozen Silver')).toBeInTheDocument();
+    expect(screen.getAllByLabelText(/view .* details/i)).toHaveLength(2);
+  });
+
+  it('filters by brand and sorts the collection by price', async () => {
+    const user = userEvent.setup();
+    mockAuth('CUSTOMER');
+
+    render(<DashboardPage />);
+    await screen.findByRole('article', { name: 'Toyota Camry' });
+
+    await user.click(screen.getByRole('combobox', { name: 'Filter By Brand' }));
+    await user.click(screen.getByRole('option', { name: 'Toyota' }));
+
+    expect(screen.getByRole('article', { name: 'Toyota Camry' })).toBeInTheDocument();
+    expect(screen.queryByRole('article', { name: 'Ford Mustang' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('combobox', { name: 'Filter By Brand' }));
+    await user.click(screen.getByRole('option', { name: 'All brands' }));
+    await user.click(screen.getByRole('combobox', { name: 'Sort By Price' }));
+    await user.click(screen.getByRole('option', { name: 'Price: high to low' }));
+
+    const cards = screen.getAllByRole('article');
+    expect(cards[0]).toHaveAccessibleName('Ford Mustang');
+    expect(cards[1]).toHaveAccessibleName('Toyota Camry');
+  });
+
   it('keeps inventory management hidden from non-administrators', async () => {
-    mockAuth('USER');
+    mockAuth('CUSTOMER');
 
     render(<DashboardPage />);
 
@@ -122,13 +207,13 @@ describe('DashboardPage', () => {
   });
 
   it('ends the local session when the API rejects an expired token', async () => {
-    mockAuth('USER');
+    mockAuth('CUSTOMER');
     const logout = vi.fn();
     vi.mocked(useAuth).mockReturnValue({
       user: {
         id: 'user-1',
         email: 'user@example.com',
-        role: 'USER',
+        role: 'CUSTOMER',
       },
       token: 'expired-token',
       isLoading: false,
@@ -147,11 +232,12 @@ describe('DashboardPage', () => {
 
   it('searches by combined inventory filters', async () => {
     const user = userEvent.setup();
-    mockAuth('USER');
+    mockAuth('CUSTOMER');
 
     render(<DashboardPage />);
     await screen.findByRole('article', { name: 'Toyota Camry' });
 
+    await user.click(screen.getByRole('button', { name: 'Open search' }));
     await user.type(screen.getByLabelText('Make'), ' Toyota ');
     await user.type(screen.getByLabelText('Category'), 'Sedan');
     await user.type(screen.getByLabelText('Minimum price'), '10000');
@@ -166,7 +252,7 @@ describe('DashboardPage', () => {
 
   it('explains retryable inventory contention to the buyer', async () => {
     const user = userEvent.setup();
-    mockAuth('USER');
+    mockAuth('CUSTOMER');
     vi.mocked(vehicleApi.purchase).mockRejectedValue(
       new VehicleApiError('Inventory is busy; retry the request', 'INVENTORY_BUSY', 503),
     );

@@ -57,11 +57,15 @@ const compactFilters = (filters: VehicleSearchFilters) =>
   }, {});
 
 export const createVehicleApi = (baseUrl: string, fetcher: typeof fetch = fetch) => {
-  const request = async <T>(path: string, token: string, init: RequestInit): Promise<T> => {
+  const request = async <T>(
+    path: string,
+    token: string | null | undefined,
+    init: RequestInit,
+  ): Promise<T> => {
     const response = await fetcher(`${baseUrl}${path}`, {
       ...init,
       headers: {
-        Authorization: `Bearer ${token}`,
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...init.headers,
       },
     });
@@ -91,11 +95,11 @@ export const createVehicleApi = (baseUrl: string, fetcher: typeof fetch = fetch)
     });
 
   return {
-    list: (token: string) =>
+    list: (token?: string | null) =>
       request<{ vehicles: Vehicle[] }>('/vehicles', token, {
         method: 'GET',
       }),
-    search: (token: string, filters: VehicleSearchFilters) => {
+    search: (token: string | null | undefined, filters: VehicleSearchFilters) => {
       const query = new URLSearchParams(compactFilters(filters));
 
       return request<{ vehicles: Vehicle[] }>(`/vehicles/search?${query}`, token, {

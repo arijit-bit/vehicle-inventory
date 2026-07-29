@@ -2,6 +2,11 @@ import type { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 import { DuplicateEmailError, InvalidCredentialsError } from '../modules/auth/auth.types.js';
 import {
+  CannotChangeOwnRoleError,
+  CannotDeleteSelfError,
+  UserNotFoundError,
+} from '../modules/auth/user-management.types.js';
+import {
   InsufficientStockError,
   InventoryBusyError,
   VehicleNotFoundError,
@@ -38,6 +43,27 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     response.status(401).json({
       error: {
         code: 'INVALID_CREDENTIALS',
+        message: error.message,
+      },
+    });
+    return;
+  }
+
+  if (error instanceof UserNotFoundError) {
+    response.status(404).json({
+      error: {
+        code: 'USER_NOT_FOUND',
+        message: error.message,
+      },
+    });
+    return;
+  }
+
+  if (error instanceof CannotDeleteSelfError || error instanceof CannotChangeOwnRoleError) {
+    response.status(409).json({
+      error: {
+        code:
+          error instanceof CannotDeleteSelfError ? 'CANNOT_DELETE_SELF' : 'CANNOT_CHANGE_OWN_ROLE',
         message: error.message,
       },
     });

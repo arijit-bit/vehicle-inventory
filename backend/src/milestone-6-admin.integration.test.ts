@@ -29,7 +29,7 @@ describe('Milestone 6 administrator boundary', () => {
     const userToken = tokens.sign({
       id: '6d81eeca-7b73-4be4-b164-32974cf57619',
       email: 'driver@example.com',
-      role: 'USER',
+      role: 'CUSTOMER',
     });
     const adminToken = tokens.sign({
       id: 'bb374a4a-a335-4d08-9385-608a84fb80f9',

@@ -4,7 +4,7 @@ import { JwtTokenService } from './jwt-token.service.js';
 const user = {
   id: '9d2e9700-ddff-4957-965c-30bf44484461',
   email: 'driver@example.com',
-  role: 'USER' as const,
+  role: 'CUSTOMER' as const,
 };
 
 describe('JwtTokenService', () => {
@@ -25,7 +25,7 @@ describe('JwtTokenService', () => {
     expect(claims).toEqual({
       sub: user.id,
       email: 'driver@example.com',
-      role: 'USER',
+      role: 'CUSTOMER',
     });
   });
 

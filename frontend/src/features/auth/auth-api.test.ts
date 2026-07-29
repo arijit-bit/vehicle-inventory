@@ -13,7 +13,7 @@ describe('auth API client', () => {
         user: {
           id: '9d2e9700-ddff-4957-965c-30bf44484461',
           email: 'driver@example.com',
-          role: 'USER',
+          role: 'CUSTOMER',
         },
         token: 'signed.jwt.token',
       }),
@@ -24,6 +24,7 @@ describe('auth API client', () => {
     await api.register({
       email: 'DRIVER@EXAMPLE.COM',
       password: 'SafePass123!',
+      role: 'CUSTOMER',
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -36,6 +37,7 @@ describe('auth API client', () => {
         body: JSON.stringify({
           email: 'driver@example.com',
           password: 'SafePass123!',
+          role: 'CUSTOMER',
         }),
       }),
     );

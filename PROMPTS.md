@@ -65,7 +65,7 @@ using shadcn-style components.
 - Removed only verified-unused Vite starter assets.
 - Ran formatting, linting, TypeScript checks, 43 tests, coverage, and production builds.
 - Checked Supabase security/performance advisors and verified RLS plus revoked browser-role DML.
-- Generated one MotorVault social-preview image using a navy/cyan enterprise visual brief and wired
+- Generated one MotoVault social-preview image using a navy/cyan enterprise visual brief and wired
   it into Open Graph and Twitter metadata.
 
 **Review decisions:**
@@ -78,8 +78,8 @@ using shadcn-style components.
 - An unrelated warning for an existing Supabase Storage bucket was documented but not modified
   because it is outside this repository's scope.
 
-**Image-generation prompt summary:** Create a landscape MotorVault social card with a midnight navy
-technical backdrop, one modern vehicle with cyan rim lighting, negative space for exact MotorVault
+**Image-generation prompt summary:** Create a landscape MotoVault social card with a midnight navy
+technical backdrop, one modern vehicle with cyan rim lighting, negative space for exact MotoVault
 title text, and a restrained enterprise-security aesthetic. Avoid real vehicle brands, people,
 watermarks, visual clutter, and generic stock-photo styling.
 
@@ -264,3 +264,45 @@ publication.
 - Quantity remains excluded from generic edit forms; restocking stays on its atomic endpoint.
 - Existing root Supabase manifest changes and user-supplied vehicle artwork were preserved outside
   Milestone 6 commits.
+
+## 2026-07-29 - Milestone 7 dark-luxury interface modernization
+
+**User prompt summary:** Act as a Principal Frontend Engineer and UI/UX Architect. Modernize the
+React application into a production-ready luxury automotive experience using React Router 6,
+Tailwind CSS, Radix-powered Shadcn components, a strict obsidian/charcoal/silver design token
+system, centered social-enabled authentication, glass navigation, functional brand and price
+controls, and premium vehicle cards. Keep multi-page expansion out of scope for now and preserve
+TDD, clean-code, documentation, and AI-transparency requirements.
+
+**AI-assisted work:**
+
+- Added failing interaction contracts for social authentication controls, collection chrome,
+  Shadcn Select behavior, brand filtering, price sorting, vehicle specification metadata, and
+  circular detail controls before implementing the UI.
+- Replaced the earlier cyan dashboard styling with the exact dark-luxury CSS variables, a shared
+  12px radius, Inter/Plus Jakarta Sans typography, restrained uppercase tracking, and subtle grid
+  texture.
+- Added reusable Radix-powered Shadcn Button, Card, Dialog, Navigation Menu, Select, Input, Label,
+  and Table primitives that compose conditional classes through `cn()`.
+- Built a sticky glass navigation shell, responsive collection controls, expandable automotive
+  cards using the repository's transparent vehicle assets, and a compact private-sales value
+  section.
+- Preserved guest browsing, authenticated purchases, advanced API search, availability filtering,
+  Employee create/update controls, and Administrator create/update/restock/delete workflows.
+- Rebuilt login and registration as centered backdrop-filtered cards with Google and Apple
+  controls, clear provider-configuration feedback, and the existing secure email/password state.
+- Kept the declarative React Router 6 API while upgrading the package to the current v7 line after
+  the dependency audit found open-redirect/XSS advisories on the v6 release line.
+
+**Review decisions:**
+
+- Existing local SVG assets were reused rather than generating or copying third-party vehicle
+  artwork.
+- Social buttons explicitly report that provider credentials are required instead of pretending a
+  provider login succeeded.
+- Client-side brand and price controls compose with server-backed advanced search and never replace
+  backend authorization.
+- Multi-page vehicle detail, concierge, and editorial routes remain intentionally deferred as
+  requested.
+- The remaining router audit advisory is specific to React Server Component action handling; this
+  Vite SPA uses `BrowserRouter` only and exposes no RSC actions.

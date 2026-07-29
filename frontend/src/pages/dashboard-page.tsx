@@ -1,33 +1,19 @@
 import {
   AlertTriangle,
-  Boxes,
-  CarFront,
-  CircleDollarSign,
-  LayoutDashboard,
-  LogOut,
+  LayoutGrid,
   PackagePlus,
   Pencil,
   Plus,
   Search,
   Settings2,
-  ShieldCheck,
-  SlidersHorizontal,
-  ShoppingCart,
   Trash2,
-  UserRoundCheck,
   X,
 } from 'lucide-react';
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { AppNavigation } from '../components/app-navigation';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
+import { Dialog, DialogContent } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import {
@@ -39,6 +25,7 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { useAuth } from '../features/auth/auth-context-value';
+import { CollectionControls, type PriceSort } from '../features/vehicles/collection-controls';
 import {
   VehicleApiError,
   vehicleApi,
@@ -47,6 +34,8 @@ import {
   type Vehicle,
   type VehicleSearchFilters,
 } from '../features/vehicles/vehicle-api';
+import { VehicleCard } from '../features/vehicles/vehicle-card';
+import { cn } from '../lib/utils';
 
 type DialogState =
   | { type: 'create' }
@@ -54,13 +43,13 @@ type DialogState =
   | { type: 'restock'; vehicle: Vehicle }
   | { type: 'delete'; vehicle: Vehicle };
 
+type WorkspaceView = 'catalog' | 'manage';
+type AvailabilityFilter = 'all' | 'available' | 'sold-out';
+
 interface Feedback {
   tone: 'error' | 'success';
   message: string;
 }
-
-type AvailabilityFilter = 'all' | 'available' | 'sold-out';
-type WorkspaceView = 'catalog' | 'manage';
 
 const currency = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -91,81 +80,6 @@ const readableInventoryError = (error: unknown) => {
   return error.message;
 };
 
-const Dialog = ({
-  title,
-  description,
-  children,
-  onDismiss,
-}: {
-  title: string;
-  description: string;
-  children: ReactNode;
-  onDismiss(): void;
-}) => {
-  const titleId = useId();
-  const descriptionId = useId();
-  const dialogRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const previouslyFocused = document.activeElement;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    dialogRef.current?.focus();
-
-    const dismissOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onDismiss();
-      }
-    };
-
-    document.addEventListener('keydown', dismissOnEscape);
-
-    return () => {
-      document.removeEventListener('keydown', dismissOnEscape);
-      document.body.style.overflow = previousOverflow;
-      if (previouslyFocused instanceof HTMLElement) {
-        previouslyFocused.focus();
-      }
-    };
-  }, [onDismiss]);
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/85 p-0 backdrop-blur-sm sm:items-center sm:p-4"
-      onMouseDown={(event) => {
-        if (event.currentTarget === event.target) {
-          onDismiss();
-        }
-      }}
-    >
-      <section
-        aria-describedby={descriptionId}
-        aria-labelledby={titleId}
-        aria-modal="true"
-        className="max-h-[calc(100vh-1rem)] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-white/10 bg-slate-900 p-5 shadow-2xl shadow-black/50 outline-none sm:max-h-[calc(100vh-2rem)] sm:rounded-3xl sm:p-8"
-        ref={dialogRef}
-        role="dialog"
-        tabIndex={-1}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold text-white" id={titleId}>
-              {title}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-400" id={descriptionId}>
-              {description}
-            </p>
-          </div>
-          <Button aria-label="Close dialog" onClick={onDismiss} size="icon" variant="ghost">
-            <X aria-hidden="true" className="size-5" />
-          </Button>
-        </div>
-        <div className="mt-7">{children}</div>
-      </section>
-    </div>
-  );
-};
-
 const FormField = ({ id, label, children }: { id: string; label: string; children: ReactNode }) => (
   <div className="space-y-2">
     <Label htmlFor={id}>{label}</Label>
@@ -173,18 +87,14 @@ const FormField = ({ id, label, children }: { id: string; label: string; childre
   </div>
 );
 
-const VehicleForm = ({
-  vehicle,
-  pending,
-  onCancel,
-  onSubmit,
-}: {
+interface VehicleFormProps {
   vehicle?: Vehicle;
   pending: boolean;
   onCancel(): void;
   onSubmit(input: CreateVehicleInput | UpdateVehicleInput): Promise<void>;
-}) => {
-  const prefix = useId();
+}
+
+const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps) => {
   const mode = vehicle ? 'edit' : 'create';
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -210,37 +120,39 @@ const VehicleForm = ({
   return (
     <form className="grid gap-5" onSubmit={submit}>
       <div className="grid gap-5 sm:grid-cols-2">
-        <FormField id={`${prefix}-make`} label="Make">
+        <FormField id="vehicle-make" label="Make">
           <Input
             defaultValue={vehicle?.make}
-            id={`${prefix}-make`}
+            id="vehicle-make"
             maxLength={100}
             name="make"
             required
           />
         </FormField>
-        <FormField id={`${prefix}-model`} label="Model">
+        <FormField id="vehicle-model" label="Model">
           <Input
             defaultValue={vehicle?.model}
-            id={`${prefix}-model`}
+            id="vehicle-model"
             maxLength={100}
             name="model"
             required
           />
         </FormField>
-        <FormField id={`${prefix}-category`} label="Category">
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <FormField id="vehicle-category" label="Category">
           <Input
             defaultValue={vehicle?.category}
-            id={`${prefix}-category`}
+            id="vehicle-category"
             maxLength={100}
             name="category"
             required
           />
         </FormField>
-        <FormField id={`${prefix}-price`} label="Price">
+        <FormField id="vehicle-price" label="Price">
           <Input
             defaultValue={vehicle?.price}
-            id={`${prefix}-price`}
+            id="vehicle-price"
             min="0"
             name="price"
             required
@@ -250,9 +162,10 @@ const VehicleForm = ({
         </FormField>
       </div>
       {mode === 'create' && (
-        <FormField id={`${prefix}-quantity`} label="Initial quantity">
+        <FormField id="vehicle-quantity" label="Initial quantity">
           <Input
-            id={`${prefix}-quantity`}
+            defaultValue="0"
+            id="vehicle-quantity"
             min="0"
             name="quantity"
             required
@@ -262,8 +175,8 @@ const VehicleForm = ({
         </FormField>
       )}
       {mode === 'edit' && (
-        <p className="rounded-xl border border-cyan-400/15 bg-cyan-400/5 px-4 py-3 text-sm text-cyan-100">
-          Stock is changed only through Purchase or Restock to preserve atomic updates.
+        <p className="rounded-[var(--radius)] border border-border bg-background/45 px-4 py-3 text-xs leading-5 text-secondary">
+          Stock changes remain on the purchase and restock workflows to protect inventory accuracy.
         </p>
       )}
       <div className="flex justify-end gap-3 pt-2">
@@ -288,6 +201,9 @@ export const DashboardPage = () => {
   const [filters, setFilters] = useState<VehicleSearchFilters>({});
   const [availability, setAvailability] = useState<AvailabilityFilter>('all');
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('catalog');
+  const [brand, setBrand] = useState('all');
+  const [priceSort, setPriceSort] = useState<PriceSort>('featured');
+  const [searchExpanded, setSearchExpanded] = useState(false);
 
   const handleInventoryError = useCallback(
     (error: unknown) => {
@@ -305,13 +221,9 @@ export const DashboardPage = () => {
   );
 
   useEffect(() => {
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-
     let active = true;
     setIsLoading(true);
+
     vehicleApi
       .list(token)
       .then(({ vehicles: inventory }) => {
@@ -358,18 +270,13 @@ export const DashboardPage = () => {
       setVehicles((current) => replaceVehicle(current, updated));
       setFeedback({
         tone: 'success',
-        message: `${updated.make} ${updated.model} purchased. ${updated.quantity} remaining.`,
+        message: `${updated.make} ${updated.model} reserved. ${updated.quantity} remaining.`,
       });
     });
   };
 
   const searchInventory = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
-    if (!token) {
-      return;
-    }
-
     const normalized = Object.entries(filters).reduce<VehicleSearchFilters>(
       (result, [key, value]) => {
         const trimmed = value?.trim();
@@ -387,18 +294,16 @@ export const DashboardPage = () => {
           ? await vehicleApi.list(token)
           : await vehicleApi.search(token, normalized);
       setVehicles(result.vehicles);
+      setBrand('all');
     });
   };
 
   const clearSearch = () => {
     setFilters({});
-
-    if (token) {
-      void runAction('search', async () => {
-        const result = await vehicleApi.list(token);
-        setVehicles(result.vehicles);
-      });
-    }
+    void runAction('search', async () => {
+      const result = await vehicleApi.list(token);
+      setVehicles(result.vehicles);
+    });
   };
 
   const saveVehicle = async (input: CreateVehicleInput | UpdateVehicleInput) => {
@@ -411,7 +316,7 @@ export const DashboardPage = () => {
       if (currentDialog.type === 'create') {
         const result = await vehicleApi.create(token, input as CreateVehicleInput);
         setVehicles((current) => [result.vehicle, ...current]);
-        setFeedback({ tone: 'success', message: 'Vehicle added to inventory.' });
+        setFeedback({ tone: 'success', message: 'Vehicle added to the collection.' });
       } else {
         const result = await vehicleApi.update(
           token,
@@ -427,7 +332,6 @@ export const DashboardPage = () => {
 
   const restock = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     if (!token || dialog?.type !== 'restock') {
       return;
     }
@@ -438,10 +342,7 @@ export const DashboardPage = () => {
       const result = await vehicleApi.restock(token, vehicle.id, quantity);
       setVehicles((current) => replaceVehicle(current, result.vehicle));
       setDialog(null);
-      setFeedback({
-        tone: 'success',
-        message: `${vehicle.make} ${vehicle.model} restocked atomically.`,
-      });
+      setFeedback({ tone: 'success', message: `${vehicle.make} ${vehicle.model} restocked.` });
     });
   };
 
@@ -455,542 +356,445 @@ export const DashboardPage = () => {
       await vehicleApi.delete(token, vehicle.id);
       setVehicles((current) => current.filter((item) => item.id !== vehicle.id));
       setDialog(null);
-      setFeedback({ tone: 'success', message: 'Vehicle deleted from inventory.' });
+      setFeedback({ tone: 'success', message: 'Vehicle removed from the collection.' });
     });
   };
 
-  const totalUnits = vehicles.reduce((sum, vehicle) => sum + vehicle.quantity, 0);
-  const availableModels = vehicles.filter((vehicle) => vehicle.quantity > 0).length;
   const isAdmin = user?.role === 'ADMIN';
-  const visibleVehicles = vehicles.filter((vehicle) => {
-    if (availability === 'available') {
-      return vehicle.quantity > 0;
-    }
+  const canManageInventory = user?.role === 'EMPLOYEE' || isAdmin;
+  const brands = useMemo(
+    () => [...new Set(vehicles.map((vehicle) => vehicle.make))].sort(),
+    [vehicles],
+  );
+  const visibleVehicles = useMemo(() => {
+    const filtered = vehicles.filter((vehicle) => {
+      const matchesBrand = brand === 'all' || vehicle.make === brand;
+      const matchesAvailability =
+        availability === 'all' ||
+        (availability === 'available' ? vehicle.quantity > 0 : vehicle.quantity === 0);
+      return matchesBrand && matchesAvailability;
+    });
 
-    if (availability === 'sold-out') {
-      return vehicle.quantity === 0;
+    if (priceSort === 'price-asc') {
+      return [...filtered].sort((a, b) => Number(a.price) - Number(b.price));
     }
+    if (priceSort === 'price-desc') {
+      return [...filtered].sort((a, b) => Number(b.price) - Number(a.price));
+    }
+    return filtered;
+  }, [availability, brand, priceSort, vehicles]);
 
-    return true;
-  });
+  const totalUnits = vehicles.reduce((sum, vehicle) => sum + vehicle.quantity, 0);
   const resultLabel = `${visibleVehicles.length} ${
     visibleVehicles.length === 1 ? 'vehicle' : 'vehicles'
   }`;
-  const accountInitial = user?.email.charAt(0).toUpperCase() ?? 'M';
-  const inventoryRecordLabel = `${vehicles.length} inventory ${
-    vehicles.length === 1 ? 'record' : 'records'
-  }`;
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-8">
-      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute left-1/2 top-0 h-96 w-[50rem] -translate-x-1/2 rounded-full bg-cyan-500/8 blur-3xl" />
-      </div>
-      <div className="relative mx-auto max-w-7xl">
-        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-6">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/20">
-              <Boxes aria-hidden="true" className="size-5" />
-            </span>
-            <div>
-              <p className="font-bold tracking-tight text-white">MotorVault</p>
-              <p className="text-xs text-slate-500">Atomic vehicle inventory</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="hidden items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] py-2 pl-2 pr-4 sm:flex">
-              <span className="flex size-9 items-center justify-center rounded-xl bg-cyan-400/10 text-sm font-bold text-cyan-300 ring-1 ring-cyan-300/15">
-                {accountInitial}
-              </span>
-              <div className="min-w-0">
-                <p className="max-w-52 truncate text-xs font-semibold text-slate-200">
-                  {user?.email}
-                </p>
-                <p className="mt-0.5 flex items-center gap-1 text-[11px] text-emerald-300">
-                  <ShieldCheck aria-hidden="true" className="size-3" />
-                  {isAdmin ? 'Administrator' : 'Verified buyer'}
-                </p>
-              </div>
-            </div>
-            <Button aria-label="Sign out" onClick={logout} size="icon" variant="outline">
-              <LogOut aria-hidden="true" className="size-4" />
-            </Button>
-          </div>
-        </header>
+    <div className="min-h-screen bg-background text-primary">
+      <div
+        aria-hidden="true"
+        className="luxury-grid pointer-events-none fixed inset-0 opacity-45"
+      />
+      <AppNavigation onLogout={logout} user={user} />
 
-        <section className="py-10">
-          <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+      <main className="relative mx-auto max-w-[1440px] px-4 pb-16 pt-14 sm:px-6 lg:px-10">
+        <section id="collection">
+          <div className="flex flex-col gap-8 border-b border-border pb-9 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.22em] text-cyan-400">
-                Live inventory
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-secondary">
+                Curated inventory · {totalUnits} available units
               </p>
-              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                Inventory control,
-                <span className="block text-slate-400">without race conditions.</span>
+              <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">
+                Our Collection
               </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-400">
-                Purchase and restock operations are committed atomically. Every quantity shown is
-                returned by the server after the update succeeds.
+              <p className="mt-3 max-w-xl text-sm leading-6 text-secondary">
+                Exceptional vehicles, selected for provenance, specification, and presence.
               </p>
             </div>
+            <CollectionControls
+              brand={brand}
+              brands={brands}
+              onBrandChange={setBrand}
+              onPriceSortChange={setPriceSort}
+              onToggleSearch={() => setSearchExpanded((expanded) => !expanded)}
+              priceSort={priceSort}
+              searchExpanded={searchExpanded}
+            />
           </div>
 
-          <div className="mt-9 grid gap-4 sm:grid-cols-3">
-            {[
-              { icon: CarFront, label: 'Models listed', value: vehicles.length },
-              { icon: ShoppingCart, label: 'Available models', value: availableModels },
-              { icon: Boxes, label: 'Total units', value: totalUnits },
-            ].map(({ icon: Icon, label, value }) => (
-              <Card className="rounded-2xl p-5" key={label}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-slate-500">{label}</p>
-                    <p className="mt-2 text-3xl font-semibold text-white">{value}</p>
-                  </div>
-                  <span className="flex size-11 items-center justify-center rounded-xl bg-white/5 text-cyan-300">
-                    <Icon aria-hidden="true" className="size-5" />
-                  </span>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        {isAdmin && (
-          <nav
-            aria-label="Administrator workspace"
-            className="mb-6 grid grid-cols-2 rounded-2xl border border-white/10 bg-slate-900/65 p-1.5 sm:ml-auto sm:w-fit"
-          >
-            {(
-              [
-                ['catalog', 'Browse catalog', LayoutDashboard],
-                ['manage', 'Manage inventory', Settings2],
-              ] as const
-            ).map(([value, label, Icon]) => (
-              <button
-                aria-current={workspaceView === value ? 'page' : undefined}
-                className={`flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
-                  workspaceView === value
-                    ? 'bg-white/10 text-white shadow-sm'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
-                }`}
-                key={value}
-                onClick={() => setWorkspaceView(value)}
-                type="button"
-              >
-                <Icon aria-hidden="true" className="size-4" />
-                {label}
-              </button>
-            ))}
-          </nav>
-        )}
-
-        {!dialog && (
-          <Card className="rounded-2xl p-5 sm:p-6">
-            <form
-              className="grid items-end gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr_auto]"
-              onSubmit={searchInventory}
-            >
-              {[
-                ['make', 'Make'],
-                ['model', 'Model'],
-                ['category', 'Category'],
-                ['minPrice', 'Minimum price'],
-                ['maxPrice', 'Maximum price'],
-              ].map(([field, label]) => (
-                <FormField id={`filter-${field}`} key={field} label={label!}>
-                  <Input
-                    id={`filter-${field}`}
-                    onChange={(event) =>
-                      setFilters((current) => ({ ...current, [field!]: event.target.value }))
-                    }
-                    placeholder={field?.includes('Price') ? '0.00' : `Any ${label?.toLowerCase()}`}
-                    type={field?.includes('Price') ? 'number' : 'text'}
-                    value={filters[field as keyof VehicleSearchFilters] ?? ''}
-                  />
-                </FormField>
-              ))}
-              <div className="flex gap-2">
-                <Button
-                  aria-label="Search inventory"
-                  disabled={pendingAction === 'search'}
-                  size="icon"
-                  type="submit"
-                >
-                  <Search aria-hidden="true" className="size-5" />
-                </Button>
-                <Button
-                  aria-label="Clear search"
-                  onClick={clearSearch}
-                  size="icon"
-                  type="button"
-                  variant="ghost"
-                >
-                  <X aria-hidden="true" className="size-5" />
-                </Button>
-              </div>
-            </form>
-          </Card>
-        )}
-
-        {feedback && (
-          <div
-            className={`mt-5 rounded-2xl border px-5 py-4 text-sm ${
-              feedback.tone === 'error'
-                ? 'border-rose-400/20 bg-rose-400/10 text-rose-200'
-                : 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'
-            }`}
-            role={feedback.tone === 'error' ? 'alert' : 'status'}
-          >
-            {feedback.message}
-          </div>
-        )}
-
-        {workspaceView === 'manage' && isAdmin ? (
-          <section aria-label="Inventory management" className="py-8">
-            <Card className="overflow-hidden rounded-3xl">
-              <div className="flex flex-col gap-5 border-b border-white/10 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
-                <div className="flex items-start gap-4">
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300 ring-1 ring-cyan-300/15">
-                    <Settings2 aria-hidden="true" className="size-5" />
-                  </span>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
-                      Administrator controls
-                    </p>
-                    <h2 className="mt-1 text-xl font-semibold tracking-tight text-white">
-                      Inventory management
-                    </h2>
-                    <p className="mt-1 text-sm text-slate-500">{inventoryRecordLabel}</p>
-                  </div>
-                </div>
-                <Button onClick={() => setDialog({ type: 'create' })}>
-                  <Plus aria-hidden="true" className="size-4" />
-                  Add vehicle
-                </Button>
-              </div>
-
-              {isLoading ? (
-                <div className="space-y-3 p-5 sm:p-7">
-                  {[0, 1, 2].map((item) => (
-                    <div
-                      aria-hidden="true"
-                      className="h-16 animate-pulse rounded-2xl bg-white/[0.035]"
-                      key={item}
-                    />
-                  ))}
-                </div>
-              ) : vehicles.length === 0 ? (
-                <div className="p-10 text-center">
-                  <CarFront aria-hidden="true" className="mx-auto size-9 text-slate-600" />
-                  <p className="mt-3 font-semibold text-white">No inventory records</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Add the first vehicle to start managing the catalog.
-                  </p>
-                </div>
-              ) : (
-                <Table aria-label="Vehicle management">
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="pl-5 sm:pl-7">Vehicle</TableHead>
-                      <TableHead className="hidden sm:table-cell">Category</TableHead>
-                      <TableHead className="hidden md:table-cell">Price</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead className="pr-5 text-right sm:pr-7">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {vehicles.map((vehicle) => (
-                      <TableRow key={vehicle.id}>
-                        <TableCell className="pl-5 sm:pl-7">
-                          <div className="font-semibold text-white">
-                            {vehicle.make} {vehicle.model}
-                          </div>
-                          <div className="mt-1 text-xs text-slate-500 sm:hidden">
-                            {vehicle.category} · {currency.format(Number(vehicle.price))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          <span className="rounded-full bg-white/5 px-2.5 py-1 text-xs">
-                            {vehicle.category}
-                          </span>
-                        </TableCell>
-                        <TableCell className="hidden font-medium text-slate-100 md:table-cell">
-                          {currency.format(Number(vehicle.price))}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={`inline-flex min-w-8 justify-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                              vehicle.quantity === 0
-                                ? 'bg-rose-400/10 text-rose-300'
-                                : 'bg-emerald-400/10 text-emerald-300'
-                            }`}
-                          >
-                            {vehicle.quantity}
-                          </span>
-                        </TableCell>
-                        <TableCell className="pr-5 sm:pr-7">
-                          <div className="flex justify-end gap-1.5">
-                            <Button
-                              aria-label={`Edit ${vehicle.make} ${vehicle.model}`}
-                              onClick={() => setDialog({ type: 'edit', vehicle })}
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <Pencil aria-hidden="true" className="size-4" />
-                            </Button>
-                            <Button
-                              aria-label={`Restock ${vehicle.make} ${vehicle.model}`}
-                              onClick={() => setDialog({ type: 'restock', vehicle })}
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <PackagePlus aria-hidden="true" className="size-4" />
-                            </Button>
-                            <Button
-                              aria-label={`Delete ${vehicle.make} ${vehicle.model}`}
-                              className="text-rose-300 hover:bg-rose-400/10 hover:text-rose-200"
-                              onClick={() => setDialog({ type: 'delete', vehicle })}
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <Trash2 aria-hidden="true" className="size-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </Card>
-          </section>
-        ) : (
-          <section aria-busy={isLoading} aria-label="Vehicle inventory" className="py-8">
-            <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="flex items-center gap-2 text-sm font-semibold text-slate-100">
-                  <SlidersHorizontal aria-hidden="true" className="size-4 text-cyan-300" />
-                  Inventory view
-                </p>
-                <p aria-live="polite" className="mt-1 text-xs text-slate-500">
-                  {resultLabel}
-                </p>
-              </div>
+          {canManageInventory && (
+            <div className="mt-6 flex justify-end">
               <div
-                aria-label="Filter inventory by availability"
-                className="grid grid-cols-3 rounded-xl border border-white/10 bg-slate-900/70 p-1"
+                aria-label="Inventory workspace"
+                className="inline-flex rounded-[var(--radius)] border border-border bg-card p-1"
                 role="group"
               >
                 {(
                   [
-                    ['all', 'All'],
-                    ['available', 'Available'],
-                    ['sold-out', 'Sold out'],
+                    ['catalog', 'Browse collection', LayoutGrid],
+                    ['manage', 'Manage inventory', Settings2],
                   ] as const
-                ).map(([value, label]) => (
+                ).map(([value, label, Icon]) => (
                   <button
-                    aria-pressed={availability === value}
-                    className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
-                      availability === value
-                        ? 'bg-cyan-400 text-slate-950 shadow-lg shadow-cyan-500/10'
-                        : 'text-slate-400 hover:bg-white/5 hover:text-slate-100'
-                    }`}
+                    aria-current={workspaceView === value ? 'page' : undefined}
+                    className={cn(
+                      'flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-medium text-secondary transition-colors hover:text-primary',
+                      workspaceView === value && 'bg-primary text-background hover:text-background',
+                    )}
                     key={value}
-                    onClick={() => setAvailability(value)}
+                    onClick={() => setWorkspaceView(value)}
                     type="button"
                   >
+                    <Icon aria-hidden="true" className="size-3.5" />
                     {label}
                   </button>
                 ))}
               </div>
             </div>
-            {isLoading ? (
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {[0, 1, 2].map((item) => (
-                  <div
-                    aria-hidden="true"
-                    className="h-72 animate-pulse rounded-3xl border border-white/5 bg-white/[0.03]"
-                    key={item}
-                  />
-                ))}
-              </div>
-            ) : visibleVehicles.length === 0 ? (
-              <Card className="rounded-3xl p-12 text-center">
-                <CarFront aria-hidden="true" className="mx-auto size-10 text-slate-600" />
-                <h2 className="mt-4 text-lg font-semibold text-white">No vehicles found</h2>
-                <p className="mt-2 text-sm text-slate-500">
-                  Change the search or availability filter to explore the inventory.
-                </p>
-              </Card>
-            ) : (
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {visibleVehicles.map((vehicle) => {
-                  const soldOut = vehicle.quantity === 0;
-                  const buying = pendingAction === `purchase-${vehicle.id}`;
+          )}
 
-                  return (
-                    <Card
-                      aria-label={`${vehicle.make} ${vehicle.model}`}
-                      className="group overflow-hidden rounded-3xl"
-                      key={vehicle.id}
-                      role="article"
+          {searchExpanded && workspaceView === 'catalog' && (
+            <Card className="mt-6 p-5">
+              <form
+                className="grid items-end gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr_auto]"
+                onSubmit={searchInventory}
+              >
+                {[
+                  ['make', 'Make'],
+                  ['model', 'Model'],
+                  ['category', 'Category'],
+                  ['minPrice', 'Minimum price'],
+                  ['maxPrice', 'Maximum price'],
+                ].map(([field, label]) => (
+                  <FormField id={`filter-${field}`} key={field} label={label!}>
+                    <Input
+                      id={`filter-${field}`}
+                      onChange={(event) =>
+                        setFilters((current) => ({ ...current, [field!]: event.target.value }))
+                      }
+                      placeholder={
+                        field?.includes('Price') ? '0.00' : `Any ${label?.toLowerCase()}`
+                      }
+                      type={field?.includes('Price') ? 'number' : 'text'}
+                      value={filters[field as keyof VehicleSearchFilters] ?? ''}
+                    />
+                  </FormField>
+                ))}
+                <div className="flex gap-2">
+                  <Button
+                    aria-label="Search inventory"
+                    disabled={pendingAction === 'search'}
+                    size="icon"
+                    type="submit"
+                  >
+                    <Search aria-hidden="true" className="size-4" />
+                  </Button>
+                  <Button
+                    aria-label="Clear search"
+                    onClick={clearSearch}
+                    size="icon"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <X aria-hidden="true" className="size-4" />
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          )}
+
+          {feedback && (
+            <div
+              className={cn(
+                'mt-6 rounded-[var(--radius)] border px-5 py-4 text-sm',
+                feedback.tone === 'error'
+                  ? 'border-red-400/20 bg-red-400/8 text-red-200'
+                  : 'border-border bg-card text-primary',
+              )}
+              role={feedback.tone === 'error' ? 'alert' : 'status'}
+            >
+              {feedback.message}
+            </div>
+          )}
+
+          {workspaceView === 'manage' && canManageInventory ? (
+            <section aria-label="Inventory management" className="pt-8">
+              <Card className="overflow-hidden">
+                <div className="flex flex-col gap-5 border-b border-border p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-secondary">
+                      {isAdmin ? 'Administrator controls' : 'Employee controls'}
+                    </p>
+                    <h2 className="mt-2 text-xl font-semibold">Inventory management</h2>
+                    <p className="mt-1 text-xs text-secondary">
+                      {vehicles.length} inventory {vehicles.length === 1 ? 'record' : 'records'}
+                    </p>
+                  </div>
+                  <Button onClick={() => setDialog({ type: 'create' })}>
+                    <Plus aria-hidden="true" className="size-4" />
+                    Add vehicle
+                  </Button>
+                </div>
+
+                {vehicles.length === 0 ? (
+                  <div className="p-12 text-center text-sm text-secondary">
+                    No inventory records yet.
+                  </div>
+                ) : (
+                  <Table aria-label="Vehicle management">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="pl-5 sm:pl-6">Vehicle</TableHead>
+                        <TableHead className="hidden sm:table-cell">Category</TableHead>
+                        <TableHead className="hidden md:table-cell">Price</TableHead>
+                        <TableHead>Stock</TableHead>
+                        <TableHead className="pr-5 text-right sm:pr-6">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {vehicles.map((vehicle) => (
+                        <TableRow key={vehicle.id}>
+                          <TableCell className="pl-5 sm:pl-6">
+                            <div className="font-medium text-primary">
+                              {vehicle.make} {vehicle.model}
+                            </div>
+                            <div className="mt-1 text-xs text-secondary sm:hidden">
+                              {vehicle.category} · {currency.format(Number(vehicle.price))}
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">{vehicle.category}</TableCell>
+                          <TableCell className="hidden font-medium text-primary md:table-cell">
+                            {currency.format(Number(vehicle.price))}
+                          </TableCell>
+                          <TableCell>{vehicle.quantity}</TableCell>
+                          <TableCell className="pr-5 sm:pr-6">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                aria-label={`Edit ${vehicle.make} ${vehicle.model}`}
+                                onClick={() => setDialog({ type: 'edit', vehicle })}
+                                size="icon"
+                                variant="ghost"
+                              >
+                                <Pencil aria-hidden="true" className="size-4" />
+                              </Button>
+                              {isAdmin && (
+                                <>
+                                  <Button
+                                    aria-label={`Restock ${vehicle.make} ${vehicle.model}`}
+                                    onClick={() => setDialog({ type: 'restock', vehicle })}
+                                    size="icon"
+                                    variant="ghost"
+                                  >
+                                    <PackagePlus aria-hidden="true" className="size-4" />
+                                  </Button>
+                                  <Button
+                                    aria-label={`Delete ${vehicle.make} ${vehicle.model}`}
+                                    onClick={() => setDialog({ type: 'delete', vehicle })}
+                                    size="icon"
+                                    variant="destructive"
+                                  >
+                                    <Trash2 aria-hidden="true" className="size-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </Card>
+            </section>
+          ) : (
+            <section aria-busy={isLoading} aria-label="Vehicle inventory" className="pt-8">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+                <p
+                  aria-live="polite"
+                  className="text-xs uppercase tracking-[0.16em] text-secondary"
+                >
+                  {resultLabel}
+                </p>
+                <div
+                  aria-label="Filter inventory by availability"
+                  className="inline-flex rounded-[var(--radius)] border border-border bg-card p-1"
+                  role="group"
+                >
+                  {[
+                    ['all', 'All'],
+                    ['available', 'Available'],
+                    ['sold-out', 'Sold out'],
+                  ].map(([value, label]) => (
+                    <button
+                      aria-pressed={availability === value}
+                      className={cn(
+                        'h-8 rounded-lg px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-secondary transition-colors',
+                        availability === value && 'bg-primary text-background',
+                      )}
+                      key={value}
+                      onClick={() => setAvailability(value as AvailabilityFilter)}
+                      type="button"
                     >
-                      <div className="border-b border-white/8 bg-gradient-to-br from-slate-800 to-slate-900 p-6">
-                        <div className="flex items-start justify-between gap-3">
-                          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-300">
-                            {vehicle.category}
-                          </span>
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                              soldOut
-                                ? 'bg-rose-400/10 text-rose-300'
-                                : 'bg-emerald-400/10 text-emerald-300'
-                            }`}
-                          >
-                            {soldOut ? 'Sold out' : `${vehicle.quantity} in stock`}
-                          </span>
-                        </div>
-                        <div className="mt-8 flex items-end justify-between">
-                          <div>
-                            <p className="text-sm text-slate-500">{vehicle.make}</p>
-                            <h2 className="mt-1 text-2xl font-semibold tracking-tight text-white">
-                              {vehicle.model}
-                            </h2>
-                          </div>
-                          <CarFront
-                            aria-hidden="true"
-                            className="size-12 text-slate-700 transition group-hover:text-cyan-400/40"
-                          />
-                        </div>
-                      </div>
-                      <div className="p-6">
-                        <p className="mb-4 flex items-center gap-2 text-xs font-medium text-slate-500">
-                          <UserRoundCheck aria-hidden="true" className="size-4 text-cyan-400" />
-                          Protected purchase workflow
-                        </p>
-                        <div className="flex items-center gap-2 text-2xl font-semibold text-white">
-                          <CircleDollarSign aria-hidden="true" className="size-5 text-cyan-400" />
-                          {currency.format(Number(vehicle.price))}
-                        </div>
-                        <div className="mt-6 flex gap-3">
-                          <Button
-                            aria-label={
-                              soldOut
-                                ? 'Out of stock'
-                                : buying
-                                  ? `Purchasing ${vehicle.make} ${vehicle.model}`
-                                  : `Purchase ${vehicle.make} ${vehicle.model}`
-                            }
-                            className="flex-1"
-                            disabled={soldOut || buying}
-                            onClick={() => purchase(vehicle)}
-                          >
-                            <ShoppingCart aria-hidden="true" className="size-4" />
-                            {soldOut ? 'Out of stock' : buying ? 'Purchasing…' : 'Purchase'}
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
-          </section>
-        )}
-      </div>
+
+              {isLoading ? (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {[0, 1, 2].map((item) => (
+                    <div
+                      aria-hidden="true"
+                      className="h-[420px] animate-pulse rounded-[var(--radius)] border border-border bg-card"
+                      key={item}
+                    />
+                  ))}
+                </div>
+              ) : visibleVehicles.length === 0 ? (
+                <Card className="p-12 text-center">
+                  <AlertTriangle aria-hidden="true" className="mx-auto size-6 text-secondary" />
+                  <h2 className="mt-4 text-lg font-semibold">No vehicles found</h2>
+                  <p className="mt-2 text-sm text-secondary">
+                    Adjust your filters to continue exploring the collection.
+                  </p>
+                </Card>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {visibleVehicles.map((vehicle) => (
+                    <VehicleCard
+                      index={vehicles.indexOf(vehicle)}
+                      isBuying={pendingAction === `purchase-${vehicle.id}`}
+                      key={vehicle.id}
+                      onPurchase={purchase}
+                      token={token}
+                      vehicle={vehicle}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </section>
+
+        <section
+          className="mt-20 grid gap-6 border-t border-border pt-10 md:grid-cols-3"
+          id="private-sales"
+        >
+          {[
+            [
+              '01',
+              'Private sourcing',
+              'A discreet search for exact specifications and provenance.',
+            ],
+            [
+              '02',
+              'Verified inventory',
+              'Every listing is managed through protected stock workflows.',
+            ],
+            ['03', 'Dedicated concierge', 'Personal support from reservation through handover.'],
+          ].map(([number, title, description]) => (
+            <div key={number}>
+              <p className="text-[10px] font-semibold tracking-[0.18em] text-secondary">{number}</p>
+              <h2 className="mt-4 text-base font-semibold">{title}</h2>
+              <p className="mt-2 text-sm leading-6 text-secondary">{description}</p>
+            </div>
+          ))}
+        </section>
+      </main>
 
       {dialog?.type === 'create' && (
-        <Dialog
-          description="Create a new inventory record with its initial stock."
-          onDismiss={() => setDialog(null)}
-          title="Add vehicle"
-        >
-          <VehicleForm
-            onCancel={() => setDialog(null)}
-            onSubmit={saveVehicle}
-            pending={pendingAction === 'save'}
-          />
+        <Dialog onOpenChange={(open) => !open && setDialog(null)} open>
+          <DialogContent
+            description="Create a new collection record with its initial stock."
+            title="Add vehicle"
+          >
+            <VehicleForm
+              onCancel={() => setDialog(null)}
+              onSubmit={saveVehicle}
+              pending={pendingAction === 'save'}
+            />
+          </DialogContent>
         </Dialog>
       )}
 
       {dialog?.type === 'edit' && (
-        <Dialog
-          description="Update descriptive fields. Stock remains on the atomic inventory path."
-          onDismiss={() => setDialog(null)}
-          title={`Edit ${dialog.vehicle.make} ${dialog.vehicle.model}`}
-        >
-          <VehicleForm
-            onCancel={() => setDialog(null)}
-            onSubmit={saveVehicle}
-            pending={pendingAction === 'save'}
-            vehicle={dialog.vehicle}
-          />
+        <Dialog onOpenChange={(open) => !open && setDialog(null)} open>
+          <DialogContent
+            description="Update the vehicle specification without replacing live stock."
+            title={`Edit ${dialog.vehicle.make} ${dialog.vehicle.model}`}
+          >
+            <VehicleForm
+              onCancel={() => setDialog(null)}
+              onSubmit={saveVehicle}
+              pending={pendingAction === 'save'}
+              vehicle={dialog.vehicle}
+            />
+          </DialogContent>
         </Dialog>
       )}
 
       {dialog?.type === 'restock' && (
-        <Dialog
-          description="The quantity is added relative to current stock in one database transaction."
-          onDismiss={() => setDialog(null)}
-          title={`Restock ${dialog.vehicle.make} ${dialog.vehicle.model}`}
-        >
-          <form className="grid gap-5" onSubmit={restock}>
-            <FormField id="restock-quantity" label="Restock quantity">
-              <Input
-                defaultValue="1"
-                id="restock-quantity"
-                min="1"
-                name="quantity"
-                required
-                step="1"
-                type="number"
-              />
-            </FormField>
-            <div className="flex justify-end gap-3">
-              <Button onClick={() => setDialog(null)} type="button" variant="ghost">
-                Cancel
-              </Button>
-              <Button disabled={pendingAction === 'restock'} type="submit">
-                Confirm restock
-              </Button>
-            </div>
-          </form>
+        <Dialog onOpenChange={(open) => !open && setDialog(null)} open>
+          <DialogContent
+            description={`Increase stock for ${dialog.vehicle.make} ${dialog.vehicle.model}.`}
+            title="Restock vehicle"
+          >
+            <form className="grid gap-5" onSubmit={restock}>
+              <FormField id="restock-quantity" label="Restock quantity">
+                <Input
+                  defaultValue="1"
+                  id="restock-quantity"
+                  min="1"
+                  name="quantity"
+                  required
+                  step="1"
+                  type="number"
+                />
+              </FormField>
+              <div className="flex justify-end gap-3">
+                <Button onClick={() => setDialog(null)} type="button" variant="ghost">
+                  Cancel
+                </Button>
+                <Button disabled={pendingAction === 'restock'} type="submit">
+                  Confirm restock
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
         </Dialog>
       )}
 
       {dialog?.type === 'delete' && (
-        <Dialog
-          description={`This permanently removes ${dialog.vehicle.make} ${dialog.vehicle.model} from the catalog. This action cannot be undone.`}
-          onDismiss={() => setDialog(null)}
-          title={`Delete ${dialog.vehicle.make} ${dialog.vehicle.model}?`}
-        >
-          <div className="rounded-2xl border border-rose-400/15 bg-rose-400/[0.06] p-4">
-            <div className="flex gap-3">
-              <AlertTriangle aria-hidden="true" className="mt-0.5 size-5 shrink-0 text-rose-300" />
-              <div>
-                <p className="text-sm font-semibold text-rose-100">Permanent catalog removal</p>
-                <p className="mt-1 text-sm leading-6 text-rose-200/70">
-                  Current stock: {dialog.vehicle.quantity}. Any active inventory operation completes
-                  or fails before deletion is committed.
+        <Dialog onOpenChange={(open) => !open && setDialog(null)} open>
+          <DialogContent
+            description={`This permanently removes ${dialog.vehicle.make} ${dialog.vehicle.model} from the catalog. This action cannot be undone.`}
+            title="Delete vehicle"
+          >
+            <div className="rounded-[var(--radius)] border border-red-400/20 bg-red-400/8 p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 text-red-300" />
+                <p className="text-sm leading-6 text-red-100">
+                  Current stock: {dialog.vehicle.quantity}. Confirm only after verifying that no
+                  active sale depends on this record.
                 </p>
               </div>
             </div>
-          </div>
-          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button onClick={() => setDialog(null)} variant="ghost">
-              Cancel
-            </Button>
-            <Button
-              className="bg-rose-400 text-slate-950 hover:bg-rose-300"
-              disabled={pendingAction === 'delete'}
-              onClick={() => void deleteVehicle()}
-            >
-              {pendingAction === 'delete' ? 'Deleting…' : 'Confirm delete'}
-            </Button>
-          </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button onClick={() => setDialog(null)} type="button" variant="ghost">
+                Cancel
+              </Button>
+              <Button
+                disabled={pendingAction === 'delete'}
+                onClick={() => void deleteVehicle()}
+                variant="destructive"
+              >
+                {pendingAction === 'delete' ? 'Deleting…' : 'Confirm delete'}
+              </Button>
+            </div>
+          </DialogContent>
         </Dialog>
       )}
-    </main>
+    </div>
   );
 };

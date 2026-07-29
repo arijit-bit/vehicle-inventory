@@ -57,6 +57,25 @@ describe('AuthForm', () => {
     expect(onSubmit).toHaveBeenCalledWith({
       email: 'owner@garage.io',
       password: 'SafePass123!',
+      role: 'CUSTOMER',
+    });
+  });
+
+  it('allows an employee account to be selected during registration', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<AuthForm mode="register" onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText(/email address/i), 'sales@example.com');
+    await user.type(screen.getByLabelText(/^password$/i), 'SafePass123!');
+    await user.type(screen.getByLabelText(/confirm password/i), 'SafePass123!');
+    await user.selectOptions(screen.getByLabelText(/account type/i), 'EMPLOYEE');
+    await user.click(screen.getByRole('button', { name: /create account/i }));
+
+    expect(onSubmit).toHaveBeenCalledWith({
+      email: 'sales@example.com',
+      password: 'SafePass123!',
+      role: 'EMPLOYEE',
     });
   });
 

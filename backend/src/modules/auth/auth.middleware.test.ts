@@ -7,7 +7,7 @@ import type { TokenVerifier } from './auth.types.js';
 const userClaims = {
   sub: '9d2e9700-ddff-4957-965c-30bf44484461',
   email: 'driver@example.com',
-  role: 'USER' as const,
+  role: 'CUSTOMER' as const,
 };
 
 const createProtectedApp = (verifier: TokenVerifier) => {

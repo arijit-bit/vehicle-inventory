@@ -1,4 +1,4 @@
-import { registrationSchema } from './auth.schemas.js';
+import { loginSchema } from './auth.schemas.js';
 import type { AuthCredentials, PasswordHasher } from './auth.types.js';
 
 export interface AdminRepository {
@@ -16,7 +16,7 @@ export class AdminSeeder {
       return;
     }
 
-    const admin = registrationSchema.parse(credentials);
+    const admin = loginSchema.parse(credentials);
     const passwordHash = await this.passwords.hash(admin.password);
 
     await this.users.upsertAdmin({

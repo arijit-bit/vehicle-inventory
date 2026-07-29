@@ -43,7 +43,7 @@ describe('AuthProvider', () => {
       user: {
         id: 'user-1',
         email: 'driver@example.com',
-        role: 'USER',
+        role: 'CUSTOMER',
       },
     });
 
@@ -80,7 +80,7 @@ describe('AuthProvider', () => {
       user: {
         id: 'user-1',
         email: 'driver@example.com',
-        role: 'USER',
+        role: 'CUSTOMER',
       },
     });
 

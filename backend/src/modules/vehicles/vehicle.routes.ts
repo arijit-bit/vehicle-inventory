@@ -24,8 +24,6 @@ const asyncHandler =
 export const createVehicleRouter = (service: VehicleServicePort, tokens: TokenVerifier) => {
   const router = Router();
 
-  router.use(authenticate(tokens));
-
   router.get(
     '/search',
     asyncHandler(async (request, response) => {
@@ -47,7 +45,8 @@ export const createVehicleRouter = (service: VehicleServicePort, tokens: TokenVe
 
   router.post(
     '/',
-    authorize('ADMIN'),
+    authenticate(tokens),
+    authorize('EMPLOYEE', 'ADMIN'),
     asyncHandler(async (request, response) => {
       const input = createVehicleSchema.parse(request.body);
       const vehicle = await service.create(input);
@@ -58,7 +57,8 @@ export const createVehicleRouter = (service: VehicleServicePort, tokens: TokenVe
 
   router.put(
     '/:id',
-    authorize('ADMIN'),
+    authenticate(tokens),
+    authorize('EMPLOYEE', 'ADMIN'),
     asyncHandler(async (request, response) => {
       const id = vehicleIdSchema.parse(request.params.id);
       const input = updateVehicleSchema.parse(request.body);
@@ -70,6 +70,7 @@ export const createVehicleRouter = (service: VehicleServicePort, tokens: TokenVe
 
   router.post(
     '/:id/purchase',
+    authenticate(tokens),
     asyncHandler(async (request, response) => {
       const id = vehicleIdSchema.parse(request.params.id);
       const { quantity } = inventoryMutationSchema.parse(request.body ?? {});
@@ -81,6 +82,7 @@ export const createVehicleRouter = (service: VehicleServicePort, tokens: TokenVe
 
   router.post(
     '/:id/restock',
+    authenticate(tokens),
     authorize('ADMIN'),
     asyncHandler(async (request, response) => {
       const id = vehicleIdSchema.parse(request.params.id);
@@ -93,6 +95,7 @@ export const createVehicleRouter = (service: VehicleServicePort, tokens: TokenVe
 
   router.delete(
     '/:id',
+    authenticate(tokens),
     authorize('ADMIN'),
     asyncHandler(async (request, response) => {
       const id = vehicleIdSchema.parse(request.params.id);

@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import type { AuthCredentials } from './auth-api';
+import type { AuthCredentials, RegistrableRole } from './auth-api';
 
 type AuthMode = 'login' | 'register';
 
@@ -27,6 +27,7 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<RegistrableRole>('CUSTOMER');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -73,6 +74,7 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
       await onSubmit({
         email: email.trim().toLowerCase(),
         password,
+        ...(isRegistration ? { role } : {}),
       });
     } catch (error) {
       setErrors({
@@ -87,7 +89,7 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
     <form className="space-y-5" noValidate onSubmit={handleSubmit}>
       {errors.form && (
         <div
-          className="rounded-xl border border-rose-400/20 bg-rose-400/10 px-4 py-3 text-sm text-rose-200"
+          className="rounded-[var(--radius)] border border-red-400/20 bg-red-400/8 px-4 py-3 text-sm text-red-200"
           role="alert"
         >
           {errors.form}
@@ -99,7 +101,7 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
         <div className="relative">
           <Mail
             aria-hidden="true"
-            className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-500"
+            className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-secondary"
           />
           <Input
             aria-describedby={errors.email ? emailErrorId : undefined}
@@ -119,7 +121,7 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
           />
         </div>
         {errors.email && (
-          <p className="text-sm text-rose-300" id={emailErrorId}>
+          <p className="text-xs text-red-300" id={emailErrorId}>
             {errors.email}
           </p>
         )}
@@ -129,13 +131,15 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
         <div className="flex items-center justify-between">
           <Label htmlFor={`${mode}-password`}>Password</Label>
           {!isRegistration && (
-            <span className="text-xs font-medium text-slate-500">Secure access</span>
+            <span className="text-[10px] uppercase tracking-[0.14em] text-secondary">
+              Encrypted access
+            </span>
           )}
         </div>
         <div className="relative">
           <LockKeyhole
             aria-hidden="true"
-            className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-500"
+            className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-secondary"
           />
           <Input
             aria-describedby={errors.password ? passwordErrorId : undefined}
@@ -153,7 +157,7 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
           />
           <button
             aria-label={showPassword ? 'Hide password' : 'Show password'}
-            className="absolute right-3 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white/5 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+            className="absolute right-2 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-lg text-secondary transition hover:bg-white/5 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
             onClick={() => setShowPassword((visible) => !visible)}
             type="button"
           >
@@ -165,11 +169,29 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
           </button>
         </div>
         {errors.password && (
-          <p className="text-sm text-rose-300" id={passwordErrorId}>
+          <p className="text-xs text-red-300" id={passwordErrorId}>
             {errors.password}
           </p>
         )}
       </div>
+
+      {isRegistration && (
+        <div className="space-y-2">
+          <Label htmlFor="register-role">Account type</Label>
+          <select
+            className="flex h-11 w-full rounded-[var(--radius)] border border-border bg-background/65 px-4 text-sm text-primary outline-none transition hover:border-secondary/50 focus:border-secondary focus:ring-2 focus:ring-primary/15"
+            id="register-role"
+            onChange={(event) => setRole(event.target.value as RegistrableRole)}
+            value={role}
+          >
+            <option value="CUSTOMER">Customer — browse and purchase</option>
+            <option value="EMPLOYEE">Employee — manage inventory</option>
+          </select>
+          <p className="text-xs leading-5 text-secondary">
+            Employees can add and update vehicles, but only administrators can delete or restock.
+          </p>
+        </div>
+      )}
 
       {isRegistration && (
         <div className="space-y-2">
@@ -192,7 +214,7 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
             value={confirmPassword}
           />
           {errors.confirmPassword && (
-            <p className="text-sm text-rose-300" id={confirmPasswordErrorId}>
+            <p className="text-xs text-red-300" id={confirmPasswordErrorId}>
               {errors.confirmPassword}
             </p>
           )}
@@ -210,8 +232,8 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
             : 'Sign in'}
       </Button>
 
-      <p className="text-center text-xs leading-5 text-slate-500">
-        By continuing, you agree to protect access credentials and use MotorVault responsibly.
+      <p className="text-center text-[10px] uppercase leading-5 tracking-[0.1em] text-secondary/70">
+        By continuing, you agree to protect access credentials and use MotoVault responsibly.
       </p>
     </form>
   );

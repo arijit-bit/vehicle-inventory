@@ -6,7 +6,7 @@ import type { AuthClaims, PublicUser, TokenIssuer, TokenVerifier } from './auth.
 const authClaimsSchema = z.object({
   sub: z.string().uuid(),
   email: normalizedEmailSchema,
-  role: z.enum(['USER', 'ADMIN']),
+  role: z.enum(['CUSTOMER', 'EMPLOYEE', 'ADMIN']),
 });
 
 interface JwtTokenOptions {

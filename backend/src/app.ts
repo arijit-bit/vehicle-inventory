@@ -4,15 +4,25 @@ import helmet from 'helmet';
 import { errorHandler } from './middleware/error-handler.js';
 import { createAuthRouter, type AuthServicePort } from './modules/auth/auth.routes.js';
 import type { TokenVerifier } from './modules/auth/auth.types.js';
+import {
+  createUserManagementRouter,
+  type UserManagementServicePort,
+} from './modules/auth/user-management.routes.js';
 import { createVehicleRouter, type VehicleServicePort } from './modules/vehicles/vehicle.routes.js';
 
 interface AppDependencies {
   authService?: AuthServicePort;
   tokenVerifier?: TokenVerifier;
   vehicleService?: VehicleServicePort;
+  userManagementService?: UserManagementServicePort;
 }
 
-export const createApp = ({ authService, tokenVerifier, vehicleService }: AppDependencies = {}) => {
+export const createApp = ({
+  authService,
+  tokenVerifier,
+  vehicleService,
+  userManagementService,
+}: AppDependencies = {}) => {
   const app = express();
 
   app.use(helmet());
@@ -36,6 +46,10 @@ export const createApp = ({ authService, tokenVerifier, vehicleService }: AppDep
 
   if (vehicleService && tokenVerifier) {
     app.use('/api/vehicles', createVehicleRouter(vehicleService, tokenVerifier));
+  }
+
+  if (userManagementService && tokenVerifier) {
+    app.use('/api/users', createUserManagementRouter(userManagementService, tokenVerifier));
   }
 
   app.use((_request, response) => {

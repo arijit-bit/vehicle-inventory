@@ -16,6 +16,8 @@ describe('App authentication routes', () => {
       'href',
       '/register',
     );
+    expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /continue with apple/i })).toBeInTheDocument();
   });
 
   it('renders the registration experience at /register', () => {

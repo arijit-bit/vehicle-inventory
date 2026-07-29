@@ -35,6 +35,7 @@ const loginPasswordSchema = z
 export const registrationSchema = z.object({
   email: normalizedEmailSchema,
   password: registrationPasswordSchema,
+  role: z.enum(['CUSTOMER', 'EMPLOYEE']).default('CUSTOMER'),
 });
 
 export const loginSchema = z.object({

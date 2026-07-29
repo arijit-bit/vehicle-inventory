@@ -12,7 +12,7 @@ const authResult: AuthResult = {
   user: {
     id: '9d2e9700-ddff-4957-965c-30bf44484461',
     email: 'driver@example.com',
-    role: 'USER',
+    role: 'CUSTOMER',
   },
   token: 'signed.jwt.token',
 };
@@ -49,6 +49,7 @@ describe('authentication HTTP API', () => {
     expect(authService.register).toHaveBeenCalledWith({
       email: 'driver@example.com',
       password: 'SafePass123!',
+      role: 'CUSTOMER',
     });
     expect(response.body).toEqual(authResult);
   });
@@ -111,7 +112,7 @@ describe('authentication HTTP API', () => {
     expect(response.body.user).toEqual({
       id: authResult.user.id,
       email: 'driver@example.com',
-      role: 'USER',
+      role: 'CUSTOMER',
     });
   });
 });

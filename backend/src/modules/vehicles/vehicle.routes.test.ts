@@ -53,19 +53,18 @@ describe('vehicle HTTP API', () => {
   const app = () => createApp({ tokenVerifier, vehicleService });
   const authorized = () => ({ Authorization: 'Bearer signed.jwt.token' });
 
-  it('requires authentication to list vehicles', async () => {
+  it('allows a guest to list vehicles', async () => {
     const response = await request(app()).get('/api/vehicles');
 
-    expect(response.status).toBe(401);
-    expect(response.body.error.code).toBe('UNAUTHENTICATED');
-    expect(vehicleService.list).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(vehicleService.list).toHaveBeenCalledOnce();
   });
 
   it('lists vehicles for an authenticated user', async () => {
     vi.mocked(tokenVerifier.verify).mockReturnValue({
       sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
       email: 'driver@example.com',
-      role: 'USER',
+      role: 'CUSTOMER',
     });
 
     const response = await request(app()).get('/api/vehicles').set(authorized());
@@ -83,17 +82,13 @@ describe('vehicle HTTP API', () => {
   });
 
   it('searches with combined normalized filters', async () => {
-    const response = await request(app())
-      .get('/api/vehicles/search')
-      .query({
-        make: ' toy ',
-        model: ' cam ',
-        category: ' sedan ',
-        minPrice: '10000',
-        maxPrice: '40000.5',
-      })
-      .set(authorized());
-
+    const response = await request(app()).get('/api/vehicles/search').query({
+      make: ' toy ',
+      model: ' cam ',
+      category: ' sedan ',
+      minPrice: '10000',
+      maxPrice: '40000.5',
+    });
     expect(response.status).toBe(200);
     expect(vehicleService.search).toHaveBeenCalledWith({
       make: 'toy',
@@ -123,6 +118,28 @@ describe('vehicle HTTP API', () => {
     });
   });
 
+  it.each(['post', 'put'] as const)('allows an employee to %s vehicle records', async (method) => {
+    vi.mocked(tokenVerifier.verify).mockReturnValue({
+      sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
+      email: 'sales@example.com',
+      role: 'EMPLOYEE',
+    });
+    const path = method === 'post' ? '/api/vehicles' : `/api/vehicles/${vehicle.id}`;
+    const response = await (
+      method === 'post' ? request(app()).post(path) : request(app()).put(path)
+    )
+      .set(authorized())
+      .send({
+        make: 'Toyota',
+        model: 'Camry',
+        category: 'Sedan',
+        price: 32999.9,
+        ...(method === 'post' ? { quantity: 4 } : {}),
+      });
+
+    expect(response.status).toBe(method === 'post' ? 201 : 200);
+  });
+
   it.each([
     ['post', '/api/vehicles'],
     ['put', `/api/vehicles/${vehicle.id}`],
@@ -131,7 +148,7 @@ describe('vehicle HTTP API', () => {
     vi.mocked(tokenVerifier.verify).mockReturnValue({
       sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
       email: 'driver@example.com',
-      role: 'USER',
+      role: 'CUSTOMER',
     });
 
     const response = await request(app())[method](path).set(authorized()).send({
@@ -197,7 +214,7 @@ describe('vehicle HTTP API', () => {
     vi.mocked(tokenVerifier.verify).mockReturnValue({
       sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
       email: 'driver@example.com',
-      role: 'USER',
+      role: 'CUSTOMER',
     });
 
     const response = await request(app())
@@ -273,7 +290,7 @@ describe('vehicle HTTP API', () => {
     vi.mocked(tokenVerifier.verify).mockReturnValue({
       sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
       email: 'driver@example.com',
-      role: 'USER',
+      role: 'CUSTOMER',
     });
 
     const response = await request(app())
@@ -283,5 +300,20 @@ describe('vehicle HTTP API', () => {
 
     expect(response.status).toBe(403);
     expect(vehicleService.restock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['delete', `/api/vehicles/${vehicle.id}`],
+    ['post', `/api/vehicles/${vehicle.id}/restock`],
+  ] as const)('denies an employee from %s %s', async (method, path) => {
+    vi.mocked(tokenVerifier.verify).mockReturnValue({
+      sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
+      email: 'sales@example.com',
+      role: 'EMPLOYEE',
+    });
+
+    const response = await request(app())[method](path).set(authorized()).send({ quantity: 2 });
+
+    expect(response.status).toBe(403);
   });
 });

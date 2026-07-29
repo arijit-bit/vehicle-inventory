@@ -1,4 +1,9 @@
-import type { AuthCredentials, AuthResult, PublicUser } from './auth.types.js';
+import type {
+  AuthCredentials,
+  AuthResult,
+  PublicUser,
+  RegistrationCredentials,
+} from './auth.types.js';
 import {
   DuplicateEmailError,
   InvalidCredentialsError,
@@ -23,7 +28,7 @@ export class AuthService {
     private readonly tokens: TokenIssuer,
   ) {}
 
-  async register(credentials: AuthCredentials): Promise<AuthResult> {
+  async register(credentials: RegistrationCredentials): Promise<AuthResult> {
     const email = normalizeEmail(credentials.email);
     const existingUser = await this.users.findByEmail(email);
 
@@ -35,7 +40,7 @@ export class AuthService {
     const user = await this.users.create({
       email,
       passwordHash,
-      role: 'USER',
+      role: credentials.role,
     });
     const publicUser = toPublicUser(user);
 

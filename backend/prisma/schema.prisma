@@ -8,7 +8,8 @@ datasource db {
 }
 
 enum Role {
-  USER
+  CUSTOMER
+  EMPLOYEE
   ADMIN
 }
 
@@ -16,7 +17,7 @@ model User {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email        String   @unique @db.VarChar(320)
   passwordHash String   @map("password_hash") @db.VarChar(255)
-  role         Role     @default(USER)
+  role         Role     @default(CUSTOMER)
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 

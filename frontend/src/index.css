@@ -1,49 +1,100 @@
 @import 'tailwindcss';
 
-@theme {
-  --font-sans:
-    Inter, Geist, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    sans-serif;
-}
-
 :root {
-  font-family: var(--font-sans);
-  color: #f8fafc;
-  background: #020617;
+  --background: #0b0b0c;
+  --foreground: #ffffff;
+  --card: #161618;
+  --card-foreground: #ffffff;
+  --popover: #161618;
+  --popover-foreground: #ffffff;
+  --primary: #ffffff;
+  --primary-foreground: #0b0b0c;
+  --secondary: #8e8e93;
+  --secondary-foreground: #ffffff;
+  --border: #242427;
+  --radius: 0.75rem;
+
+  font-family:
+    Inter,
+    'Plus Jakarta Sans',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  color: var(--foreground);
+  background: var(--background);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+@theme inline {
+  --font-sans:
+    Inter, 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-border: var(--border);
+}
+
 * {
   box-sizing: border-box;
+  border-color: var(--border);
 }
 
 html {
-  background: #020617;
+  background: var(--background);
+  scroll-behavior: smooth;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  background:
+    radial-gradient(circle at 50% -20%, rgba(255, 255, 255, 0.055), transparent 34rem),
+    var(--background);
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
+button,
+[role='button'] {
+  -webkit-tap-highlight-color: transparent;
+}
+
 ::selection {
-  color: #082f49;
-  background: #67e8f9;
+  color: var(--background);
+  background: var(--primary);
+}
+
+.luxury-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(to bottom, black, transparent 88%);
 }
 
 .auth-grid {
   background-image:
-    linear-gradient(rgba(148, 163, 184, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(148, 163, 184, 0.035) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
   background-size: 48px 48px;
   mask-image: linear-gradient(to bottom, black, transparent 82%);
 }

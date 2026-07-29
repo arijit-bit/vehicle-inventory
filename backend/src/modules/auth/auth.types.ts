@@ -1,4 +1,5 @@
-export type UserRole = 'USER' | 'ADMIN';
+export type UserRole = 'CUSTOMER' | 'EMPLOYEE' | 'ADMIN';
+export type RegistrableRole = Exclude<UserRole, 'ADMIN'>;
 
 export interface UserRecord {
   id: string;
@@ -22,6 +23,10 @@ export interface AuthClaims {
 export interface AuthCredentials {
   email: string;
   password: string;
+}
+
+export interface RegistrationCredentials extends AuthCredentials {
+  role: RegistrableRole;
 }
 
 export interface AuthResult {

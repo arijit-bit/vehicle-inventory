@@ -5,7 +5,7 @@ PostgreSQL/Supabase, Prisma, Tailwind CSS, JWT, and bcrypt.
 
 ## Current status
 
-Milestone 6 is complete:
+Milestone 7 is complete:
 
 - Secure registration and login REST endpoints
 - Lowercase, trimmed email normalization on the client and server
@@ -13,25 +13,27 @@ Milestone 6 is complete:
 - bcrypt password hashing with a configurable work factor
 - Short-lived HS256 JWTs with issuer and audience verification
 - Authentication middleware and reusable role authorization
-- Environment-seeded administrator; public registration is always `USER`
-- Responsive login and registration UI using shadcn-style source components
+- Environment-seeded administrator; public registration supports `CUSTOMER` and `EMPLOYEE`
+- Premium centered login and registration flows with email/password and social-provider controls
 - Session restoration, logout, and protected React routes
 - Protected vehicle listing and combined make, model, category, and price-range search
-- Administrator-only vehicle creation, metadata updates, deletion, and restocking
+- Employee/Admin vehicle creation and updates; Administrator-only deletion and restocking
 - Exact two-decimal price serialization and non-negative stock validation
 - Prisma persistence with stable not-found handling
 - Atomic purchasing and restocking with row-lock serialization and transaction-local deadlines
 - Retryable `503 INVENTORY_BUSY` responses for database and connection-pool contention
-- Responsive inventory dashboard with search, stock-aware purchasing, and sold-out states
+- Dark-luxury collection with transparent vehicle artwork, brand filtering, price sorting, search,
+  stock-aware purchasing, and sold-out states
 - Signed-in identity and role surface with responsive availability tabs and live result counts
 - Session-race protection and automatic logout when protected APIs reject an expired token
 - Accessible form errors linked to the affected authentication controls
-- Dedicated administrator workspace with responsive inventory management table
+- Radix-powered Shadcn Navigation Menu, Select, Dialog, Button, Card, Input, and Table primitives
+- Dedicated Employee/Administrator workspace with a responsive inventory management table
 - Administrator add, edit, restock, and delete forms with explicit destructive confirmation
-- Mobile bottom-sheet dialogs with Escape, backdrop, focus, and scroll handling
+- Accessible dialogs with Escape, backdrop, focus trapping, and scroll handling
 - Real signed-token verification that `DELETE /api/vehicles/:id` is administrator-only
 - End-to-end auth boundary proof from registration through profile restore and protected inventory
-- 117 automated tests across the API and SPA
+- 137 automated tests across the API and SPA
 
 ## Architecture
 
@@ -101,7 +103,7 @@ normalized, the password is bcrypt-hashed, and the account is idempotently upser
 before the server accepts requests. Leaving both variables unset disables seeding. Providing only
 one makes startup fail fast.
 
-Public registration never accepts a role field and always creates `USER`.
+Public registration accepts only `CUSTOMER` or `EMPLOYEE`; it never accepts `ADMIN`.
 
 ### Supabase connection
 
@@ -128,7 +130,7 @@ All JSON error responses use `{ "error": { "code": "...", "message": "..." } }`.
 
 | Method | Endpoint             | Access     | Result                                                       |
 | ------ | -------------------- | ---------- | ------------------------------------------------------------ |
-| `POST` | `/api/auth/register` | Public     | Creates a `USER`, then returns the public user and JWT       |
+| `POST` | `/api/auth/register` | Public     | Creates a Customer/Employee and returns the user and JWT     |
 | `POST` | `/api/auth/login`    | Public     | Verifies the bcrypt hash and returns the public user and JWT |
 | `GET`  | `/api/auth/me`       | Bearer JWT | Returns identity claims for the current session              |
 
@@ -137,7 +139,8 @@ Registration body:
 ```json
 {
   "email": "driver@example.com",
-  "password": "SafePass123!"
+  "password": "SafePass123!",
+  "role": "CUSTOMER"
 }
 ```
 
@@ -154,18 +157,33 @@ Authorization: Bearer <token>
 ## Vehicle API
 
 Vehicle prices are returned as two-decimal strings so JSON clients do not lose decimal precision.
-All endpoints require a bearer JWT. `USER` and `ADMIN` accounts can list, search, and purchase.
-Creating, updating, deleting, and restocking inventory requires an `ADMIN` role.
+Guests can list and search. Any authenticated role can purchase. `EMPLOYEE` and `ADMIN` can create
+and update vehicles, while only `ADMIN` can delete or restock.
 
 | Method   | Endpoint                     | Access     | Result                                             |
 | -------- | ---------------------------- | ---------- | -------------------------------------------------- |
-| `GET`    | `/api/vehicles`              | Bearer JWT | Lists every inventory record                       |
-| `GET`    | `/api/vehicles/search`       | Bearer JWT | Searches with combinable query parameters          |
-| `POST`   | `/api/vehicles`              | Admin      | Creates a vehicle with its initial quantity        |
-| `PUT`    | `/api/vehicles/:id`          | Admin      | Updates make, model, category, and/or price        |
+| `GET`    | `/api/vehicles`              | Public     | Lists every inventory record                       |
+| `GET`    | `/api/vehicles/search`       | Public     | Searches with combinable query parameters          |
+| `POST`   | `/api/vehicles`              | Employee+  | Creates a vehicle with its initial quantity        |
+| `PUT`    | `/api/vehicles/:id`          | Employee+  | Updates make, model, category, and/or price        |
 | `DELETE` | `/api/vehicles/:id`          | Admin      | Deletes a vehicle in a short protected transaction |
 | `POST`   | `/api/vehicles/:id/purchase` | Bearer JWT | Atomically decreases available quantity            |
 | `POST`   | `/api/vehicles/:id/restock`  | Admin      | Atomically increases available quantity            |
+
+## Administrator user API
+
+Every endpoint requires an `ADMIN` bearer token. Responses never include password hashes.
+
+| Method   | Endpoint         | Result                                       |
+| -------- | ---------------- | -------------------------------------------- |
+| `GET`    | `/api/users`     | Lists user accounts                          |
+| `POST`   | `/api/users`     | Creates a Customer, Employee, or Admin       |
+| `GET`    | `/api/users/:id` | Returns one user                             |
+| `PUT`    | `/api/users/:id` | Updates email, password, and/or assigns role |
+| `DELETE` | `/api/users/:id` | Deletes another user account                 |
+
+Self-deletion and self-demotion are rejected to prevent an administrator from accidentally
+locking themselves out.
 
 Create body:
 
@@ -255,15 +273,19 @@ All errors use `{ "error": { "code": "...", "message": "..." } }`.
 |    409 | `INSUFFICIENT_STOCK` | The purchase cannot be fulfilled from committed stock      |
 |    503 | `INVENTORY_BUSY`     | Lock, statement, or transaction-start deadline was reached |
 
-## Inventory interface
+## Milestone 7 interface
 
-The protected React dashboard lists current stock and provides combined make, model, category, and
-price filters. Availability tabs switch locally between all, purchasable, and sold-out records
-without another network request, while an announced result count keeps the current view clear.
-Every available card has a one-unit Purchase button. A zero-stock card remains visible in the
-default view but renders a disabled **Out of stock** button.
+The React collection uses an obsidian `#0B0B0C` canvas, charcoal `#161618` cards, silver
+`#8E8E93` supporting type, `#242427` borders, and a shared 12px radius. Radix-powered Shadcn
+Navigation Menu and Select controls provide brand filtering, price sorting, and expandable advanced
+search. Availability tabs switch locally between all, purchasable, and sold-out records without
+another network request.
 
-The dashboard header shows the verified email and effective role returned by `/api/auth/me`.
+Vehicle cards use the repository's transparent automotive assets with color specification,
+transmission, model year, price, stock, expandable details, and the existing authenticated purchase
+workflow. Guest visitors can browse and filter but must sign in before reserving a vehicle.
+
+The glass navigation header shows the verified email and effective role returned by `/api/auth/me`.
 Expired or rejected bearer tokens immediately clear the tab-scoped session and return the user to
 the login route. A late profile response cannot restore identity after the user has signed out.
 
@@ -277,16 +299,13 @@ response rather than guessing the new quantity locally. Administrators additiona
 
 ### Administrator interface
 
-Only verified `ADMIN` users receive the **Manage inventory** workspace switcher. The administrator
-view uses a shadcn-style responsive table: less important columns collapse at smaller breakpoints,
-vehicle context remains visible, and touch-sized edit, restock, and delete controls stay available
-without duplicating the DOM.
+Verified `EMPLOYEE` and `ADMIN` users receive the **Manage inventory** workspace switcher. The
+responsive table gives both roles create/edit controls; restock and delete controls render only for
+Administrators. Express independently enforces the same policy.
 
-Create, edit, restock, and delete dialogs behave as centered modals on larger screens and
-bottom-aligned sheets on mobile. They lock background scrolling, dismiss with Escape or a backdrop
-press, and restore focus to the triggering control. Delete confirmation identifies the exact
-vehicle, current stock, permanence, and database-serialization behavior before calling
-`DELETE /api/vehicles/:id`.
+Create, edit, restock, and delete use Radix Dialog focus management. They dismiss with Escape or a
+backdrop press and restore focus to the triggering control. Delete confirmation identifies the
+exact vehicle, current stock, and permanence before calling `DELETE /api/vehicles/:id`.
 
 Transient `INVENTORY_BUSY` responses tell the user to retry. `INSUFFICIENT_STOCK` explains that the
 vehicle sold out, while authorization errors remain distinct.
@@ -298,6 +317,8 @@ vehicle sold out, while authorization errors remain distinct.
 - JWT and administrator secrets are read only from environment variables.
 - Authentication failures do not reveal whether an email exists.
 - Express applies Helmet, a configured CORS origin, and a 1 MB JSON body limit.
+- The SPA uses the declarative React Router API only. It does not enable React Server Components or
+  server actions.
 - Tokens are kept in `sessionStorage`, limiting persistence to the current browser tab. An
   HTTP-only secure-cookie design would be preferred when refresh tokens and CSRF protection are
   introduced.
@@ -329,7 +350,7 @@ GitHub Actions runs the same checks on every push and pull request. See
 
 ## Documented inventory assumptions
 
-- Create, update, delete, and restock require an administrator.
+- Create and update require an Employee or Administrator; delete and restock require Administrator.
 - Purchase and restock accept a positive integer quantity.
 - Zero-stock vehicles remain visible but cannot be purchased.
 - Insufficient stock returns `409 Conflict`.
@@ -342,7 +363,7 @@ GitHub Actions runs the same checks on every push and pull request. See
 I used OpenAI Codex as a co-development assistant during planning and implementation. It helped me
 turn the assignment into milestones, research current library/security guidance, draft Red tests,
 implement the matching Green code, inspect architecture and unused files, and improve documentation.
-It also generated the single MotorVault social-preview image from a project-specific visual brief.
+It also generated the single MotoVault social-preview image from a project-specific visual brief.
 I reviewed the resulting behavior through tests, linting, type checking, production builds, Git
 diffs, and Supabase security checks.
 

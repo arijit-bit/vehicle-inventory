@@ -1,4 +1,5 @@
-export type UserRole = 'USER' | 'ADMIN';
+export type UserRole = 'CUSTOMER' | 'EMPLOYEE' | 'ADMIN';
+export type RegistrableRole = Extract<UserRole, 'CUSTOMER' | 'EMPLOYEE'>;
 
 export interface AuthUser {
   id: string;
@@ -9,6 +10,7 @@ export interface AuthUser {
 export interface AuthCredentials {
   email: string;
   password: string;
+  role?: RegistrableRole;
 }
 
 export interface AuthResponse {

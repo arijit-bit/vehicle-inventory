@@ -26,6 +26,17 @@ describe('vehicle API', () => {
     });
   });
 
+  it('allows guest list requests without an authorization header', async () => {
+    fetchMock.mockResolvedValue(response({ vehicles: [] }));
+
+    await api.list();
+
+    expect(fetchMock).toHaveBeenCalledWith('https://inventory.example/api/vehicles', {
+      headers: {},
+      method: 'GET',
+    });
+  });
+
   it('encodes combined search filters', async () => {
     fetchMock.mockResolvedValue(response({ vehicles: [] }));
 

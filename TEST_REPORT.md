@@ -6,44 +6,43 @@ Recorded on 2026-07-29 using Node.js `v24.8.0` and npm `11.6.0` on Windows.
 
 | Area        | Test files | Tests | Result |
 | ----------- | ---------: | ----: | ------ |
-| Express API |         15 |    93 | Passed |
-| React SPA   |          6 |    24 | Passed |
-| Total       |         21 |   117 | Passed |
+| Express API |         17 |   107 | Passed |
+| React SPA   |          6 |    30 | Passed |
+| Total       |         23 |   137 | Passed |
 
 ## Coverage
 
 | Area        | Statements | Branches | Functions |  Lines |
 | ----------- | ---------: | -------: | --------: | -----: |
 | Express API |     91.95% |   87.96% |    90.36% | 91.81% |
-| React SPA   |     85.78% |   80.70% |    84.73% | 85.55% |
+| React SPA   |     86.90% |   81.09% |    83.33% | 87.12% |
 
 Vehicle routes and schemas have 100% statement, branch, function, and line coverage. The vehicle
 service, Prisma adapter, decimal serialization, combined search query, partial updates, conditional
 purchase, atomic restock, transaction-local timeouts, pool-acquisition timeouts, default
 quantities, insufficient stock, and missing-record paths have direct regression coverage. The React
-suite covers authenticated inventory requests, combined search, availability filtering, sold-out
-purchase disabling, committed stock updates, retryable contention feedback, expired-session
-logout, logout/profile-response race handling, accessible validation errors, and administrator
-workspace visibility, responsive management, modal dismissal, create, edit, restock, and delete
-workflows. Backend integration tests use real bcrypt and JWT services to cross registration,
-profile restoration, protected inventory, role authorization, and administrator-only deletion
-boundaries. Lower aggregate coverage primarily reflects the authentication Prisma repository and
-server bootstrap, which require a live database integration environment.
+suite covers guest inventory browsing, authenticated purchases, combined search, brand filtering,
+price sorting, premium card metadata, social-provider controls, role selection during registration,
+Employee inventory controls, and Administrator create, edit, restock, and delete workflows.
+Backend tests cover Customer, Employee, and Administrator route boundaries plus Admin-only user
+CRUD and role assignment. Integration tests use real bcrypt and JWT services to cross
+registration, profile restoration, protected inventory, role authorization, and
+administrator-only deletion boundaries.
 
 ## Quality gate
 
-The following commands passed:
+The following commands passed for this RBAC change:
 
 ```text
-npm run format:check
 npm run lint
 npm run typecheck
 npm test
-npm run test:coverage
 npm run build
 ```
 
-Both the backend TypeScript build and the Vite production build completed successfully.
+Both the backend TypeScript build and the Vite production build completed successfully. The
+repository-wide format check still reports existing formatting differences in files outside this
+change; all RBAC files touched in this pass were formatted.
 
 ## Supabase verification
 

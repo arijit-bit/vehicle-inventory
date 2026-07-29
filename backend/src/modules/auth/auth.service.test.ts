@@ -14,7 +14,7 @@ describe('AuthService', () => {
     id: '9d2e9700-ddff-4957-965c-30bf44484461',
     email: 'driver@example.com',
     passwordHash: 'stored-password-hash',
-    role: 'USER',
+    role: 'CUSTOMER',
   };
 
   let repository: UserRepository;
@@ -44,6 +44,7 @@ describe('AuthService', () => {
     const result = await service.register({
       email: ' Driver@Example.COM ',
       password: 'SafePass123!',
+      role: 'CUSTOMER',
     });
 
     expect(repository.findByEmail).toHaveBeenCalledWith('driver@example.com');
@@ -51,18 +52,18 @@ describe('AuthService', () => {
     expect(repository.create).toHaveBeenCalledWith({
       email: 'driver@example.com',
       passwordHash: 'new-password-hash',
-      role: 'USER',
+      role: 'CUSTOMER',
     });
     expect(tokenIssuer.sign).toHaveBeenCalledWith({
       id: result.user.id,
       email: 'driver@example.com',
-      role: 'USER',
+      role: 'CUSTOMER',
     });
     expect(result).toEqual({
       user: {
         id: '8e80ca50-184d-421c-9bac-e3964385c40c',
         email: 'driver@example.com',
-        role: 'USER',
+        role: 'CUSTOMER',
       },
       token: 'signed.jwt.token',
     });
@@ -77,6 +78,7 @@ describe('AuthService', () => {
       service.register({
         email: 'DRIVER@example.com',
         password: 'SafePass123!',
+        role: 'CUSTOMER',
       }),
     ).rejects.toBeInstanceOf(DuplicateEmailError);
 

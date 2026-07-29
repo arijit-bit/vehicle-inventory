@@ -1,5 +1,8 @@
-import { BadgeCheck, Boxes, Gauge, ShieldCheck } from 'lucide-react';
+import { Apple, CarFront } from 'lucide-react';
+import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
+import heroVehicle from '../../assets/svg/Final-CarHero Page.svg';
+import { Button } from '../../components/ui/button';
 import { Card, CardContent, CardHeader } from '../../components/ui/card';
 import type { AuthCredentials } from './auth-api';
 import { useAuth } from './auth-context-value';
@@ -9,27 +12,10 @@ interface AuthPageProps {
   mode: 'login' | 'register';
 }
 
-const trustPoints = [
-  {
-    icon: ShieldCheck,
-    title: 'Protected by design',
-    description: 'Hashed credentials and short-lived signed access.',
-  },
-  {
-    icon: Gauge,
-    title: 'Inventory in real time',
-    description: 'Know what is available before the next purchase.',
-  },
-  {
-    icon: BadgeCheck,
-    title: 'Role-aware control',
-    description: 'Administrative actions stay with administrators.',
-  },
-];
-
 export const AuthPage = ({ mode }: AuthPageProps) => {
   const { user, isLoading, login, register } = useAuth();
   const navigate = useNavigate();
+  const [socialNotice, setSocialNotice] = useState<string | null>(null);
   const isRegistration = mode === 'register';
 
   if (!isLoading && user) {
@@ -41,102 +27,102 @@ export const AuthPage = ({ mode }: AuthPageProps) => {
     navigate('/dashboard', { replace: true });
   };
 
+  const announceSocialSetup = (provider: 'Google' | 'Apple') => {
+    setSocialNotice(`${provider} sign-in will be available after provider credentials are added.`);
+  };
+
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
-      <div className="auth-grid absolute inset-0 opacity-50" />
-      <div className="absolute -left-40 top-1/4 size-96 rounded-full bg-cyan-400/10 blur-3xl" />
-      <div className="absolute -right-36 bottom-0 size-96 rounded-full bg-blue-600/10 blur-3xl" />
+    <main className="relative isolate flex min-h-screen items-center justify-center overflow-hidden bg-background px-5 py-12 text-primary">
+      <div aria-hidden="true" className="luxury-grid absolute inset-0 opacity-70" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 bottom-[-10%] mx-auto h-[48vh] max-w-6xl opacity-[0.08]"
+      >
+        <img
+          alt=""
+          className="size-full object-contain object-bottom grayscale"
+          src={heroVehicle}
+        />
+      </div>
 
-      <div className="relative mx-auto grid min-h-screen max-w-[1440px] lg:grid-cols-[1.08fr_0.92fr]">
-        <section className="hidden border-r border-white/5 px-12 py-10 lg:flex lg:flex-col xl:px-20 xl:py-14">
-          <div className="flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-cyan-400 text-slate-950 shadow-[0_12px_32px_-10px_rgba(34,211,238,0.9)]">
-              <Boxes aria-hidden="true" className="size-6" strokeWidth={2.2} />
-            </span>
-            <div>
-              <p className="text-lg font-bold tracking-tight text-white">MotorVault</p>
-              <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
-                Vehicle inventory
-              </p>
-            </div>
-          </div>
+      <div className="relative w-full max-w-md">
+        <Link className="mx-auto mb-8 flex w-fit items-center gap-3 text-primary" to="/dashboard">
+          <span className="flex size-10 items-center justify-center rounded-full border border-border bg-card">
+            <CarFront aria-hidden="true" className="size-4" />
+          </span>
+          <span className="text-sm font-bold uppercase tracking-[0.24em]">MotoVault</span>
+        </Link>
 
-          <div className="my-auto max-w-xl py-16">
-            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-cyan-300/15 bg-cyan-300/5 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-300">
-              <span className="size-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.9)]" />
-              Secure inventory operations
-            </div>
-            <h1 className="max-w-lg text-5xl font-semibold leading-[1.08] tracking-[-0.045em] text-white xl:text-6xl">
-              Every vehicle.
-              <span className="block text-slate-500">One trusted view.</span>
+        <Card className="border-border/90 bg-card/85 shadow-[0_40px_120px_-48px_rgba(0,0,0,1)] backdrop-blur-2xl">
+          <CardHeader className="space-y-3 px-6 pb-5 pt-7 sm:px-8 sm:pt-8">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-secondary">
+              {isRegistration ? 'Private client registration' : 'Client access'}
+            </p>
+            <h1 className="text-3xl font-semibold tracking-[-0.04em] text-primary">
+              {isRegistration ? 'Create your account' : 'Welcome back'}
             </h1>
-            <p className="mt-6 max-w-lg text-lg leading-8 text-slate-400">
-              Purchase with confidence, manage stock precisely, and keep administrative actions
-              protected behind verified access.
+            <p className="text-sm leading-6 text-secondary">
+              {isRegistration
+                ? 'Choose customer or employee access and enter the collection.'
+                : 'Sign in to purchase vehicles or manage dealership inventory.'}
             </p>
+          </CardHeader>
 
-            <div className="mt-12 grid gap-5">
-              {trustPoints.map(({ icon: Icon, title, description }) => (
-                <div className="flex items-start gap-4" key={title}>
-                  <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-cyan-300">
-                    <Icon aria-hidden="true" className="size-5" />
-                  </span>
-                  <div>
-                    <h2 className="font-semibold text-slate-100">{title}</h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
-                  </div>
-                </div>
-              ))}
+          <CardContent className="px-6 pb-7 sm:px-8 sm:pb-8">
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                aria-label="Continue with Google"
+                onClick={() => announceSocialSetup('Google')}
+                type="button"
+                variant="outline"
+              >
+                <span aria-hidden="true" className="text-sm font-bold">
+                  G
+                </span>
+                Google
+              </Button>
+              <Button
+                aria-label="Continue with Apple"
+                onClick={() => announceSocialSetup('Apple')}
+                type="button"
+                variant="outline"
+              >
+                <Apple aria-hidden="true" className="size-4" />
+                Apple
+              </Button>
             </div>
-          </div>
 
-          <p className="text-xs text-slate-600">
-            Purpose-built for accountable vehicle operations.
-          </p>
-        </section>
+            {socialNotice && (
+              <p className="mt-3 text-center text-xs leading-5 text-secondary" role="status">
+                {socialNotice}
+              </p>
+            )}
 
-        <section className="flex min-h-screen items-center justify-center px-5 py-8 sm:px-8 lg:px-12">
-          <div className="w-full max-w-md">
-            <div className="mb-8 flex items-center gap-3 lg:hidden">
-              <span className="flex size-10 items-center justify-center rounded-xl bg-cyan-400 text-slate-950">
-                <Boxes aria-hidden="true" className="size-5" />
+            <div className="my-6 flex items-center gap-3">
+              <span className="h-px flex-1 bg-border" />
+              <span className="text-[9px] font-semibold uppercase tracking-[0.2em] text-secondary">
+                or continue with email
               </span>
-              <span className="font-bold text-white">MotorVault</span>
+              <span className="h-px flex-1 bg-border" />
             </div>
 
-            <Card>
-              <CardHeader>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
-                  {isRegistration ? 'Start securely' : 'Secure access'}
-                </p>
-                <h1 className="text-3xl font-semibold tracking-[-0.035em] text-white">
-                  {isRegistration ? 'Create your account' : 'Welcome back'}
-                </h1>
-                <p className="text-sm leading-6 text-slate-400">
-                  {isRegistration
-                    ? 'Create a customer account to explore and purchase available vehicles.'
-                    : 'Sign in to continue to your vehicle inventory workspace.'}
-                </p>
-              </CardHeader>
-              <CardContent>
-                <AuthForm mode={mode} onSubmit={handleSubmit} />
-                <div className="mt-7 border-t border-white/10 pt-6 text-center text-sm text-slate-400">
-                  {isRegistration ? 'Already have an account?' : 'New to MotorVault?'}{' '}
-                  <Link
-                    className="font-semibold text-cyan-300 transition hover:text-cyan-200"
-                    to={isRegistration ? '/login' : '/register'}
-                  >
-                    {isRegistration ? 'Sign in' : 'Create account'}
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+            <AuthForm mode={mode} onSubmit={handleSubmit} />
 
-            <p className="mt-5 text-center text-xs text-slate-600">
-              Passwords are never stored in readable form.
-            </p>
-          </div>
-        </section>
+            <div className="mt-7 border-t border-border pt-6 text-center text-sm text-secondary">
+              {isRegistration ? 'Already a member?' : 'New to MotoVault?'}{' '}
+              <Link
+                className="font-semibold text-primary hover:underline"
+                to={isRegistration ? '/login' : '/register'}
+              >
+                {isRegistration ? 'Sign in' : 'Create account'}
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <p className="mt-6 text-center text-[10px] uppercase tracking-[0.16em] text-secondary/65">
+          Secure access · Curated inventory · Private service
+        </p>
       </div>
     </main>
   );
