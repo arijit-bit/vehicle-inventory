@@ -379,3 +379,39 @@ raise the vehicle slightly.
 - Raised the desktop vehicle from a 10% to a 15% bottom offset while preserving its mobile
   placement and scale.
 - Ran all 31 frontend tests plus lint, TypeScript checking, and the production build.
+
+## 2026-07-30 - Reference-led inventory collection
+
+**User prompt summary:** Build the Inventory page using the supplied dark luxury collection
+reference. Keep the navigation consistent on every page, provide functional Shadcn brand and price
+controls plus search, create premium vehicle cards from the repository SVGs other than the hero
+asset, and report the recommended persisted product schema and implementation assumptions.
+
+**Reference image:** `E:/Sreenshorts/imgdownloader-0591b916- collection.png`
+
+**AI-assisted work:**
+
+- Analyzed the reference hierarchy: bold collection heading, compact grouped filter pills,
+  three-column bordered cards, prominent transparent car renders, small metadata capsules, and a
+  circular details affordance.
+- Added failing navigation and card-presentation assertions before implementation.
+- Consolidated Home, Inventory, Login, and Register onto one responsive Radix/Shadcn navigation
+  component while preserving signed-in identity, role, logout, and guest actions.
+- Refined the existing functional Inventory page with grouped Shadcn Select controls, a circular
+  search control, premium gradient cards, larger vehicle artwork, metadata pills, and the existing
+  purchase/RBAC behavior.
+- Removed the hero car from the inventory presentation cycle and retained the four dedicated
+  collection SVGs.
+- Kept the existing API contract unchanged and documented the gap between its minimal vehicle
+  schema and the richer production catalog metadata.
+- Ran all 31 frontend tests plus lint, TypeScript checking, and the production build.
+
+**Review decisions and assumptions:**
+
+- Inventory remains at `/dashboard` to preserve existing protected-route, API, and RBAC contracts.
+- About, Services, and Contact remain visible but disabled because their requirements are deferred.
+- The current database has no image, color, model-year, engine, transmission, fuel, or detail
+  fields. The frontend presentation mapping remains temporary until a database migration and API
+  contract are approved.
+- Existing inventory CRUD, search, purchase, restock, sold-out, and role-specific management
+  workflows remain the source of truth and were not replaced with static mock data.

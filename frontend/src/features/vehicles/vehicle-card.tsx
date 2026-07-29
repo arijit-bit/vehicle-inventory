@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import blackVehicle from '../../assets/svg/Middle-black-car.svg';
 import whiteVehicle from '../../assets/svg/White-RR.svg';
 import blueVehicle from '../../assets/svg/blue-buggati.svg';
-import heroVehicle from '../../assets/svg/Final-CarHero Page.svg';
 import greenVehicle from '../../assets/svg/green-lambo.svg';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -16,7 +15,6 @@ const presentation = [
   { color: 'Midnight Blue', dot: '#233b72', image: blueVehicle },
   { color: 'Verde Mantis', dot: '#4d8d42', image: greenVehicle },
   { color: 'Obsidian Black', dot: '#333336', image: blackVehicle },
-  { color: 'Arctic White', dot: '#ecebea', image: heroVehicle },
 ] as const;
 
 const currency = new Intl.NumberFormat('en-US', {
@@ -42,11 +40,11 @@ export const VehicleCard = ({ vehicle, index, token, isBuying, onPurchase }: Veh
   return (
     <Card
       aria-label={`${vehicle.make} ${vehicle.model}`}
-      className="group overflow-hidden bg-card"
+      className="group overflow-hidden border-white/15 bg-[linear-gradient(180deg,#090a0b_0%,#0b0b0c_58%,#151517_100%)]"
       role="article"
     >
-      <div className="flex items-center justify-between px-5 pt-5 text-[10px] font-medium uppercase tracking-[0.14em] text-secondary">
-        <span className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-3 px-4 pt-4 text-[10px] font-medium text-secondary">
+        <span className="flex items-center gap-2 rounded-full border border-white/15 bg-black/20 px-3 py-1.5">
           <span
             aria-hidden="true"
             className="size-2 rounded-full ring-1 ring-white/15"
@@ -58,30 +56,32 @@ export const VehicleCard = ({ vehicle, index, token, isBuying, onPurchase }: Veh
           <span className={cn(soldOut && 'text-red-300')}>
             {soldOut ? 'Sold out' : `${vehicle.quantity} in stock`}
           </span>
-          <span>Automatic</span>
+          <span className="rounded-full border border-white/15 bg-black/20 px-3 py-1.5 text-primary">
+            Automatic
+          </span>
         </span>
       </div>
 
-      <div className="relative flex h-52 items-center justify-center overflow-hidden px-3 sm:h-60">
+      <div className="relative flex h-56 items-center justify-center overflow-hidden px-1 sm:h-64">
         <div
           aria-hidden="true"
           className="absolute inset-x-12 bottom-8 h-8 rounded-full bg-black/70 blur-xl"
         />
         <img
           alt={`${vehicle.make} ${vehicle.model}`}
-          className="relative h-[78%] w-full object-contain drop-shadow-[0_24px_22px_rgba(0,0,0,0.75)] transition-transform duration-500 ease-out group-hover:scale-[1.035]"
+          className="relative h-[90%] w-full object-contain drop-shadow-[0_24px_22px_rgba(0,0,0,0.8)] transition-transform duration-500 ease-out group-hover:scale-[1.04]"
           src={style.image}
         />
       </div>
 
-      <div className="border-t border-border p-5">
+      <div className="p-4 pt-1 sm:p-5 sm:pt-1">
         <div className="flex items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-secondary">
-              {year} · {vehicle.make}
+            <p className="inline-flex rounded-full border border-white/15 bg-black/20 px-2.5 py-1 text-[9px] font-medium text-secondary">
+              {year}
             </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.035em] text-primary">
-              {vehicle.model}
+            <h2 className="mt-2 text-xl font-semibold leading-tight tracking-[-0.035em] text-primary sm:text-2xl">
+              {vehicle.make} {vehicle.model}
             </h2>
             <p className="mt-2 text-sm font-medium text-secondary">
               {currency.format(Number(vehicle.price))}

@@ -50,6 +50,11 @@ describe('App authentication routes', () => {
     expect(screen.queryByRole('button', { name: /continue with google/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /continue with apple/i })).not.toBeInTheDocument();
     expect(screen.getByTestId('auth-vehicle-art')).toHaveClass('max-w-7xl', 'bottom-[-4%]');
+    expect(
+      within(screen.getByRole('navigation', { name: /primary/i })).getByRole('link', {
+        name: /^home$/i,
+      }),
+    ).toHaveAttribute('href', '/');
   });
 
   it('renders the registration experience at /register', () => {

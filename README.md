@@ -16,6 +16,7 @@ Milestone 7 is complete:
 - Environment-seeded administrator; public registration supports `CUSTOMER` and `EMPLOYEE`
 - Reference-led dark-luxury landing page with metallic hero typography, responsive navigation, and
   the repository's exotic vehicle artwork
+- A shared reference-led navigation header across Home, Inventory, Login, and Register
 - Premium centered login and registration flows with email/password authentication
 - Session restoration, logout, and protected React routes
 - Protected vehicle listing and combined make, model, category, and price-range search
@@ -278,14 +279,21 @@ All errors use `{ "error": { "code": "...", "message": "..." } }`.
 ## Milestone 7 interface
 
 The React collection uses an obsidian `#0B0B0C` canvas, charcoal `#161618` cards, silver
-`#8E8E93` supporting type, `#242427` borders, and a shared 12px radius. Radix-powered Shadcn
-Navigation Menu and Select controls provide brand filtering, price sorting, and expandable advanced
-search. Availability tabs switch locally between all, purchasable, and sold-out records without
-another network request.
+`#8E8E93` supporting type, `#242427` borders, and a shared 12px radius. A single reference-led
+Navigation Menu now spans Home, Inventory, Login, and Register. Radix-powered Shadcn Select controls
+provide brand filtering, price sorting, and expandable advanced search. Availability tabs switch
+locally between all, purchasable, and sold-out records without another network request.
 
-Vehicle cards use the repository's transparent automotive assets with color specification,
-transmission, model year, price, stock, expandable details, and the existing authenticated purchase
-workflow. Guest visitors can browse and filter but must sign in before reserving a vehicle.
+Vehicle cards use the repository's non-hero transparent automotive assets with pill metadata,
+prominent vehicle artwork, year, make/model, price, stock, expandable details, and the existing
+authenticated purchase workflow. Guest visitors can browse and filter but must sign in before
+reserving a vehicle.
+
+The current API does not yet persist catalog artwork, color, model year, engine, transmission, fuel,
+or long-form details. Until that schema is introduced, artwork and color cycle through a frontend
+presentation map, model year is derived from the creation timestamp, and transmission displays as a
+temporary `Automatic` label. These fields should move to persisted vehicle metadata before a
+production catalog import.
 
 The glass navigation header shows the verified email and effective role returned by `/api/auth/me`.
 Expired or rejected bearer tokens immediately clear the tab-scoped session and return the user to

@@ -395,16 +395,16 @@ export const DashboardPage = () => {
         aria-hidden="true"
         className="luxury-grid pointer-events-none fixed inset-0 opacity-45"
       />
-      <AppNavigation onLogout={logout} user={user} />
+      <AppNavigation active="inventory" onLogout={logout} user={user} />
 
       <main className="relative mx-auto max-w-[1440px] px-4 pb-16 pt-14 sm:px-6 lg:px-10">
         <section id="collection">
-          <div className="flex flex-col gap-8 border-b border-border pb-9 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col gap-8 pb-10 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-secondary">
                 Curated inventory · {totalUnits} available units
               </p>
-              <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] sm:text-5xl">
+              <h1 className="mt-3 text-4xl font-bold tracking-[-0.055em] sm:text-5xl">
                 Our Collection
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-secondary">
@@ -642,7 +642,7 @@ export const DashboardPage = () => {
               </div>
 
               {isLoading ? (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                   {[0, 1, 2].map((item) => (
                     <div
                       aria-hidden="true"
@@ -660,7 +660,7 @@ export const DashboardPage = () => {
                   </p>
                 </Card>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                   {visibleVehicles.map((vehicle) => (
                     <VehicleCard
                       index={vehicles.indexOf(vehicle)}

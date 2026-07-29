@@ -166,11 +166,21 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     expect(await screen.findByRole('heading', { name: 'Our Collection' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /^home$/i })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: /^inventory$/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
     expect(screen.getByRole('combobox', { name: 'Filter By Brand' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Sort By Price' })).toBeInTheDocument();
     expect(screen.getAllByText('Automatic')).toHaveLength(2);
-    expect(screen.getByText('Frozen Silver')).toBeInTheDocument();
+    expect(screen.getByText('Frozen Silver')).toHaveClass('rounded-full', 'border');
+    expect(screen.getAllByText('Automatic')[0]).toHaveClass('rounded-full', 'border');
     expect(screen.getAllByLabelText(/view .* details/i)).toHaveLength(2);
+    expect(screen.getByRole('img', { name: 'Toyota Camry' })).not.toHaveAttribute(
+      'src',
+      expect.stringContaining('Final-CarHero'),
+    );
   });
 
   it('filters by brand and sorts the collection by price', async () => {

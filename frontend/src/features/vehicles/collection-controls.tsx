@@ -29,9 +29,12 @@ export const CollectionControls = ({
   onPriceSortChange,
   onToggleSearch,
 }: CollectionControlsProps) => (
-  <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
+  <div className="flex w-full flex-wrap items-center gap-1 rounded-[calc(var(--radius)+0.35rem)] border border-white/15 bg-card/70 p-1 lg:w-auto lg:justify-end">
     <Select onValueChange={onBrandChange} value={brand}>
-      <SelectTrigger aria-label="Filter By Brand" className="flex-1 sm:flex-none">
+      <SelectTrigger
+        aria-label="Filter By Brand"
+        className="flex-1 rounded-[var(--radius)] border-0 bg-transparent sm:flex-none"
+      >
         <SelectValue placeholder="Filter By Brand" />
       </SelectTrigger>
       <SelectContent>
@@ -45,7 +48,10 @@ export const CollectionControls = ({
     </Select>
 
     <Select onValueChange={(value) => onPriceSortChange(value as PriceSort)} value={priceSort}>
-      <SelectTrigger aria-label="Sort By Price" className="flex-1 sm:flex-none">
+      <SelectTrigger
+        aria-label="Sort By Price"
+        className="flex-1 rounded-[var(--radius)] border-0 bg-transparent sm:flex-none"
+      >
         <SelectValue placeholder="Sort By Price" />
       </SelectTrigger>
       <SelectContent>
@@ -57,6 +63,7 @@ export const CollectionControls = ({
 
     <Button
       aria-label={searchExpanded ? 'Close search' : 'Open search'}
+      className="rounded-full"
       onClick={onToggleSearch}
       size="icon"
       variant={searchExpanded ? 'default' : 'outline'}

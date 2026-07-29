@@ -21,10 +21,11 @@ Vehicle routes and schemas have 100% statement, branch, function, and line cover
 service, Prisma adapter, decimal serialization, combined search query, partial updates, conditional
 purchase, atomic restock, transaction-local timeouts, pool-acquisition timeouts, default
 quantities, insufficient stock, and missing-record paths have direct regression coverage. The React
-suite covers the luxury root-route hero and navigation, guest inventory browsing, authenticated
-purchases, combined search, brand filtering, price sorting, premium card metadata, social-provider
-removal, the accessible Shadcn account-type selector, Employee inventory controls, and
-Administrator create, edit, restock, and delete workflows.
+suite covers the luxury root-route hero, shared navigation across public routes, guest inventory
+browsing, authenticated purchases, combined search, brand filtering, price sorting, non-hero
+vehicle artwork, premium card metadata, social-provider removal, the accessible Shadcn account-type
+selector, Employee inventory controls, and Administrator create, edit, restock, and delete
+workflows.
 Backend tests cover Customer, Employee, and Administrator route boundaries plus Admin-only user
 CRUD and role assignment. Integration tests use real bcrypt and JWT services to cross
 registration, profile restoration, protected inventory, role authorization, and
@@ -32,7 +33,7 @@ administrator-only deletion boundaries.
 
 ## Quality gate
 
-The following commands passed after the landing-page implementation:
+The following commands passed after the inventory-page refinement:
 
 ```text
 npm run lint
