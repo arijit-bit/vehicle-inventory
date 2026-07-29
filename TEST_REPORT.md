@@ -6,16 +6,16 @@ Recorded on 2026-07-29 using Node.js `v24.8.0` and npm `11.6.0` on Windows.
 
 | Area        | Test files | Tests | Result |
 | ----------- | ---------: | ----: | ------ |
-| Express API |         14 |    92 | Passed |
-| React SPA   |          6 |    22 | Passed |
-| Total       |         20 |   114 | Passed |
+| Express API |         15 |    93 | Passed |
+| React SPA   |          6 |    24 | Passed |
+| Total       |         21 |   117 | Passed |
 
 ## Coverage
 
 | Area        | Statements | Branches | Functions |  Lines |
 | ----------- | ---------: | -------: | --------: | -----: |
 | Express API |     91.95% |   87.96% |    90.36% | 91.81% |
-| React SPA   |     84.63% |   80.60% |    82.90% | 84.30% |
+| React SPA   |     85.78% |   80.70% |    84.73% | 85.55% |
 
 Vehicle routes and schemas have 100% statement, branch, function, and line coverage. The vehicle
 service, Prisma adapter, decimal serialization, combined search query, partial updates, conditional
@@ -24,10 +24,11 @@ quantities, insufficient stock, and missing-record paths have direct regression 
 suite covers authenticated inventory requests, combined search, availability filtering, sold-out
 purchase disabling, committed stock updates, retryable contention feedback, expired-session
 logout, logout/profile-response race handling, accessible validation errors, and administrator
-create, edit, restock, and delete workflows. A backend integration test uses the real bcrypt and
-JWT services to cross registration, profile restoration, protected inventory, and role
-authorization boundaries. Lower aggregate coverage primarily reflects the authentication Prisma
-repository and server bootstrap, which require a live database integration environment.
+workspace visibility, responsive management, modal dismissal, create, edit, restock, and delete
+workflows. Backend integration tests use real bcrypt and JWT services to cross registration,
+profile restoration, protected inventory, role authorization, and administrator-only deletion
+boundaries. Lower aggregate coverage primarily reflects the authentication Prisma repository and
+server bootstrap, which require a live database integration environment.
 
 ## Quality gate
 

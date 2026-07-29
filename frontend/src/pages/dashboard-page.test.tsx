@@ -111,6 +111,16 @@ describe('DashboardPage', () => {
     expect(screen.getByText('1 vehicle')).toBeInTheDocument();
   });
 
+  it('keeps inventory management hidden from non-administrators', async () => {
+    mockAuth('USER');
+
+    render(<DashboardPage />);
+
+    await screen.findByRole('article', { name: 'Toyota Camry' });
+    expect(screen.queryByRole('button', { name: 'Manage inventory' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /add vehicle/i })).not.toBeInTheDocument();
+  });
+
   it('ends the local session when the API rejects an expired token', async () => {
     mockAuth('USER');
     const logout = vi.fn();
@@ -193,6 +203,13 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
     await screen.findByRole('article', { name: 'Toyota Camry' });
+    await user.click(screen.getByRole('button', { name: 'Manage inventory' }));
+
+    const management = screen.getByRole('region', { name: 'Inventory management' });
+    expect(within(management).getByText('2 inventory records')).toBeInTheDocument();
+    expect(
+      within(management).getByRole('table', { name: 'Vehicle management' }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Add vehicle' }));
     await user.type(screen.getByLabelText('Make'), 'Volvo');
@@ -209,9 +226,9 @@ describe('DashboardPage', () => {
       price: 72000,
       quantity: 3,
     });
-    expect(await screen.findByRole('article', { name: 'Volvo XC90' })).toBeInTheDocument();
+    expect(await within(management).findByRole('row', { name: /Volvo XC90/ })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Edit Toyota Camry' }));
+    await user.click(within(management).getByRole('button', { name: 'Edit Toyota Camry' }));
     await user.clear(screen.getByLabelText('Price'));
     await user.type(screen.getByLabelText('Price'), '31999');
     expect(screen.queryByLabelText('Initial quantity')).not.toBeInTheDocument();
@@ -227,7 +244,7 @@ describe('DashboardPage', () => {
       },
     );
 
-    await user.click(screen.getByRole('button', { name: 'Restock Toyota Camry' }));
+    await user.click(within(management).getByRole('button', { name: 'Restock Toyota Camry' }));
     await user.clear(screen.getByLabelText('Restock quantity'));
     await user.type(screen.getByLabelText('Restock quantity'), '5');
     await user.click(screen.getByRole('button', { name: 'Confirm restock' }));
@@ -237,12 +254,29 @@ describe('DashboardPage', () => {
       5,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Delete Ford Mustang' }));
+    await user.click(within(management).getByRole('button', { name: 'Delete Ford Mustang' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent(
+      'This permanently removes Ford Mustang from the catalog',
+    );
     await user.click(screen.getByRole('button', { name: 'Confirm delete' }));
     expect(vehicleApi.delete).toHaveBeenCalledWith(
       'secure-token',
       '82e88523-f566-4bb2-b9b0-54c5ecf59db7',
     );
-    expect(screen.queryByRole('article', { name: 'Ford Mustang' })).not.toBeInTheDocument();
+    expect(within(management).queryByRole('row', { name: /Ford Mustang/ })).not.toBeInTheDocument();
+  });
+
+  it('dismisses administrator forms with Escape', async () => {
+    const user = userEvent.setup();
+    mockAuth('ADMIN');
+
+    render(<DashboardPage />);
+    await screen.findByRole('article', { name: 'Toyota Camry' });
+    await user.click(screen.getByRole('button', { name: 'Manage inventory' }));
+    await user.click(screen.getByRole('button', { name: 'Add vehicle' }));
+
+    expect(screen.getByRole('dialog', { name: 'Add vehicle' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'Add vehicle' })).not.toBeInTheDocument();
   });
 });
