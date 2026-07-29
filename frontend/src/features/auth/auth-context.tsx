@@ -5,27 +5,29 @@ import { AuthContext, type AuthContextValue } from './auth-context-value';
 const tokenStorageKey = 'motorvault.session';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [storedToken] = useState(() => sessionStorage.getItem(tokenStorageKey));
+  const [token, setToken] = useState(() => sessionStorage.getItem(tokenStorageKey));
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(storedToken));
+  const [isLoading, setIsLoading] = useState(Boolean(token));
 
   useEffect(() => {
-    if (!storedToken) {
+    if (!token) {
       return;
     }
 
     authApi
-      .me(storedToken)
+      .me(token)
       .then(({ user: currentUser }) => {
         setUser(currentUser);
       })
       .catch(() => {
         sessionStorage.removeItem(tokenStorageKey);
+        setToken(null);
+        setUser(null);
       })
       .finally(() => {
         setIsLoading(false);
       });
-  }, [storedToken]);
+  }, [token]);
 
   const authenticate = async (
     operation: (credentials: AuthCredentials) => ReturnType<typeof authApi.login>,
@@ -33,18 +35,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     const result = await operation(credentials);
     sessionStorage.setItem(tokenStorageKey, result.token);
+    setToken(result.token);
     setUser(result.user);
+    setIsLoading(false);
   };
 
   const login = (credentials: AuthCredentials) => authenticate(authApi.login, credentials);
   const register = (credentials: AuthCredentials) => authenticate(authApi.register, credentials);
   const logout = () => {
     sessionStorage.removeItem(tokenStorageKey);
+    setToken(null);
     setUser(null);
+    setIsLoading(false);
   };
 
   const value: AuthContextValue = {
     user,
+    token,
     isLoading,
     login,
     register,

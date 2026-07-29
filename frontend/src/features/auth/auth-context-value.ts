@@ -3,6 +3,7 @@ import type { AuthCredentials, AuthUser } from './auth-api';
 
 export interface AuthContextValue {
   user: AuthUser | null;
+  token: string | null;
   isLoading: boolean;
   login(credentials: AuthCredentials): Promise<void>;
   register(credentials: AuthCredentials): Promise<void>;

@@ -4,6 +4,7 @@ import { createApp } from '../../app.js';
 import type { TokenVerifier } from '../auth/auth.types.js';
 import {
   InsufficientStockError,
+  InventoryBusyError,
   VehicleNotFoundError,
   type VehicleRecord,
 } from './vehicle.types.js';
@@ -103,13 +104,7 @@ describe('vehicle HTTP API', () => {
     });
   });
 
-  it('allows an authenticated user to create a normalized vehicle', async () => {
-    vi.mocked(tokenVerifier.verify).mockReturnValue({
-      sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
-      email: 'driver@example.com',
-      role: 'USER',
-    });
-
+  it('allows an administrator to create a normalized vehicle', async () => {
     const response = await request(app()).post('/api/vehicles').set(authorized()).send({
       make: ' Toyota ',
       model: ' Camry ',
@@ -128,35 +123,38 @@ describe('vehicle HTTP API', () => {
     });
   });
 
-  it('denies a regular user from deleting a vehicle', async () => {
+  it.each([
+    ['post', '/api/vehicles'],
+    ['put', `/api/vehicles/${vehicle.id}`],
+    ['delete', `/api/vehicles/${vehicle.id}`],
+  ] as const)('denies a regular user from %s %s', async (method, path) => {
     vi.mocked(tokenVerifier.verify).mockReturnValue({
       sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
       email: 'driver@example.com',
       role: 'USER',
     });
 
-    const response = await request(app()).delete(`/api/vehicles/${vehicle.id}`).set(authorized());
+    const response = await request(app())[method](path).set(authorized()).send({
+      make: 'Toyota',
+      model: 'Camry',
+      category: 'Sedan',
+      price: 32999.9,
+      quantity: 4,
+    });
 
     expect(response.status).toBe(403);
     expect(response.body.error.code).toBe('FORBIDDEN');
   });
 
-  it('updates a vehicle as an authenticated user', async () => {
-    vi.mocked(tokenVerifier.verify).mockReturnValue({
-      sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
-      email: 'driver@example.com',
-      role: 'USER',
-    });
-
+  it('updates vehicle details as an administrator without replacing stock', async () => {
     const response = await request(app())
       .put(`/api/vehicles/${vehicle.id}`)
       .set(authorized())
-      .send({ price: 31999, quantity: 3 });
+      .send({ price: 31999 });
 
     expect(response.status).toBe(200);
     expect(vehicleService.update).toHaveBeenCalledWith(vehicle.id, {
       price: '31999.00',
-      quantity: 3,
     });
   });
 
@@ -172,7 +170,7 @@ describe('vehicle HTTP API', () => {
     const response = await request(app())
       .put('/api/vehicles/not-a-uuid')
       .set(authorized())
-      .send({ quantity: 3 });
+      .send({ price: 31999 });
 
     expect(response.status).toBe(400);
     expect(vehicleService.update).not.toHaveBeenCalled();
@@ -184,7 +182,7 @@ describe('vehicle HTTP API', () => {
     const response = await request(app())
       .put(`/api/vehicles/${vehicle.id}`)
       .set(authorized())
-      .send({ quantity: 3 });
+      .send({ price: 31999 });
 
     expect(response.status).toBe(404);
     expect(response.body).toEqual({
@@ -231,6 +229,24 @@ describe('vehicle HTTP API', () => {
 
     expect(response.status).toBe(409);
     expect(response.body.error.code).toBe('INSUFFICIENT_STOCK');
+  });
+
+  it('returns a retryable 503 when a database lock times out', async () => {
+    vehicleService.purchase.mockRejectedValue(new InventoryBusyError());
+
+    const response = await request(app())
+      .post(`/api/vehicles/${vehicle.id}/purchase`)
+      .set(authorized())
+      .send({ quantity: 1 });
+
+    expect(response.status).toBe(503);
+    expect(response.header['retry-after']).toBe('1');
+    expect(response.body).toEqual({
+      error: {
+        code: 'INVENTORY_BUSY',
+        message: 'Inventory is busy; retry the request',
+      },
+    });
   });
 
   it('allows an administrator to restock a vehicle', async () => {

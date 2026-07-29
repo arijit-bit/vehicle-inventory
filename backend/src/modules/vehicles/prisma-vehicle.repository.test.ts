@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DatabaseClient } from '../../infrastructure/database/prisma.js';
 import { PrismaVehicleRepository } from './prisma-vehicle.repository.js';
+import { InventoryBusyError } from './vehicle.types.js';
 
 const storedVehicle = {
   id: 'a104ce48-e57f-4fb0-8793-57c8b9a2c913',
@@ -17,6 +18,8 @@ const storedVehicle = {
 
 describe('PrismaVehicleRepository', () => {
   const database = {
+    $queryRawUnsafe: vi.fn(),
+    $transaction: vi.fn(),
     vehicle: {
       create: vi.fn(),
       findMany: vi.fn(),
@@ -30,6 +33,10 @@ describe('PrismaVehicleRepository', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    database.$queryRawUnsafe.mockResolvedValue([{ set_config: '10000ms' }]);
+    database.$transaction.mockImplementation(
+      async (operation: (transaction: typeof database) => Promise<unknown>) => operation(database),
+    );
     database.vehicle.create.mockResolvedValue(storedVehicle);
     database.vehicle.findMany.mockResolvedValue([storedVehicle]);
     database.vehicle.update.mockResolvedValue(storedVehicle);
@@ -82,7 +89,6 @@ describe('PrismaVehicleRepository', () => {
   it('sends only supplied fields during a partial update', async () => {
     await repository.update(storedVehicle.id, {
       price: '31999.00',
-      quantity: 3,
     });
 
     expect(database.vehicle.update).toHaveBeenCalledWith(
@@ -90,7 +96,6 @@ describe('PrismaVehicleRepository', () => {
         where: { id: storedVehicle.id },
         data: {
           price: '31999.00',
-          quantity: 3,
         },
       }),
     );
@@ -99,7 +104,7 @@ describe('PrismaVehicleRepository', () => {
   it('returns null when Prisma reports a missing update target', async () => {
     database.vehicle.update.mockRejectedValue({ code: 'P2025' });
 
-    await expect(repository.update(storedVehicle.id, { quantity: 3 })).resolves.toBeNull();
+    await expect(repository.update(storedVehicle.id, { price: '31999.00' })).resolves.toBeNull();
   });
 
   it('returns false when Prisma reports a missing delete target', async () => {
@@ -163,5 +168,31 @@ describe('PrismaVehicleRepository', () => {
     database.vehicle.update.mockRejectedValue({ code: 'P2025' });
 
     await expect(repository.restock(storedVehicle.id, 2)).resolves.toBeNull();
+  });
+
+  it('applies transaction-local timeouts around inventory mutations', async () => {
+    await repository.purchase(storedVehicle.id, 1);
+
+    expect(database.$transaction).toHaveBeenCalledOnce();
+    expect(database.$queryRawUnsafe).toHaveBeenCalledWith(
+      "SELECT set_config('lock_timeout', $1, true), set_config('statement_timeout', $2, true)",
+      '2000ms',
+      '10000ms',
+    );
+  });
+
+  it.each([
+    { code: 'P2010', meta: { code: '55P03' } },
+    { code: 'P2010', meta: { code: '57014' } },
+    {
+      code: 'P2028',
+      message: 'Transaction API error: Unable to start a transaction in the given time.',
+    },
+  ])('maps retryable database timeout errors to inventory busy', async (databaseError) => {
+    database.vehicle.updateManyAndReturn.mockRejectedValue(databaseError);
+
+    await expect(repository.purchase(storedVehicle.id, 1)).rejects.toBeInstanceOf(
+      InventoryBusyError,
+    );
   });
 });

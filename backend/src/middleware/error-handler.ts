@@ -1,7 +1,11 @@
 import type { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod';
 import { DuplicateEmailError, InvalidCredentialsError } from '../modules/auth/auth.types.js';
-import { InsufficientStockError, VehicleNotFoundError } from '../modules/vehicles/vehicle.types.js';
+import {
+  InsufficientStockError,
+  InventoryBusyError,
+  VehicleNotFoundError,
+} from '../modules/vehicles/vehicle.types.js';
 
 export const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
   void _next;
@@ -57,6 +61,19 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
         message: error.message,
       },
     });
+    return;
+  }
+
+  if (error instanceof InventoryBusyError) {
+    response
+      .set('Retry-After', '1')
+      .status(503)
+      .json({
+        error: {
+          code: 'INVENTORY_BUSY',
+          message: error.message,
+        },
+      });
     return;
   }
 

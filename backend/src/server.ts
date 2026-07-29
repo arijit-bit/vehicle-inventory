@@ -21,7 +21,10 @@ const tokens = new JwtTokenService({
   audience: env.JWT_AUDIENCE,
 });
 const authService = new AuthService(users, passwords, tokens);
-const vehicles = new PrismaVehicleRepository(database);
+const vehicles = new PrismaVehicleRepository(database, {
+  lockTimeoutMs: env.DATABASE_LOCK_TIMEOUT_MS,
+  statementTimeoutMs: env.DATABASE_STATEMENT_TIMEOUT_MS,
+});
 const vehicleService = new VehicleService(vehicles);
 const adminCredentials =
   env.ADMIN_EMAIL && env.ADMIN_PASSWORD

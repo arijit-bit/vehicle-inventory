@@ -21,15 +21,18 @@ const priceSchema = z.preprocess(
 const quantitySchema = z.number().int().min(0).max(2_147_483_647);
 const inventoryQuantitySchema = z.number().int().positive().max(2_147_483_647);
 
-export const createVehicleSchema = z.strictObject({
+const vehicleDetailsSchema = z.strictObject({
   make: vehicleTextSchema,
   model: vehicleTextSchema,
   category: vehicleTextSchema,
   price: priceSchema,
+});
+
+export const createVehicleSchema = vehicleDetailsSchema.extend({
   quantity: quantitySchema,
 });
 
-export const updateVehicleSchema = createVehicleSchema
+export const updateVehicleSchema = vehicleDetailsSchema
   .partial()
   .refine((input) => Object.keys(input).length > 0, {
     message: 'At least one vehicle field is required',

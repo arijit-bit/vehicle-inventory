@@ -50,3 +50,10 @@ export class InsufficientStockError extends Error {
     this.name = 'InsufficientStockError';
   }
 }
+
+export class InventoryBusyError extends Error {
+  constructor() {
+    super('Inventory is busy; retry the request');
+    this.name = 'InventoryBusyError';
+  }
+}

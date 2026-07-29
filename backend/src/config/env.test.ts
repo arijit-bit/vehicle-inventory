@@ -12,6 +12,8 @@ describe('loadEnv', () => {
 
     expect(env.ADMIN_EMAIL).toBeUndefined();
     expect(env.ADMIN_PASSWORD).toBeUndefined();
+    expect(env.DATABASE_LOCK_TIMEOUT_MS).toBe(2_000);
+    expect(env.DATABASE_STATEMENT_TIMEOUT_MS).toBe(10_000);
   });
 
   it.each([{ ADMIN_EMAIL: 'admin@example.com' }, { ADMIN_PASSWORD: 'AdminPass123!' }])(
@@ -25,4 +27,14 @@ describe('loadEnv', () => {
       ).toThrow(/ADMIN_EMAIL and ADMIN_PASSWORD must be provided together/);
     },
   );
+
+  it('requires the lock timeout to be shorter than the statement timeout', () => {
+    expect(() =>
+      loadEnv({
+        ...validEnvironment,
+        DATABASE_LOCK_TIMEOUT_MS: '10000',
+        DATABASE_STATEMENT_TIMEOUT_MS: '5000',
+      }),
+    ).toThrow(/DATABASE_LOCK_TIMEOUT_MS must be lower/);
+  });
 });

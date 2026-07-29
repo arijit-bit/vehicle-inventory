@@ -5,7 +5,12 @@ import type {
   UpdateVehicleInput,
   VehicleSearchFilters,
 } from './vehicle.schemas.js';
-import type { PurchaseResult, VehicleRecord, VehicleRepository } from './vehicle.types.js';
+import {
+  InventoryBusyError,
+  type PurchaseResult,
+  type VehicleRecord,
+  type VehicleRepository,
+} from './vehicle.types.js';
 
 const vehicleSelection = {
   id: true,
@@ -40,8 +45,79 @@ const isMissingRecordError = (error: unknown) =>
   'code' in error &&
   (error as { code: unknown }).code === 'P2025';
 
+const retryableDatabaseCodes = new Set(['55P03', '57014']);
+
+const isRetryableDatabaseTimeout = (error: unknown): boolean => {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  const candidate = error as {
+    code?: unknown;
+    message?: unknown;
+    meta?: unknown;
+    cause?: unknown;
+  };
+
+  if (typeof candidate.code === 'string' && retryableDatabaseCodes.has(candidate.code)) {
+    return true;
+  }
+
+  if (
+    typeof candidate.message === 'string' &&
+    /(lock timeout|statement timeout|transaction.*timed out|unable to start a transaction in the given time)/i.test(
+      candidate.message,
+    )
+  ) {
+    return true;
+  }
+
+  return isRetryableDatabaseTimeout(candidate.meta) || isRetryableDatabaseTimeout(candidate.cause);
+};
+
+export interface InventoryTimeouts {
+  lockTimeoutMs: number;
+  statementTimeoutMs: number;
+}
+
+const defaultInventoryTimeouts: InventoryTimeouts = {
+  lockTimeoutMs: 2_000,
+  statementTimeoutMs: 10_000,
+};
+
 export class PrismaVehicleRepository implements VehicleRepository {
-  constructor(private readonly database: DatabaseClient) {}
+  constructor(
+    private readonly database: DatabaseClient,
+    private readonly timeouts: InventoryTimeouts = defaultInventoryTimeouts,
+  ) {}
+
+  private async withInventoryTransaction<T>(
+    operation: (transaction: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await this.database.$transaction(
+        async (transaction) => {
+          await transaction.$queryRawUnsafe(
+            "SELECT set_config('lock_timeout', $1, true), set_config('statement_timeout', $2, true)",
+            `${this.timeouts.lockTimeoutMs}ms`,
+            `${this.timeouts.statementTimeoutMs}ms`,
+          );
+
+          return operation(transaction);
+        },
+        {
+          maxWait: this.timeouts.statementTimeoutMs,
+          timeout: this.timeouts.statementTimeoutMs + 1_000,
+        },
+      );
+    } catch (error) {
+      if (isRetryableDatabaseTimeout(error)) {
+        throw new InventoryBusyError();
+      }
+
+      throw error;
+    }
+  }
 
   async create(input: CreateVehicleInput): Promise<VehicleRecord> {
     const vehicle = await this.database.vehicle.create({
@@ -103,15 +179,16 @@ export class PrismaVehicleRepository implements VehicleRepository {
       ...(input.model !== undefined && { model: input.model }),
       ...(input.category !== undefined && { category: input.category }),
       ...(input.price !== undefined && { price: input.price }),
-      ...(input.quantity !== undefined && { quantity: input.quantity }),
     };
 
     try {
-      const vehicle = await this.database.vehicle.update({
-        where: { id },
-        data,
-        select: vehicleSelection,
-      });
+      const vehicle = await this.withInventoryTransaction((transaction) =>
+        transaction.vehicle.update({
+          where: { id },
+          data,
+          select: vehicleSelection,
+        }),
+      );
 
       return toVehicleRecord(vehicle);
     } catch (error) {
@@ -125,10 +202,12 @@ export class PrismaVehicleRepository implements VehicleRepository {
 
   async delete(id: string): Promise<boolean> {
     try {
-      await this.database.vehicle.delete({
-        where: { id },
-        select: { id: true },
-      });
+      await this.withInventoryTransaction((transaction) =>
+        transaction.vehicle.delete({
+          where: { id },
+          select: { id: true },
+        }),
+      );
 
       return true;
     } catch (error) {
@@ -141,47 +220,51 @@ export class PrismaVehicleRepository implements VehicleRepository {
   }
 
   async purchase(id: string, quantity: number): Promise<PurchaseResult> {
-    const [vehicle] = await this.database.vehicle.updateManyAndReturn({
-      where: {
-        id,
-        quantity: {
-          gte: quantity,
+    return this.withInventoryTransaction(async (transaction) => {
+      const [vehicle] = await transaction.vehicle.updateManyAndReturn({
+        where: {
+          id,
+          quantity: {
+            gte: quantity,
+          },
         },
-      },
-      data: {
-        quantity: {
-          decrement: quantity,
-        },
-      },
-      select: vehicleSelection,
-    });
-
-    if (vehicle) {
-      return {
-        status: 'UPDATED',
-        vehicle: toVehicleRecord(vehicle),
-      };
-    }
-
-    const existingVehicle = await this.database.vehicle.findUnique({
-      where: { id },
-      select: { id: true },
-    });
-
-    return existingVehicle ? { status: 'INSUFFICIENT_STOCK' } : { status: 'NOT_FOUND' };
-  }
-
-  async restock(id: string, quantity: number): Promise<VehicleRecord | null> {
-    try {
-      const vehicle = await this.database.vehicle.update({
-        where: { id },
         data: {
           quantity: {
-            increment: quantity,
+            decrement: quantity,
           },
         },
         select: vehicleSelection,
       });
+
+      if (vehicle) {
+        return {
+          status: 'UPDATED',
+          vehicle: toVehicleRecord(vehicle),
+        };
+      }
+
+      const existingVehicle = await transaction.vehicle.findUnique({
+        where: { id },
+        select: { id: true },
+      });
+
+      return existingVehicle ? { status: 'INSUFFICIENT_STOCK' } : { status: 'NOT_FOUND' };
+    });
+  }
+
+  async restock(id: string, quantity: number): Promise<VehicleRecord | null> {
+    try {
+      const vehicle = await this.withInventoryTransaction((transaction) =>
+        transaction.vehicle.update({
+          where: { id },
+          data: {
+            quantity: {
+              increment: quantity,
+            },
+          },
+          select: vehicleSelection,
+        }),
+      );
 
       return toVehicleRecord(vehicle);
     } catch (error) {

@@ -42,6 +42,11 @@ describe('vehicle schemas', () => {
     expect(() => updateVehicleSchema.parse({ unsupported: true })).toThrow();
   });
 
+  it('keeps stock changes out of generic vehicle updates', () => {
+    expect(() => updateVehicleSchema.parse({ quantity: 3 })).toThrow();
+    expect(() => updateVehicleSchema.parse({ make: 'Toyota', quantity: 3 })).toThrow();
+  });
+
   it('normalizes search filters and rejects an inverted price range', () => {
     expect(
       searchVehiclesSchema.parse({
