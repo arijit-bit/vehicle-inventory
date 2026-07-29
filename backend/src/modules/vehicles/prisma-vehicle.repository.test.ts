@@ -184,6 +184,10 @@ describe('PrismaVehicleRepository', () => {
   it.each([
     { code: 'P2010', meta: { code: '55P03' } },
     { code: 'P2010', meta: { code: '57014' } },
+    {
+      code: 'P2028',
+      message: 'Transaction API error: Unable to start a transaction in the given time.',
+    },
   ])('maps retryable database timeout errors to inventory busy', async (databaseError) => {
     database.vehicle.updateManyAndReturn.mockRejectedValue(databaseError);
 
