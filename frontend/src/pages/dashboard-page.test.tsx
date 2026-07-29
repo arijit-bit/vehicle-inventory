@@ -207,7 +207,9 @@ describe('DashboardPage', () => {
 
     const management = screen.getByRole('region', { name: 'Inventory management' });
     expect(within(management).getByText('2 inventory records')).toBeInTheDocument();
-    expect(within(management).getByRole('table', { name: 'Vehicle management' })).toBeInTheDocument();
+    expect(
+      within(management).getByRole('table', { name: 'Vehicle management' }),
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Add vehicle' }));
     await user.type(screen.getByLabelText('Make'), 'Volvo');
@@ -224,9 +226,7 @@ describe('DashboardPage', () => {
       price: 72000,
       quantity: 3,
     });
-    expect(
-      await within(management).findByRole('row', { name: /Volvo XC90/ }),
-    ).toBeInTheDocument();
+    expect(await within(management).findByRole('row', { name: /Volvo XC90/ })).toBeInTheDocument();
 
     await user.click(within(management).getByRole('button', { name: 'Edit Toyota Camry' }));
     await user.clear(screen.getByLabelText('Price'));
@@ -263,9 +263,7 @@ describe('DashboardPage', () => {
       'secure-token',
       '82e88523-f566-4bb2-b9b0-54c5ecf59db7',
     );
-    expect(
-      within(management).queryByRole('row', { name: /Ford Mustang/ }),
-    ).not.toBeInTheDocument();
+    expect(within(management).queryByRole('row', { name: /Ford Mustang/ })).not.toBeInTheDocument();
   });
 
   it('dismisses administrator forms with Escape', async () => {

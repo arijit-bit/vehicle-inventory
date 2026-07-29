@@ -14,6 +14,7 @@ const buttonVariants = cva(
         ghost: 'text-slate-300 hover:bg-white/5 hover:text-white',
       },
       size: {
+        sm: 'h-9 rounded-lg px-3 text-xs',
         default: 'h-11 px-5',
         lg: 'h-12 px-6 text-base',
         icon: 'size-10',
