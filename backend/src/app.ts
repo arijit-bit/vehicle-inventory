@@ -41,7 +41,9 @@ export const createApp = ({
     'http://localhost:5173',
     'http://localhost:3000',
     // Allow any extra origins listed in CORS_ORIGIN (comma-separated)
-    ...(process.env.CORS_ORIGIN?.split(',').map((o) => o.trim()).filter(Boolean) ?? []),
+    ...(process.env.CORS_ORIGIN?.split(',')
+      .map((o) => o.trim())
+      .filter(Boolean) ?? []),
   ];
 
   app.use(helmet());
@@ -63,7 +65,6 @@ export const createApp = ({
     }),
   );
   app.use(express.json({ limit: '1mb' }));
-
 
   app.get('/api/health', (_request, response) => {
     response.status(200).json({
