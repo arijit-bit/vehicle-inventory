@@ -7,7 +7,8 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import heroVehicle from '../assets/svg/Final-CarHero Page.svg';
+import bmwVehicle from '../assets/svg/BMW M8 Competition 2024 Black.svg';
+import mclarenVehicle from '../assets/svg/mclaran orange.svg';
 import { AppNavigation } from '../components/app-navigation';
 import { Button } from '../components/ui/button';
 import { useAuth } from '../features/auth/auth-context-value';
@@ -121,10 +122,10 @@ export const AboutPage = () => {
                 className="absolute inset-x-[8%] bottom-[16%] h-28 rounded-[50%] bg-white/[0.1] blur-3xl"
               />
               <img
-                alt="Silver performance car representing the MotoVault collection"
+                alt="Black BMW M8 Competition"
                 className="absolute bottom-[7%] left-1/2 w-[124%] max-w-none -translate-x-1/2 object-contain drop-shadow-[0_35px_45px_rgba(0,0,0,0.95)] lg:bottom-[13%] lg:left-[48%] lg:w-[132%]"
                 decoding="async"
-                src={heroVehicle}
+                src={bmwVehicle}
               />
               <div className="absolute bottom-0 right-0 hidden border-l border-white/15 pl-5 text-right sm:block">
                 <p className="text-2xl font-semibold tracking-[-0.04em]">
@@ -201,10 +202,10 @@ export const AboutPage = () => {
                 2026
               </p>
               <img
-                alt="MotoVault curated performance vehicle"
+                alt="Orange McLaren performance car"
                 className="absolute bottom-[7%] left-1/2 w-[115%] max-w-none -translate-x-1/2 object-contain drop-shadow-[0_28px_38px_rgba(0,0,0,0.9)]"
                 loading="lazy"
-                src={heroVehicle}
+                src={mclarenVehicle}
               />
             </div>
             <div className="flex items-center px-5 py-16 sm:px-12 lg:px-16 lg:py-24">

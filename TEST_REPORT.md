@@ -36,7 +36,8 @@ Administrator create, edit, restock, and delete workflows, and accessible page n
 six-card collection. Orders-page tests cover Customer cancellation, Employee/Administrator customer
 visibility, hidden staff cancellation controls, and second-page server requests.
 App routing coverage also verifies the responsive About navigation, active-page state, relevant
-brand content, collection calls to action, and complete removal of Contact navigation.
+brand content, collection calls to action, distinct BMW and McLaren artwork, and complete removal
+of Contact navigation.
 Backend tests cover Customer, Employee, and Administrator route boundaries plus Admin-only user
 CRUD and role assignment. Integration tests use real bcrypt and JWT services to cross
 registration, profile restoration, protected inventory, role authorization, and

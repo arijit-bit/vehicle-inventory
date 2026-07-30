@@ -639,6 +639,8 @@ the unused Contact option from navigation without creating a Contact page.
 - Removed Contact completely from both navigation surfaces.
 - Designed a responsive editorial About experience using the existing MotoVault visual system and
   bundled vehicle artwork.
+- Corrected the two automotive features to use the supplied black BMW M8 Competition and orange
+  McLaren SVGs instead of repeating the landing-page hero asset.
 - Added brand positioning, collection standards, live-system trust signals, a discover/reserve/
   track journey, and direct inventory/access calls to action.
 - Verified the layout in the local browser at desktop and 390px mobile widths, including the mobile

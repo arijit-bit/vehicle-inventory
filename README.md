@@ -411,7 +411,9 @@ email and current status, without customer-only cancellation controls.
 
 The public About route extends the same dark-luxury art direction into an editorial brand story.
 It explains MotoVault's curation, specification transparency, trusted inventory, and
-discover/reserve/track journey, with responsive collection calls to action.
+discover/reserve/track journey, with responsive collection calls to action. Its two automotive
+features use distinct bundled artwork: a black BMW M8 Competition hero and an orange McLaren
+editorial image.
 
 Vehicle cards use the repository's centered, non-hero transparent automotive assets with
 database-backed color, artwork selection, transmission, model year, engine, fuel, description,
