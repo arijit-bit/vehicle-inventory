@@ -126,6 +126,14 @@ describe('App authentication routes', () => {
       'href',
       '/dashboard',
     );
+    expect(screen.getByRole('img', { name: /black bmw m8 competition/i })).toHaveAttribute(
+      'src',
+      expect.stringContaining('BMW M8 Competition 2024 Black'),
+    );
+    expect(screen.getByRole('img', { name: /orange mclaren performance car/i })).toHaveAttribute(
+      'src',
+      expect.stringContaining('mclaran orange'),
+    );
 
     const primaryNavigation = within(screen.getByRole('navigation', { name: /primary/i }));
     expect(primaryNavigation.getByRole('link', { name: /^about$/i })).toHaveAttribute(
