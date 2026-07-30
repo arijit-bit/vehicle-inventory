@@ -193,7 +193,8 @@ describe('DashboardPage', () => {
     expect(await screen.findByText('customer@example.com')).toBeInTheDocument();
     expect(screen.getByText('Showing 1–2 of 2 vehicles')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Available' }));
+    await user.click(screen.getByRole('combobox', { name: 'Filter By Availability' }));
+    await user.click(screen.getByRole('option', { name: 'Available' }));
 
     await waitFor(() =>
       expect(vehicleApi.search).toHaveBeenCalledWith(
@@ -220,7 +221,11 @@ describe('DashboardPage', () => {
       'page',
     );
     expect(screen.getByRole('combobox', { name: 'Filter By Brand' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Filter By Availability' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Sort By Price' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', { name: 'Filter inventory by availability' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Automatic')).toBeInTheDocument();
     expect(screen.getByText('Manual')).toBeInTheDocument();
     expect(screen.getByText('Frozen Silver')).toHaveClass('rounded-full', 'border');
