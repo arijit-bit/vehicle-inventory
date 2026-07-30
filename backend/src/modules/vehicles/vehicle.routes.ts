@@ -73,12 +73,13 @@ export const createVehicleRouter = (service: VehicleServicePort, tokens: TokenVe
   router.post(
     '/:id/purchase',
     authenticate(tokens),
+    authorize('CUSTOMER'),
     asyncHandler(async (request, response) => {
       const id = vehicleIdSchema.parse(request.params.id);
       const { quantity } = inventoryMutationSchema.parse(request.body ?? {});
-      const vehicle = await service.purchase(id, quantity);
+      const result = await service.purchase(id, quantity, request.auth!.sub);
 
-      response.status(200).json({ vehicle });
+      response.status(200).json(result);
     }),
   );
 

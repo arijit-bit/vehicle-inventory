@@ -589,3 +589,69 @@ dashboard and place that filter in the top-right control bar beside All brands a
   changes.
 - Removed the redundant availability tab group while retaining the live result count above the
   cards.
+
+## 2026-07-30 - Atomic user order history
+
+**User prompt summary:** Implement order history so a signed-in Customer reservation decrements
+stock and appears in Orders, cancellation restores stock, Employees and Administrators can review
+all customer orders, and the Services navigation placeholder becomes Orders.
+
+**AI-assisted work:**
+
+- Followed Red/Green TDD with backend repository/service/route tests and frontend API/page tests
+  committed before their implementations.
+- Added an `orders` schema with immutable vehicle and price snapshots, indexed user/global timeline
+  queries, consistency constraints, restrictive foreign keys, RLS, and revoked browser-role access.
+- Moved reservation stock decrement and order insertion into one Prisma transaction.
+- Added Customer-scoped and Employee/Administrator all-order queries with fixed six-record
+  pagination.
+- Added Customer-only cancellation with a conditional status update and stock restoration in one
+  transaction; repeated cancellation cannot restore inventory twice.
+- Added `/api/orders`, `/api/orders/:id/cancel`, the responsive Orders page, customer details for
+  staff, customer cancellation controls, and active Orders navigation in place of Services.
+- Applied the migration to the configured Supabase project and verified all application tables have
+  RLS enabled with no `anon` or `authenticated` table access.
+- Ran a self-cleaning live Supabase check that reserved stock, loaded the history, cancelled it,
+  restored the exact quantity, rejected a repeated cancellation, and removed all temporary rows.
+- Ran 190 tests plus lint, TypeScript checking, and both production builds.
+
+**Architecture decisions:**
+
+- Express/JWT remains the only public data boundary. The browser never receives direct table
+  privileges or a service-role credential.
+- Snapshot fields preserve what the Customer reserved even if the live catalog description or
+  price changes later.
+- Offset pagination matches the existing six-record collection contract and prevents staff order
+  history from becoming another unbounded dashboard fetch.
+- Vehicle and user deletion are restricted while order history references them, preserving the
+  audit trail.
+
+## 2026-07-30 - MotoVault About page and navigation cleanup
+
+**User prompt summary:** Create a relevant About page with senior frontend/UI-UX judgment and remove
+the unused Contact option from navigation without creating a Contact page.
+
+**AI-assisted work:**
+
+- Added a failing route/navigation regression test before implementation.
+- Replaced the disabled About placeholder with an active `/about` link and route on desktop and
+  mobile navigation.
+- Removed Contact completely from both navigation surfaces.
+- Designed a responsive editorial About experience using the existing MotoVault visual system and
+  bundled vehicle artwork.
+- Corrected the two automotive features to use the supplied black BMW M8 Competition and orange
+  McLaren SVGs instead of repeating the landing-page hero asset.
+- Added brand positioning, collection standards, live-system trust signals, a discover/reserve/
+  track journey, and direct inventory/access calls to action.
+- Verified the layout in the local browser at desktop and 390px mobile widths, including the mobile
+  navigation contents; no browser warnings or errors were emitted.
+- Ran 191 tests plus formatting, lint, TypeScript checking, coverage, and production builds.
+
+**Architecture decisions:**
+
+- The About page stays public and reflects the authenticated identity in the shared navigation,
+  matching Home and preserving a consistent entry point for prospective Customers.
+- Existing repository artwork is reused to preserve visual continuity and avoid another network
+  dependency for an editorial page.
+- Content describes capabilities the product actually provides—curation, live stock, role-aware
+  access, and durable order history—rather than introducing unsupported service claims.

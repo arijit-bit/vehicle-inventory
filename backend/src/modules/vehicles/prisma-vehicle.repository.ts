@@ -11,7 +11,6 @@ import type {
 } from './vehicle.schemas.js';
 import {
   InventoryBusyError,
-  type PurchaseResult,
   type VehiclePage,
   type VehicleRecord,
   type VehicleRepository,
@@ -279,39 +278,6 @@ export class PrismaVehicleRepository implements VehicleRepository {
 
       throw error;
     }
-  }
-
-  async purchase(id: string, quantity: number): Promise<PurchaseResult> {
-    return this.withInventoryTransaction(async (transaction) => {
-      const [vehicle] = await transaction.vehicle.updateManyAndReturn({
-        where: {
-          id,
-          quantity: {
-            gte: quantity,
-          },
-        },
-        data: {
-          quantity: {
-            decrement: quantity,
-          },
-        },
-        select: vehicleSelection,
-      });
-
-      if (vehicle) {
-        return {
-          status: 'UPDATED',
-          vehicle: toVehicleRecord(vehicle),
-        };
-      }
-
-      const existingVehicle = await transaction.vehicle.findUnique({
-        where: { id },
-        select: { id: true },
-      });
-
-      return existingVehicle ? { status: 'INSUFFICIENT_STOCK' } : { status: 'NOT_FOUND' };
-    });
   }
 
   async restock(id: string, quantity: number): Promise<VehicleRecord | null> {

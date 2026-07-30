@@ -52,9 +52,16 @@ describe('App authentication routes', () => {
       'href',
       '/dashboard',
     );
-    expect(primaryNavigation.getByText(/^about$/i)).toHaveAttribute('aria-disabled', 'true');
-    expect(primaryNavigation.getByText(/^services$/i)).toHaveAttribute('aria-disabled', 'true');
-    expect(primaryNavigation.getByText(/^contact$/i)).toHaveAttribute('aria-disabled', 'true');
+    expect(primaryNavigation.getByRole('link', { name: /^about$/i })).toHaveAttribute(
+      'href',
+      '/about',
+    );
+    expect(primaryNavigation.getByRole('link', { name: /^orders$/i })).toHaveAttribute(
+      'href',
+      '/orders',
+    );
+    expect(primaryNavigation.queryByText(/^services$/i)).not.toBeInTheDocument();
+    expect(primaryNavigation.queryByText(/^contact$/i)).not.toBeInTheDocument();
     const heroVehicle = await screen.findByRole('img', { name: /exotic performance car/i });
 
     expect(heroVehicle).toHaveAttribute('src', expect.stringContaining('Final-CarHero'));
@@ -99,5 +106,40 @@ describe('App authentication routes', () => {
     expect(screen.getByRole('combobox', { name: /account type/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /continue with google/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /continue with apple/i })).not.toBeInTheDocument();
+  });
+
+  it('renders a relevant About experience with active navigation and collection access', () => {
+    render(
+      <MemoryRouter initialEntries={['/about']}>
+        <App />
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: /built for exceptional machines/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /our standard/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: /a more considered way to collect/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /explore the collection/i })).toHaveAttribute(
+      'href',
+      '/dashboard',
+    );
+    expect(screen.getByRole('img', { name: /black bmw m8 competition/i })).toHaveAttribute(
+      'src',
+      expect.stringContaining('BMW%20M8%20Competition%202024%20Black'),
+    );
+    expect(screen.getByRole('img', { name: /orange mclaren performance car/i })).toHaveAttribute(
+      'src',
+      expect.stringContaining('mclaran%20orange'),
+    );
+
+    const primaryNavigation = within(screen.getByRole('navigation', { name: /primary/i }));
+    expect(primaryNavigation.getByRole('link', { name: /^about$/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(primaryNavigation.queryByText(/^contact$/i)).not.toBeInTheDocument();
   });
 });

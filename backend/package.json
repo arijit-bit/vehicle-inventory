@@ -16,7 +16,8 @@
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "verify:database-security": "tsx scripts/verify-database-security.ts"
+    "verify:database-security": "tsx scripts/verify-database-security.ts",
+    "verify:order-history": "tsx scripts/verify-order-history.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.2.0",

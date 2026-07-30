@@ -433,7 +433,7 @@ export const DashboardPage = () => {
       setVehicles((current) => replaceVehicle(current, updated));
       setFeedback({
         tone: 'success',
-        message: `${updated.make} ${updated.model} reserved. ${updated.quantity} remaining.`,
+        message: `${updated.make} ${updated.model} reserved. ${updated.quantity} remaining. View it in Orders.`,
       });
     });
   };
@@ -815,6 +815,7 @@ export const DashboardPage = () => {
                 <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                   {vehicles.map((vehicle) => (
                     <VehicleCard
+                      canPurchase={user?.role === 'CUSTOMER'}
                       isBuying={pendingAction === `purchase-${vehicle.id}`}
                       key={vehicle.id}
                       onPurchase={purchase}

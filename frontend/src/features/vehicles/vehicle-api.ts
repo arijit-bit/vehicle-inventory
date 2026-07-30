@@ -57,6 +57,11 @@ export interface VehiclePage {
   brands: string[];
 }
 
+export interface ReservationOrder {
+  id: string;
+  status: 'RESERVED';
+}
+
 export interface CreateVehicleInput {
   make: string;
   model: string;
@@ -180,9 +185,14 @@ export const createVehicleApi = (baseUrl: string, fetcher: typeof fetch = fetch)
         method: 'DELETE',
       }),
     purchase: (token: string, id: string, quantity: number) =>
-      jsonRequest<{ vehicle: Vehicle }>(`/vehicles/${id}/purchase`, token, 'POST', {
-        quantity,
-      }),
+      jsonRequest<{ vehicle: Vehicle; order: ReservationOrder }>(
+        `/vehicles/${id}/purchase`,
+        token,
+        'POST',
+        {
+          quantity,
+        },
+      ),
     restock: (token: string, id: string, quantity: number) =>
       jsonRequest<{ vehicle: Vehicle }>(`/vehicles/${id}/restock`, token, 'POST', {
         quantity,

@@ -117,6 +117,10 @@ describe('DashboardPage', () => {
     mockAuth('CUSTOMER');
     vi.mocked(vehicleApi.purchase).mockResolvedValue({
       vehicle: { ...vehicles[0]!, quantity: 1 },
+      order: {
+        id: 'b4d31d35-bd4c-41b2-9319-a7eaa7a9fcf7',
+        status: 'RESERVED',
+      },
     });
 
     render(<DashboardPage />);
@@ -168,7 +172,9 @@ describe('DashboardPage', () => {
     mockAuth('EMPLOYEE');
 
     render(<DashboardPage />);
-    await screen.findByRole('article', { name: 'Toyota Camry' });
+    const camry = await screen.findByRole('article', { name: 'Toyota Camry' });
+    expect(within(camry).getByText('Customer reservations only')).toBeInTheDocument();
+    expect(within(camry).queryByRole('button', { name: /purchase/i })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Manage inventory' }));
 
     const management = screen.getByRole('region', { name: 'Inventory management' });

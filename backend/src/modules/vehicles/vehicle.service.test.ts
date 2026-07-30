@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { VehicleService } from './vehicle.service.js';
+import type { OrderRepository } from '../orders/order.types.js';
 import {
   InsufficientStockError,
   VehicleNotFoundError,
@@ -39,10 +40,15 @@ describe('VehicleService', () => {
     search: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
-    purchase: vi.fn(),
     restock: vi.fn(),
   };
-  const service = new VehicleService(repository);
+  const orders: OrderRepository = {
+    reserve: vi.fn(),
+    findForUser: vi.fn(),
+    findAll: vi.fn(),
+    cancel: vi.fn(),
+  };
+  const service = new VehicleService(repository, orders);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -51,9 +57,10 @@ describe('VehicleService', () => {
     vi.mocked(repository.search).mockResolvedValue(vehiclePage);
     vi.mocked(repository.update).mockResolvedValue(vehicle);
     vi.mocked(repository.delete).mockResolvedValue(true);
-    vi.mocked(repository.purchase).mockResolvedValue({
+    vi.mocked(orders.reserve).mockResolvedValue({
       status: 'UPDATED',
       vehicle: { ...vehicle, quantity: 2 },
+      order: {} as never,
     });
     vi.mocked(repository.restock).mockResolvedValue({ ...vehicle, quantity: 6 });
   });
@@ -115,18 +122,30 @@ describe('VehicleService', () => {
   });
 
   it('purchases stock through an atomic repository operation', async () => {
-    await expect(service.purchase(vehicle.id, 2)).resolves.toMatchObject({ quantity: 2 });
-    expect(repository.purchase).toHaveBeenCalledWith(vehicle.id, 2);
+    await expect(
+      service.purchase(vehicle.id, 2, 'f9117522-a624-4e2e-a489-3b2ec2840292'),
+    ).resolves.toMatchObject({
+      vehicle: { quantity: 2 },
+    });
+    expect(orders.reserve).toHaveBeenCalledWith(
+      'f9117522-a624-4e2e-a489-3b2ec2840292',
+      vehicle.id,
+      2,
+    );
   });
 
   it('distinguishes insufficient stock from a missing vehicle', async () => {
-    vi.mocked(repository.purchase).mockResolvedValue({ status: 'INSUFFICIENT_STOCK' });
+    vi.mocked(orders.reserve).mockResolvedValue({ status: 'INSUFFICIENT_STOCK' });
 
-    await expect(service.purchase(vehicle.id, 5)).rejects.toBeInstanceOf(InsufficientStockError);
+    await expect(
+      service.purchase(vehicle.id, 5, 'f9117522-a624-4e2e-a489-3b2ec2840292'),
+    ).rejects.toBeInstanceOf(InsufficientStockError);
 
-    vi.mocked(repository.purchase).mockResolvedValue({ status: 'NOT_FOUND' });
+    vi.mocked(orders.reserve).mockResolvedValue({ status: 'NOT_FOUND' });
 
-    await expect(service.purchase(vehicle.id, 1)).rejects.toBeInstanceOf(VehicleNotFoundError);
+    await expect(
+      service.purchase(vehicle.id, 1, 'f9117522-a624-4e2e-a489-3b2ec2840292'),
+    ).rejects.toBeInstanceOf(VehicleNotFoundError);
   });
 
   it('restocks an existing vehicle', async () => {

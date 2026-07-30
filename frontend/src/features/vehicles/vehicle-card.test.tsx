@@ -57,6 +57,7 @@ describe('VehicleCard artwork', () => {
       <MemoryRouter>
         <MediaAssetProvider api={api}>
           <VehicleCard
+            canPurchase={false}
             isBuying={false}
             onPurchase={vi.fn()}
             token={null}
