@@ -1,4 +1,5 @@
 export type VehicleImageKey =
+  | 'ARTWORK_PENDING'
   | 'WHITE_RR'
   | 'BLUE_BUGATTI'
   | 'GREEN_LAMBO'

@@ -112,7 +112,7 @@ describe('DashboardPage', () => {
     vi.mocked(vehicleApi.search).mockResolvedValue(pageResponse([vehicles[0]!]));
   });
 
-  it('lets a user purchase available stock and disables sold-out vehicles', async () => {
+  it('confirms a reservation before updating stock and disables sold-out vehicles', async () => {
     const user = userEvent.setup();
     mockAuth('CUSTOMER');
     vi.mocked(vehicleApi.purchase).mockResolvedValue({
@@ -130,8 +130,18 @@ describe('DashboardPage', () => {
     expect(within(mustang).getByRole('button', { name: 'Out of stock' })).toBeDisabled();
     expect(screen.queryByRole('button', { name: /add vehicle/i })).not.toBeInTheDocument();
 
-    await user.click(within(camry).getByRole('button', { name: 'Purchase Toyota Camry' }));
+    await user.click(within(camry).getByRole('button', { name: 'Reserve Toyota Camry' }));
 
+    expect(screen.getByRole('dialog', { name: 'Reserve Toyota Camry' })).toHaveTextContent(
+      'Confirming creates an order and immediately reduces stock by one',
+    );
+    expect(vehicleApi.purchase).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Keep browsing' }));
+    expect(screen.queryByRole('dialog', { name: 'Reserve Toyota Camry' })).not.toBeInTheDocument();
+    expect(vehicleApi.purchase).not.toHaveBeenCalled();
+
+    await user.click(within(camry).getByRole('button', { name: 'Reserve Toyota Camry' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm reservation' }));
     expect(vehicleApi.purchase).toHaveBeenCalledWith(
       'secure-token',
       'a104ce48-e57f-4fb0-8793-57c8b9a2c913',
@@ -159,7 +169,7 @@ describe('DashboardPage', () => {
     const camry = await screen.findByRole('article', { name: 'Toyota Camry' });
     expect(vehicleApi.list).toHaveBeenCalledWith(null, { limit: 6, skip: 0 });
     expect(
-      within(camry).getByRole('link', { name: /sign in to purchase toyota camry/i }),
+      within(camry).getByRole('link', { name: /sign in to reserve toyota camry/i }),
     ).toHaveAttribute('href', '/login');
     expect(screen.getByRole('link', { name: 'Request access' })).toHaveAttribute(
       'href',
@@ -386,7 +396,8 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
     const camry = await screen.findByRole('article', { name: 'Toyota Camry' });
-    await user.click(within(camry).getByRole('button', { name: 'Purchase Toyota Camry' }));
+    await user.click(within(camry).getByRole('button', { name: 'Reserve Toyota Camry' }));
+    await user.click(screen.getByRole('button', { name: 'Confirm reservation' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Inventory is processing another update. Wait a moment, then retry.',
@@ -425,6 +436,12 @@ describe('DashboardPage', () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Add vehicle' }));
+    expect(screen.getByRole('combobox', { name: 'Vehicle artwork' })).toHaveTextContent(
+      'Coming soon / Artwork pending',
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'No specific artwork selected. The Coming Soon placeholder will be displayed.',
+    );
     await user.type(screen.getByLabelText('Make'), 'Volvo');
     await user.type(screen.getByLabelText('Model'), 'XC90');
     await user.type(screen.getByLabelText('Category'), 'SUV');
@@ -442,7 +459,7 @@ describe('DashboardPage', () => {
       model: 'XC90',
       year: new Date().getUTCFullYear(),
       category: 'SUV',
-      imageKey: 'WHITE_RR',
+      imageKey: 'ARTWORK_PENDING',
       colorName: 'Frozen Silver',
       colorHex: '#C8C9C7',
       engine: '2.0L Turbo Hybrid',
