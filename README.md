@@ -3,6 +3,22 @@
 A TDD-driven full-stack vehicle inventory application built with TypeScript, Express, React,
 PostgreSQL/Supabase, Prisma, Tailwind CSS, JWT, and bcrypt.
 
+## 🚀 Quick Access
+
+| | URL |
+| --- | --- |
+| **Frontend (Live)** | https://vehicle-inventory-frontend.vercel.app |
+| **Backend API (Live)** | https://vehicle-inventory-backend.vercel.app/api/health |
+
+### Demo login credentials
+
+| Role | Email | Password |
+| --------- | --------------------- | ------------ |
+| **Admin** | `admin@example.com` | `admin@123` |
+
+> Admins can add, edit, restock, and delete vehicles. Register a new account to get a `CUSTOMER`
+> or `EMPLOYEE` role. Only Admins can be seeded via environment variable.
+
 ## Current status
 
 Milestone 7 is complete:
@@ -118,6 +134,13 @@ node -e "console.log(require('node:crypto').randomBytes(48).toString('base64url'
 Never commit real database URLs, JWT secrets, or administrator credentials.
 
 ### Administrator account
+
+The default administrator credentials (set in `backend/.env`) are:
+
+| Field | Value |
+| -------- | --------------------- |
+| Email | `admin@example.com` |
+| Password | `admin@123` |
 
 Set both `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `backend/.env`. At API startup, the email is
 normalized, the password is bcrypt-hashed, and the account is idempotently upserted as `ADMIN`
