@@ -9,7 +9,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { AppNavigation } from '../components/app-navigation';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -32,12 +32,16 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { useAuth } from '../features/auth/auth-context-value';
-import { CollectionControls, type PriceSort } from '../features/vehicles/collection-controls';
+import { CollectionControls } from '../features/vehicles/collection-controls';
+import { CollectionPagination } from '../features/vehicles/collection-pagination';
 import {
+  VEHICLES_PER_PAGE,
   VehicleApiError,
   vehicleApi,
+  type AvailabilityFilter,
   type CreateVehicleInput,
   type FuelType,
+  type PriceSort,
   type Transmission,
   type UpdateVehicleInput,
   type Vehicle,
@@ -54,7 +58,6 @@ type DialogState =
   | { type: 'delete'; vehicle: Vehicle };
 
 type WorkspaceView = 'catalog' | 'manage';
-type AvailabilityFilter = 'all' | 'available' | 'sold-out';
 
 interface Feedback {
   tone: 'error' | 'success';
@@ -318,11 +321,20 @@ export const DashboardPage = () => {
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [filters, setFilters] = useState<VehicleSearchFilters>({});
+  const [appliedFilters, setAppliedFilters] = useState<VehicleSearchFilters>({});
   const [availability, setAvailability] = useState<AvailabilityFilter>('all');
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('catalog');
   const [brand, setBrand] = useState('all');
+  const [brands, setBrands] = useState<string[]>([]);
   const [priceSort, setPriceSort] = useState<PriceSort>('featured');
   const [searchExpanded, setSearchExpanded] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    limit: VEHICLES_PER_PAGE,
+    skip: 0,
+    total: 0,
+  });
+  const [refreshVersion, setRefreshVersion] = useState(0);
 
   const handleInventoryError = useCallback(
     (error: unknown) => {
@@ -343,11 +355,34 @@ export const DashboardPage = () => {
     let active = true;
     setIsLoading(true);
 
-    vehicleApi
-      .list(token)
-      .then(({ vehicles: inventory }) => {
+    const requestFilters: VehicleSearchFilters = {
+      ...appliedFilters,
+      ...(brand === 'all' ? {} : { make: brand }),
+      ...(availability === 'all' ? {} : { availability }),
+      ...(priceSort === 'featured' ? {} : { sort: priceSort }),
+    };
+    const requestedPage = {
+      limit: VEHICLES_PER_PAGE,
+      skip: (page - 1) * VEHICLES_PER_PAGE,
+    };
+    const inventoryRequest =
+      Object.keys(requestFilters).length === 0
+        ? vehicleApi.list(token, requestedPage)
+        : vehicleApi.search(token, requestFilters, requestedPage);
+
+    inventoryRequest
+      .then((result) => {
         if (active) {
-          setVehicles(inventory);
+          const lastPage = Math.max(1, Math.ceil(result.pagination.total / VEHICLES_PER_PAGE));
+
+          if (page > lastPage) {
+            setPage(lastPage);
+            return;
+          }
+
+          setVehicles(result.vehicles);
+          setPagination(result.pagination);
+          setBrands(result.brands);
         }
       })
       .catch((error: unknown) => {
@@ -364,7 +399,16 @@ export const DashboardPage = () => {
     return () => {
       active = false;
     };
-  }, [handleInventoryError, token]);
+  }, [
+    appliedFilters,
+    availability,
+    brand,
+    handleInventoryError,
+    page,
+    priceSort,
+    refreshVersion,
+    token,
+  ]);
 
   const runAction = async (key: string, action: () => Promise<void>) => {
     setPendingAction(key);
@@ -394,7 +438,7 @@ export const DashboardPage = () => {
     });
   };
 
-  const searchInventory = async (event: FormEvent<HTMLFormElement>) => {
+  const searchInventory = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalized = Object.entries(filters).reduce<VehicleSearchFilters>(
       (result, [key, value]) => {
@@ -407,22 +451,17 @@ export const DashboardPage = () => {
       {},
     );
 
-    await runAction('search', async () => {
-      const result =
-        Object.keys(normalized).length === 0
-          ? await vehicleApi.list(token)
-          : await vehicleApi.search(token, normalized);
-      setVehicles(result.vehicles);
-      setBrand('all');
-    });
+    setAppliedFilters(normalized);
+    setBrand('all');
+    setPage(1);
+    setFeedback(null);
   };
 
   const clearSearch = () => {
     setFilters({});
-    void runAction('search', async () => {
-      const result = await vehicleApi.list(token);
-      setVehicles(result.vehicles);
-    });
+    setAppliedFilters({});
+    setPage(1);
+    setFeedback(null);
   };
 
   const saveVehicle = async (input: CreateVehicleInput | UpdateVehicleInput) => {
@@ -434,7 +473,20 @@ export const DashboardPage = () => {
     await runAction('save', async () => {
       if (currentDialog.type === 'create') {
         const result = await vehicleApi.create(token, input as CreateVehicleInput);
-        setVehicles((current) => [result.vehicle, ...current]);
+        if (
+          page === 1 &&
+          Object.keys(appliedFilters).length === 0 &&
+          brand === 'all' &&
+          availability === 'all' &&
+          priceSort === 'featured'
+        ) {
+          setVehicles((current) => [result.vehicle, ...current].slice(0, VEHICLES_PER_PAGE));
+          setPagination((current) => ({ ...current, total: current.total + 1 }));
+          setBrands((current) => [...new Set([...current, result.vehicle.make])].sort());
+        } else {
+          setPage(1);
+          setRefreshVersion((current) => current + 1);
+        }
         setFeedback({ tone: 'success', message: 'Vehicle added to the collection.' });
       } else {
         const result = await vehicleApi.update(
@@ -474,6 +526,12 @@ export const DashboardPage = () => {
     await runAction('delete', async () => {
       await vehicleApi.delete(token, vehicle.id);
       setVehicles((current) => current.filter((item) => item.id !== vehicle.id));
+      const nextTotal = Math.max(0, pagination.total - 1);
+      const lastPage = Math.max(1, Math.ceil(nextTotal / VEHICLES_PER_PAGE));
+      setPagination((current) => ({ ...current, total: nextTotal }));
+      if (page > lastPage) {
+        setPage(lastPage);
+      }
       setDialog(null);
       setFeedback({ tone: 'success', message: 'Vehicle removed from the collection.' });
     });
@@ -481,32 +539,15 @@ export const DashboardPage = () => {
 
   const isAdmin = user?.role === 'ADMIN';
   const canManageInventory = user?.role === 'EMPLOYEE' || isAdmin;
-  const brands = useMemo(
-    () => [...new Set(vehicles.map((vehicle) => vehicle.make))].sort(),
-    [vehicles],
-  );
-  const visibleVehicles = useMemo(() => {
-    const filtered = vehicles.filter((vehicle) => {
-      const matchesBrand = brand === 'all' || vehicle.make === brand;
-      const matchesAvailability =
-        availability === 'all' ||
-        (availability === 'available' ? vehicle.quantity > 0 : vehicle.quantity === 0);
-      return matchesBrand && matchesAvailability;
-    });
-
-    if (priceSort === 'price-asc') {
-      return [...filtered].sort((a, b) => Number(a.price) - Number(b.price));
-    }
-    if (priceSort === 'price-desc') {
-      return [...filtered].sort((a, b) => Number(b.price) - Number(a.price));
-    }
-    return filtered;
-  }, [availability, brand, priceSort, vehicles]);
-
-  const totalUnits = vehicles.reduce((sum, vehicle) => sum + vehicle.quantity, 0);
-  const resultLabel = `${visibleVehicles.length} ${
-    visibleVehicles.length === 1 ? 'vehicle' : 'vehicles'
-  }`;
+  const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.limit));
+  const firstResult = pagination.total === 0 ? 0 : pagination.skip + 1;
+  const lastResult = Math.min(pagination.skip + vehicles.length, pagination.total);
+  const resultLabel =
+    pagination.total === 0
+      ? '0 vehicles'
+      : pagination.total === 1
+        ? 'Showing 1 of 1 vehicle'
+        : `Showing ${firstResult}–${lastResult} of ${pagination.total} vehicles`;
 
   return (
     <div className="min-h-screen bg-background text-primary">
@@ -521,7 +562,8 @@ export const DashboardPage = () => {
           <div className="flex flex-col gap-8 pb-10 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-secondary">
-                Curated inventory · {totalUnits} available units
+                Curated inventory · {pagination.total}{' '}
+                {pagination.total === 1 ? 'vehicle' : 'vehicles'}
               </p>
               <h1 className="mt-3 text-4xl font-bold tracking-[-0.055em] sm:text-5xl">
                 Our Collection
@@ -533,8 +575,14 @@ export const DashboardPage = () => {
             <CollectionControls
               brand={brand}
               brands={brands}
-              onBrandChange={setBrand}
-              onPriceSortChange={setPriceSort}
+              onBrandChange={(value) => {
+                setBrand(value);
+                setPage(1);
+              }}
+              onPriceSortChange={(value) => {
+                setPriceSort(value);
+                setPage(1);
+              }}
               onToggleSearch={() => setSearchExpanded((expanded) => !expanded)}
               priceSort={priceSort}
               searchExpanded={searchExpanded}
@@ -602,7 +650,7 @@ export const DashboardPage = () => {
                 <div className="flex gap-2">
                   <Button
                     aria-label="Search inventory"
-                    disabled={pendingAction === 'search'}
+                    disabled={isLoading}
                     size="icon"
                     type="submit"
                   >
@@ -646,7 +694,7 @@ export const DashboardPage = () => {
                     </p>
                     <h2 className="mt-2 text-xl font-semibold">Inventory management</h2>
                     <p className="mt-1 text-xs text-secondary">
-                      {vehicles.length} inventory {vehicles.length === 1 ? 'record' : 'records'}
+                      {pagination.total} inventory {pagination.total === 1 ? 'record' : 'records'}
                     </p>
                   </div>
                   <Button onClick={() => setDialog({ type: 'create' })}>
@@ -724,6 +772,12 @@ export const DashboardPage = () => {
                   </Table>
                 )}
               </Card>
+              <CollectionPagination
+                currentPage={page}
+                disabled={isLoading}
+                onPageChange={setPage}
+                totalPages={totalPages}
+              />
             </section>
           ) : (
             <section aria-busy={isLoading} aria-label="Vehicle inventory" className="pt-8">
@@ -751,7 +805,10 @@ export const DashboardPage = () => {
                         availability === value && 'bg-primary text-background',
                       )}
                       key={value}
-                      onClick={() => setAvailability(value as AvailabilityFilter)}
+                      onClick={() => {
+                        setAvailability(value as AvailabilityFilter);
+                        setPage(1);
+                      }}
                       type="button"
                     >
                       {label}
@@ -762,7 +819,7 @@ export const DashboardPage = () => {
 
               {isLoading ? (
                 <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                  {[0, 1, 2].map((item) => (
+                  {[0, 1, 2, 3, 4, 5].map((item) => (
                     <div
                       aria-hidden="true"
                       className="h-[420px] animate-pulse rounded-[var(--radius)] border border-border bg-card"
@@ -770,7 +827,7 @@ export const DashboardPage = () => {
                     />
                   ))}
                 </div>
-              ) : visibleVehicles.length === 0 ? (
+              ) : vehicles.length === 0 ? (
                 <Card className="p-12 text-center">
                   <AlertTriangle aria-hidden="true" className="mx-auto size-6 text-secondary" />
                   <h2 className="mt-4 text-lg font-semibold">No vehicles found</h2>
@@ -780,7 +837,7 @@ export const DashboardPage = () => {
                 </Card>
               ) : (
                 <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                  {visibleVehicles.map((vehicle) => (
+                  {vehicles.map((vehicle) => (
                     <VehicleCard
                       isBuying={pendingAction === `purchase-${vehicle.id}`}
                       key={vehicle.id}
@@ -790,6 +847,13 @@ export const DashboardPage = () => {
                     />
                   ))}
                 </div>
+              )}
+              {!isLoading && vehicles.length > 0 && (
+                <CollectionPagination
+                  currentPage={page}
+                  onPageChange={setPage}
+                  totalPages={totalPages}
+                />
               )}
             </section>
           )}

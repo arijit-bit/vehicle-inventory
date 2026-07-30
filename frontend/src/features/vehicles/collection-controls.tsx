@@ -7,8 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
-
-export type PriceSort = 'featured' | 'price-asc' | 'price-desc';
+import type { PriceSort } from './vehicle-api';
 
 interface CollectionControlsProps {
   brands: string[];

@@ -6,28 +6,31 @@ Recorded on 2026-07-30 using Node.js `v24.8.0` and npm `11.6.0` on Windows.
 
 | Area        | Test files | Tests | Result |
 | ----------- | ---------: | ----: | ------ |
-| Express API |         19 |   119 | Passed |
-| React SPA   |          8 |    41 | Passed |
-| Total       |         27 |   160 | Passed |
+| Express API |         19 |   125 | Passed |
+| React SPA   |          8 |    42 | Passed |
+| Total       |         27 |   167 | Passed |
 
 ## Coverage
 
 | Area        | Statements | Branches | Functions |  Lines |
 | ----------- | ---------: | -------: | --------: | -----: |
-| Express API |     82.95% |   71.93% |    82.90% | 82.73% |
-| React SPA   |     88.52% |   82.79% |    85.11% | 88.96% |
+| Express API |     83.95% |   71.56% |    84.16% | 83.75% |
+| React SPA   |     87.11% |   82.59% |    83.60% | 87.37% |
 
 Vehicle routes and schemas have 100% statement, branch, function, and line coverage. The vehicle
 service, Prisma adapter, exact two-decimal serialization, persisted catalog metadata, enum and color
 validation, combined search query, partial updates, conditional purchase, atomic restock,
 transaction-local timeouts, pool-acquisition timeouts, default quantities, insufficient stock, and
-missing-record paths have direct regression coverage. The React suite covers the luxury root-route
+missing-record paths have direct regression coverage. Pagination tests cover fixed six-row limits,
+aligned offsets, filtered counts, deterministic database ordering, and second-page API requests.
+The React suite covers the luxury root-route
 hero, shared navigation across public routes, guest inventory browsing, authenticated purchases,
 combined search, brand filtering, price sorting, explicit database-key mapping to the centered
 White-RR, Bugatti, black-car, Bentley, Porsche, Maybach, Audi, and Range Rover Supabase Storage
 artwork, DB-backed media catalog loading, the bundled landing hero, expanded engine/fuel details,
 social-provider removal, the accessible Shadcn account-type selector, Employee inventory controls,
-and Administrator create, edit, restock, and delete workflows.
+Administrator create, edit, restock, and delete workflows, and accessible page navigation below the
+six-card collection.
 Backend tests cover Customer, Employee, and Administrator route boundaries plus Admin-only user
 CRUD and role assignment. Integration tests use real bcrypt and JWT services to cross
 registration, profile restoration, protected inventory, role authorization, and
@@ -35,7 +38,7 @@ administrator-only deletion boundaries.
 
 ## Quality gate
 
-The following commands passed after the catalog persistence migration:
+The following commands passed after the pagination implementation:
 
 ```text
 npm run lint
@@ -45,9 +48,8 @@ npm run test:coverage
 npm run build
 ```
 
-Both the backend TypeScript build and the Vite production build completed successfully. The
-repository-wide format check still reports existing formatting differences in files outside this
-change; all RBAC files touched in this pass were formatted.
+Both the backend TypeScript build and the Vite production build completed successfully. All files
+touched by the pagination work were formatted.
 
 ## Supabase verification
 

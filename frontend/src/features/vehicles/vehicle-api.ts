@@ -10,6 +10,10 @@ export type VehicleImageKey =
   | 'BLACK_RANGE_ROVER';
 export type Transmission = 'MANUAL' | 'AUTOMATIC';
 export type FuelType = 'PETROL' | 'GASOLINE' | 'DIESEL' | 'HYBRID' | 'ELECTRIC';
+export type AvailabilityFilter = 'all' | 'available' | 'sold-out';
+export type PriceSort = 'featured' | 'price-asc' | 'price-desc';
+
+export const VEHICLES_PER_PAGE = 6;
 
 export interface Vehicle {
   id: string;
@@ -36,6 +40,21 @@ export interface VehicleSearchFilters {
   category?: string;
   minPrice?: string;
   maxPrice?: string;
+  availability?: Exclude<AvailabilityFilter, 'all'>;
+  sort?: Exclude<PriceSort, 'featured'>;
+}
+
+export interface VehiclePagination {
+  limit: number;
+  skip: number;
+}
+
+export interface VehiclePage {
+  vehicles: Vehicle[];
+  pagination: VehiclePagination & {
+    total: number;
+  };
+  brands: string[];
 }
 
 export interface CreateVehicleInput {
@@ -85,6 +104,17 @@ const compactFilters = (filters: VehicleSearchFilters) =>
     return result;
   }, {});
 
+const defaultPagination: VehiclePagination = {
+  limit: VEHICLES_PER_PAGE,
+  skip: 0,
+};
+
+const paginatedQuery = (pagination: VehiclePagination) =>
+  new URLSearchParams({
+    limit: String(pagination.limit),
+    skip: String(pagination.skip),
+  });
+
 export const createVehicleApi = (baseUrl: string, fetcher: typeof fetch = fetch) => {
   const request = async <T>(
     path: string,
@@ -124,14 +154,20 @@ export const createVehicleApi = (baseUrl: string, fetcher: typeof fetch = fetch)
     });
 
   return {
-    list: (token?: string | null) =>
-      request<{ vehicles: Vehicle[] }>('/vehicles', token, {
+    list: (token?: string | null, pagination: VehiclePagination = defaultPagination) =>
+      request<VehiclePage>(`/vehicles?${paginatedQuery(pagination)}`, token, {
         method: 'GET',
       }),
-    search: (token: string | null | undefined, filters: VehicleSearchFilters) => {
+    search: (
+      token: string | null | undefined,
+      filters: VehicleSearchFilters,
+      pagination: VehiclePagination = defaultPagination,
+    ) => {
       const query = new URLSearchParams(compactFilters(filters));
+      query.set('limit', String(pagination.limit));
+      query.set('skip', String(pagination.skip));
 
-      return request<{ vehicles: Vehicle[] }>(`/vehicles/search?${query}`, token, {
+      return request<VehiclePage>(`/vehicles/search?${query}`, token, {
         method: 'GET',
       });
     },

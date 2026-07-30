@@ -23,6 +23,8 @@ export const vehicleImageKeys = [
 ] as const;
 export const transmissions = ['MANUAL', 'AUTOMATIC'] as const;
 export const fuelTypes = ['PETROL', 'GASOLINE', 'DIESEL', 'HYBRID', 'ELECTRIC'] as const;
+export const availabilityFilters = ['available', 'sold-out'] as const;
+export const vehicleSorts = ['price-asc', 'price-desc'] as const;
 
 const priceSchema = z.preprocess(
   (value) => (typeof value === 'number' && Number.isFinite(value) ? String(value) : value),
@@ -68,24 +70,51 @@ export const updateVehicleSchema = vehicleDetailsSchema
     message: 'At least one vehicle field is required',
   });
 
-export const searchVehiclesSchema = z
+const vehicleSearchShape = {
+  make: vehicleTextSchema.optional(),
+  model: vehicleTextSchema.optional(),
+  category: vehicleTextSchema.optional(),
+  minPrice: priceSchema.optional(),
+  maxPrice: priceSchema.optional(),
+  availability: z.enum(availabilityFilters).optional(),
+  sort: z.enum(vehicleSorts).optional(),
+};
+const paginationShape = {
+  limit: z.coerce.number().int().min(6).max(6).default(6),
+  skip: z.coerce.number().int().min(0).max(1_000_000).default(0),
+};
+const hasValidPriceRange = (filters: {
+  minPrice?: string | undefined;
+  maxPrice?: string | undefined;
+}) =>
+  filters.minPrice === undefined ||
+  filters.maxPrice === undefined ||
+  BigInt(filters.minPrice.replace('.', '')) <= BigInt(filters.maxPrice.replace('.', ''));
+const hasAlignedOffset = ({ limit, skip }: { limit: number; skip: number }) => skip % limit === 0;
+
+export const searchVehiclesSchema = z.strictObject(vehicleSearchShape).refine(hasValidPriceRange, {
+  path: ['maxPrice'],
+  message: 'Maximum price must be greater than or equal to minimum price',
+});
+
+export const vehiclePaginationSchema = z.strictObject(paginationShape).refine(hasAlignedOffset, {
+  path: ['skip'],
+  message: 'Skip must align with the six-vehicle page size',
+});
+
+export const paginatedSearchVehiclesSchema = z
   .strictObject({
-    make: vehicleTextSchema.optional(),
-    model: vehicleTextSchema.optional(),
-    category: vehicleTextSchema.optional(),
-    minPrice: priceSchema.optional(),
-    maxPrice: priceSchema.optional(),
+    ...vehicleSearchShape,
+    ...paginationShape,
   })
-  .refine(
-    (filters) =>
-      filters.minPrice === undefined ||
-      filters.maxPrice === undefined ||
-      BigInt(filters.minPrice.replace('.', '')) <= BigInt(filters.maxPrice.replace('.', '')),
-    {
-      path: ['maxPrice'],
-      message: 'Maximum price must be greater than or equal to minimum price',
-    },
-  );
+  .refine(hasValidPriceRange, {
+    path: ['maxPrice'],
+    message: 'Maximum price must be greater than or equal to minimum price',
+  })
+  .refine(hasAlignedOffset, {
+    path: ['skip'],
+    message: 'Skip must align with the six-vehicle page size',
+  });
 
 export const vehicleIdSchema = z.uuid();
 
@@ -96,6 +125,7 @@ export const inventoryMutationSchema = z.strictObject({
 export type CreateVehicleInput = z.infer<typeof createVehicleSchema>;
 export type UpdateVehicleInput = z.infer<typeof updateVehicleSchema>;
 export type VehicleSearchFilters = z.infer<typeof searchVehiclesSchema>;
+export type VehiclePagination = z.infer<typeof vehiclePaginationSchema>;
 export type VehicleImageKey = (typeof vehicleImageKeys)[number];
 export type Transmission = (typeof transmissions)[number];
 export type FuelType = (typeof fuelTypes)[number];

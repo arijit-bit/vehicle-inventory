@@ -543,3 +543,33 @@ a Milestone 7 extra UI updates and corrections branch.
   preserving purchases and restocks if the seed is reapplied.
 - RLS and the server-only database boundary remain unchanged; no service-role key is introduced
   into the React application.
+
+## 2026-07-30 - Milestone 7 server-side collection pagination
+
+**User prompt summary:** Act as a senior frontend developer and add Shadcn pagination to the
+collection so only six cars are fetched and shown at a time, using `limit(6).skip(0)`,
+`limit(6).skip(6)`, and subsequent aligned offsets.
+
+**AI-assisted work:**
+
+- Added failing backend schema, route, service, repository, frontend API, and dashboard tests before
+  implementation.
+- Added a fixed six-record pagination contract with validated, aligned offsets and total counts.
+- Moved brand, availability, and price sorting into the database query so conditions apply before
+  the six-row window.
+- Returned global brand facets with every page, preserving the complete brand selector while only
+  transferring the requested vehicle records.
+- Added reusable Shadcn-style pagination primitives and an accessible collection navigation with
+  numbered, previous, next, active, and disabled states.
+- Kept search draft inputs separate from applied server filters, reset pagination on query changes,
+  and protected against stale async responses and out-of-range pages.
+- Ran 167 tests with coverage plus formatting, lint, TypeScript checking, and production builds.
+
+**Architecture decisions:**
+
+- Offset pagination matches the explicitly requested `limit`/`skip` contract. Stable secondary
+  ordering by vehicle ID prevents equal prices or timestamps from producing ambiguous page order.
+- Both catalog cards and the management table use the paginated result, avoiding a second
+  all-record download for privileged users.
+- No database migration was added: the existing dataset and indexes support this milestone, and
+  index additions should be driven by measured production query plans rather than assumptions.
