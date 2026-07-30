@@ -44,6 +44,7 @@ describe('vehicle schemas', () => {
   });
 
   it.each([
+    'ARTWORK_PENDING',
     'BLACK_BENTLEY',
     'GREEN_PORSCHE_911',
     'BROWN_MAYBACH',

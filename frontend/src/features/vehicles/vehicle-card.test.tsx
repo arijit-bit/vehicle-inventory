@@ -27,6 +27,7 @@ const vehicle: Vehicle = {
 
 describe('VehicleCard artwork', () => {
   it.each([
+    ['ARTWORK_PENDING', 'default-image.svg'],
     ['WHITE_RR', 'vehicles/white-rr-centered.svg'],
     ['BLUE_BUGATTI', 'vehicles/blue-bugatti-centered.svg'],
     ['BLACK_CAR', 'vehicles/middle-black-car-centered.svg'],
