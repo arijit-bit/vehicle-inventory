@@ -1,6 +1,6 @@
 import cors from 'cors';
 import express from 'express';
-import helmet from 'helmet';
+import * as helmetModule from 'helmet';
 import { errorHandler } from './middleware/error-handler.js';
 import { createAuthRouter, type AuthServicePort } from './modules/auth/auth.routes.js';
 import type { TokenVerifier } from './modules/auth/auth.types.js';
@@ -34,7 +34,7 @@ export const createApp = ({
 }: AppDependencies = {}) => {
   const app = express();
 
-  app.use(helmet());
+  app.use(helmetModule.default());
   app.use(
     cors({
       origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
