@@ -7,7 +7,10 @@ import { AuthService } from './modules/auth/auth.service.js';
 import { BcryptPasswordHasher } from './modules/auth/bcrypt-password-hasher.js';
 import { JwtTokenService } from './modules/auth/jwt-token.service.js';
 import { PrismaUserRepository } from './modules/auth/prisma-user.repository.js';
-import { PrismaRefreshTokenRepository, RefreshTokenService } from './modules/auth/refresh-token.service.js';
+import {
+  PrismaRefreshTokenRepository,
+  RefreshTokenService,
+} from './modules/auth/refresh-token.service.js';
 import { UserManagementService } from './modules/auth/user-management.service.js';
 import { MediaAssetService } from './modules/media-assets/media-asset.service.js';
 import { PrismaMediaAssetRepository } from './modules/media-assets/prisma-media-asset.repository.js';

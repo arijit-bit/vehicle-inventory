@@ -5,15 +5,15 @@ PostgreSQL/Supabase, Prisma, Tailwind CSS, JWT, and bcrypt.
 
 ## 🚀 Quick Access
 
-| | URL |
-| --- | --- |
-| **Frontend (Live)** | https://vehicle-inventory-frontend.vercel.app |
+|                        | URL                                                     |
+| ---------------------- | ------------------------------------------------------- |
+| **Frontend (Live)**    | https://vehicle-inventory-frontend.vercel.app           |
 | **Backend API (Live)** | https://vehicle-inventory-backend.vercel.app/api/health |
 
 ### Demo login credentials
 
-| Role | Email | Password |
-| --------- | --------------------- | ------------ |
+| Role      | Email               | Password    |
+| --------- | ------------------- | ----------- |
 | **Admin** | `admin@example.com` | `admin@123` |
 
 > Admins can add, edit, restock, and delete vehicles. Register a new account to get a `CUSTOMER`
@@ -101,6 +101,7 @@ Copy-Item frontend/.env.example frontend/.env
 
 > **Local development note:** `frontend/.env.example` points to the deployed Vercel backend by
 > default. For local development, edit `frontend/.env` and set:
+>
 > ```
 > VITE_API_URL=http://localhost:3000/api
 > ```
@@ -123,7 +124,7 @@ The API starts at `http://localhost:3000` and the SPA at `http://localhost:5173`
 | `JWT_EXPIRES_IN`                | Access-token lifetime, default `15m`                                       |
 | `JWT_ISSUER`                    | Expected JWT issuer                                                        |
 | `JWT_AUDIENCE`                  | Expected JWT audience                                                      |
-| `REFRESH_TOKEN_SECRET`          | Optional extra secret for refresh token signing (≥ 32 chars)              |
+| `REFRESH_TOKEN_SECRET`          | Optional extra secret for refresh token signing (≥ 32 chars)               |
 | `REFRESH_TOKEN_EXPIRES_IN`      | Refresh-token lifetime, default `7d`                                       |
 | `BCRYPT_ROUNDS`                 | bcrypt work factor from 10 through 14, default `12`                        |
 | `ADMIN_EMAIL`                   | Optional administrator email; requires `ADMIN_PASSWORD`                    |
@@ -143,10 +144,10 @@ Never commit real database URLs, JWT secrets, or administrator credentials.
 
 The default administrator credentials (set in `backend/.env`) are:
 
-| Field | Value |
-| -------- | --------------------- |
-| Email | `admin@example.com` |
-| Password | `admin@123` |
+| Field    | Value               |
+| -------- | ------------------- |
+| Email    | `admin@example.com` |
+| Password | `admin@123`         |
 
 Set both `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `backend/.env`. At API startup, the email is
 normalized, the password is bcrypt-hashed, and the account is idempotently upserted as `ADMIN`
@@ -226,13 +227,13 @@ Matching local connection strings are documented in `backend/.env.example`.
 
 All JSON error responses use `{ "error": { "code": "...", "message": "..." } }`.
 
-| Method | Endpoint              | Access       | Result                                                                  |
-| ------ | --------------------- | ------------ | ----------------------------------------------------------------------- |
-| `POST` | `/api/auth/register`  | Public       | Creates a Customer/Employee, returns `{ user, token }`; sets refresh cookie if `rememberMe` |
-| `POST` | `/api/auth/login`     | Public       | Verifies credentials, returns `{ user, token }`; sets refresh cookie if `rememberMe` |
-| `GET`  | `/api/auth/me`        | Bearer JWT   | Returns identity claims for the current session                         |
-| `POST` | `/api/auth/refresh`   | Cookie       | Rotates the refresh token and returns a new `{ token }` (access JWT)   |
-| `POST` | `/api/auth/logout`    | Cookie       | Revokes the refresh token server-side and clears the cookie             |
+| Method | Endpoint             | Access     | Result                                                                                      |
+| ------ | -------------------- | ---------- | ------------------------------------------------------------------------------------------- |
+| `POST` | `/api/auth/register` | Public     | Creates a Customer/Employee, returns `{ user, token }`; sets refresh cookie if `rememberMe` |
+| `POST` | `/api/auth/login`    | Public     | Verifies credentials, returns `{ user, token }`; sets refresh cookie if `rememberMe`        |
+| `GET`  | `/api/auth/me`       | Bearer JWT | Returns identity claims for the current session                                             |
+| `POST` | `/api/auth/refresh`  | Cookie     | Rotates the refresh token and returns a new `{ token }` (access JWT)                        |
+| `POST` | `/api/auth/logout`   | Cookie     | Revokes the refresh token server-side and clears the cookie                                 |
 
 Login / register body (add `"rememberMe": true` to get the 7-day persistent cookie):
 

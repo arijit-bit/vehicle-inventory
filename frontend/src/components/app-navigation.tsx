@@ -4,11 +4,7 @@ import { Link } from 'react-router-dom';
 import type { AuthUser } from '../features/auth/auth-api';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuList,
-} from './ui/navigation-menu';
+import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from './ui/navigation-menu';
 
 type ActivePage = 'home' | 'inventory' | 'orders' | 'about' | null;
 

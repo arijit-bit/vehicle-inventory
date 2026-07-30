@@ -7,7 +7,10 @@ import { AuthService } from '../src/modules/auth/auth.service.js';
 import { BcryptPasswordHasher } from '../src/modules/auth/bcrypt-password-hasher.js';
 import { JwtTokenService } from '../src/modules/auth/jwt-token.service.js';
 import { PrismaUserRepository } from '../src/modules/auth/prisma-user.repository.js';
-import { PrismaRefreshTokenRepository, RefreshTokenService } from '../src/modules/auth/refresh-token.service.js';
+import {
+  PrismaRefreshTokenRepository,
+  RefreshTokenService,
+} from '../src/modules/auth/refresh-token.service.js';
 import { UserManagementService } from '../src/modules/auth/user-management.service.js';
 import { MediaAssetService } from '../src/modules/media-assets/media-asset.service.js';
 import { PrismaMediaAssetRepository } from '../src/modules/media-assets/prisma-media-asset.repository.js';
@@ -107,6 +110,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     appInstance = null;
     console.error('[handler] Failed to initialise app:', err);
     res.writeHead(503, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: { code: 'SERVICE_UNAVAILABLE', message: 'Service failed to start' } }));
+    res.end(
+      JSON.stringify({
+        error: { code: 'SERVICE_UNAVAILABLE', message: 'Service failed to start' },
+      }),
+    );
   }
 }

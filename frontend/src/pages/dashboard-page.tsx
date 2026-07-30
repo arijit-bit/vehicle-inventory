@@ -108,7 +108,9 @@ const FormField = ({
   children: ReactNode;
 }) => (
   <div className="space-y-2">
-    <Label className={labelClassName} htmlFor={id}>{label}</Label>
+    <Label className={labelClassName} htmlFor={id}>
+      {label}
+    </Label>
     {children}
   </div>
 );
@@ -679,7 +681,12 @@ export const DashboardPage = () => {
                   ['minPrice', 'Minimum price'],
                   ['maxPrice', 'Maximum price'],
                 ].map(([field, label]) => (
-                  <FormField id={`filter-${field}`} key={field} label={label!} labelClassName="block text-center">
+                  <FormField
+                    id={`filter-${field}`}
+                    key={field}
+                    label={label!}
+                    labelClassName="block text-center"
+                  >
                     <Input
                       className="rounded-full"
                       id={`filter-${field}`}

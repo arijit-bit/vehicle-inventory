@@ -195,15 +195,19 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
             />
             <div className="flex size-4 items-center justify-center rounded border border-white/25 bg-background/65 transition peer-checked:border-primary/60 peer-checked:bg-primary/20 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30">
               {rememberMe && (
-                <svg className="size-2.5 text-primary" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 12 12">
+                <svg
+                  className="size-2.5 text-primary"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                  viewBox="0 0 12 12"
+                >
                   <path d="M2 6l3 3 5-5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               )}
             </div>
           </div>
-          <span className="text-sm text-secondary">
-            Remember me for 7 days
-          </span>
+          <span className="text-sm text-secondary">Remember me for 7 days</span>
         </label>
       )}
 

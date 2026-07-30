@@ -58,7 +58,11 @@ export class RefreshTokenService {
     // Atomic rotation: delete old, create new
     await this.db.deleteByHash(hashToken(rawToken));
     const newRaw = generateRawToken();
-    await this.db.createToken(record.userId, hashToken(newRaw), new Date(Date.now() + SEVEN_DAYS_MS));
+    await this.db.createToken(
+      record.userId,
+      hashToken(newRaw),
+      new Date(Date.now() + SEVEN_DAYS_MS),
+    );
 
     return {
       accessToken: this.tokens.sign(user),
