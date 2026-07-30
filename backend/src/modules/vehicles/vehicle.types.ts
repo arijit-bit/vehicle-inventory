@@ -35,25 +35,12 @@ export interface VehiclePage {
   brands: string[];
 }
 
-export type PurchaseResult =
-  | {
-      status: 'UPDATED';
-      vehicle: VehicleRecord;
-    }
-  | {
-      status: 'NOT_FOUND';
-    }
-  | {
-      status: 'INSUFFICIENT_STOCK';
-    };
-
 export interface VehicleRepository {
   create(input: CreateVehicleInput): Promise<VehicleRecord>;
   findAll(pagination: VehiclePagination): Promise<VehiclePage>;
   search(filters: VehicleSearchFilters, pagination: VehiclePagination): Promise<VehiclePage>;
   update(id: string, input: UpdateVehicleInput): Promise<VehicleRecord | null>;
   delete(id: string): Promise<boolean>;
-  purchase(id: string, quantity: number): Promise<PurchaseResult>;
   restock(id: string, quantity: number): Promise<VehicleRecord | null>;
 }
 

@@ -17,29 +17,44 @@ try {
     authenticated_select: boolean;
     anon_select: boolean;
     rls_enabled: boolean;
-    vehicle_count: number;
+    table_name: string;
+    row_count: number;
   }>(`
     SELECT
+      relation.relname AS table_name,
       relation.relrowsecurity AS rls_enabled,
-      has_table_privilege('anon', 'public.vehicles', 'select') AS anon_select,
-      has_table_privilege('authenticated', 'public.vehicles', 'select') AS authenticated_select,
-      (SELECT COUNT(*)::int FROM public.vehicles) AS vehicle_count
+      has_table_privilege('anon', format('public.%I', relation.relname), 'select') AS anon_select,
+      has_table_privilege(
+        'authenticated',
+        format('public.%I', relation.relname),
+        'select'
+      ) AS authenticated_select,
+      CASE relation.relname
+        WHEN 'users' THEN (SELECT COUNT(*)::int FROM public.users)
+        WHEN 'vehicles' THEN (SELECT COUNT(*)::int FROM public.vehicles)
+        WHEN 'media_assets' THEN (SELECT COUNT(*)::int FROM public.media_assets)
+        WHEN 'orders' THEN (SELECT COUNT(*)::int FROM public.orders)
+      END AS row_count
     FROM pg_class relation
     JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
     WHERE namespace.nspname = 'public'
-      AND relation.relname = 'vehicles'
+      AND relation.relname IN ('users', 'vehicles', 'media_assets', 'orders')
+    ORDER BY relation.relname
   `);
 
-  const [verification] = rows;
-
-  if (!verification) {
-    throw new Error('public.vehicles was not found');
+  if (rows.length !== 4) {
+    throw new Error('One or more application tables were not found');
   }
 
-  console.log(JSON.stringify(verification, null, 2));
+  console.log(JSON.stringify(rows, null, 2));
 
-  if (!verification.rls_enabled || verification.anon_select || verification.authenticated_select) {
-    throw new Error('Vehicle table security invariants are not satisfied');
+  if (
+    rows.some(
+      (verification) =>
+        !verification.rls_enabled || verification.anon_select || verification.authenticated_select,
+    )
+  ) {
+    throw new Error('Application table security invariants are not satisfied');
   }
 } finally {
   await pool.end();

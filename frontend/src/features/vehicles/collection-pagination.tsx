@@ -9,6 +9,7 @@ import {
 } from '../../components/ui/pagination';
 
 interface CollectionPaginationProps {
+  ariaLabel?: string;
   currentPage: number;
   disabled?: boolean;
   onPageChange(page: number): void;
@@ -34,6 +35,7 @@ const pageItems = (currentPage: number, totalPages: number): PageItem[] => {
 };
 
 export const CollectionPagination = ({
+  ariaLabel = 'Collection pagination',
   currentPage,
   disabled = false,
   onPageChange,
@@ -44,7 +46,7 @@ export const CollectionPagination = ({
   }
 
   return (
-    <Pagination aria-label="Collection pagination" className="mt-10">
+    <Pagination aria-label={ariaLabel} className="mt-10">
       <PaginationContent>
         <PaginationItem>
           <PaginationPrevious

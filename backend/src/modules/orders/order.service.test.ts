@@ -46,16 +46,13 @@ describe('OrderService', () => {
     expect(repository.findAll).not.toHaveBeenCalled();
   });
 
-  it.each(['EMPLOYEE', 'ADMIN'] as const)(
-    'shows %s users all customer orders',
-    async (role) => {
-      const actor = { ...customer, role };
+  it.each(['EMPLOYEE', 'ADMIN'] as const)('shows %s users all customer orders', async (role) => {
+    const actor = { ...customer, role };
 
-      await expect(service.list(actor, { limit: 6, skip: 0 })).resolves.toEqual(orderPage);
-      expect(repository.findAll).toHaveBeenCalledWith({ limit: 6, skip: 0 });
-      expect(repository.findForUser).not.toHaveBeenCalled();
-    },
-  );
+    await expect(service.list(actor, { limit: 6, skip: 0 })).resolves.toEqual(orderPage);
+    expect(repository.findAll).toHaveBeenCalledWith({ limit: 6, skip: 0 });
+    expect(repository.findForUser).not.toHaveBeenCalled();
+  });
 
   it('cancels only an order owned by the acting customer', async () => {
     await service.cancel('2e18dc0f-9dcf-4d1e-a915-a6c73cd29a30', customer.sub);

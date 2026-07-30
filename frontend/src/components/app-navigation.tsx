@@ -10,7 +10,7 @@ import {
   NavigationMenuList,
 } from './ui/navigation-menu';
 
-type ActivePage = 'home' | 'inventory' | null;
+type ActivePage = 'home' | 'inventory' | 'orders' | null;
 
 interface AppNavigationProps {
   active?: ActivePage;
@@ -24,7 +24,7 @@ const roleLabel = {
   ADMIN: 'Administrator',
 } as const;
 
-const deferredNavigation = ['About', 'Services', 'Contact'] as const;
+const deferredNavigation = ['About', 'Contact'] as const;
 
 const DeferredNavigationItem = ({ label }: { label: (typeof deferredNavigation)[number] }) => (
   <span
@@ -66,6 +66,15 @@ export const AppNavigation = ({ active = null, user = null, onLogout }: AppNavig
                 href="/dashboard"
               >
                 Inventory
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink
+                aria-current={active === 'orders' ? 'page' : undefined}
+                className={cn(active === 'orders' && 'bg-white/[0.04] text-primary')}
+                href="/orders"
+              >
+                Orders
               </NavigationMenuLink>
             </NavigationMenuItem>
             {deferredNavigation.map((label) => (
@@ -150,6 +159,17 @@ export const AppNavigation = ({ active = null, user = null, onLogout }: AppNavig
             href="/dashboard"
           >
             Inventory
+          </a>
+          <a
+            aria-current={active === 'orders' ? 'page' : undefined}
+            className={cn(
+              'mt-1 block rounded-lg px-4 py-3 text-sm text-secondary transition-colors hover:bg-white/[0.04] hover:text-primary',
+              active === 'orders' && 'bg-white/[0.05] text-primary',
+            )}
+            href="/orders"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Orders
           </a>
           {deferredNavigation.map((label) => (
             <span

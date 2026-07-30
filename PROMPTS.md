@@ -589,3 +589,39 @@ dashboard and place that filter in the top-right control bar beside All brands a
   changes.
 - Removed the redundant availability tab group while retaining the live result count above the
   cards.
+
+## 2026-07-30 - Atomic user order history
+
+**User prompt summary:** Implement order history so a signed-in Customer reservation decrements
+stock and appears in Orders, cancellation restores stock, Employees and Administrators can review
+all customer orders, and the Services navigation placeholder becomes Orders.
+
+**AI-assisted work:**
+
+- Followed Red/Green TDD with backend repository/service/route tests and frontend API/page tests
+  committed before their implementations.
+- Added an `orders` schema with immutable vehicle and price snapshots, indexed user/global timeline
+  queries, consistency constraints, restrictive foreign keys, RLS, and revoked browser-role access.
+- Moved reservation stock decrement and order insertion into one Prisma transaction.
+- Added Customer-scoped and Employee/Administrator all-order queries with fixed six-record
+  pagination.
+- Added Customer-only cancellation with a conditional status update and stock restoration in one
+  transaction; repeated cancellation cannot restore inventory twice.
+- Added `/api/orders`, `/api/orders/:id/cancel`, the responsive Orders page, customer details for
+  staff, customer cancellation controls, and active Orders navigation in place of Services.
+- Applied the migration to the configured Supabase project and verified all application tables have
+  RLS enabled with no `anon` or `authenticated` table access.
+- Ran a self-cleaning live Supabase check that reserved stock, loaded the history, cancelled it,
+  restored the exact quantity, rejected a repeated cancellation, and removed all temporary rows.
+- Ran 190 tests plus lint, TypeScript checking, and both production builds.
+
+**Architecture decisions:**
+
+- Express/JWT remains the only public data boundary. The browser never receives direct table
+  privileges or a service-role credential.
+- Snapshot fields preserve what the Customer reserved even if the live catalog description or
+  price changes later.
+- Offset pagination matches the existing six-record collection contract and prevents staff order
+  history from becoming another unbounded dashboard fetch.
+- Vehicle and user deletion are restricted while order history references them, preserving the
+  audit trail.

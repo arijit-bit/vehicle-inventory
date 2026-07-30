@@ -25,13 +25,10 @@ describe('order API', () => {
 
     await api.list('secure-token', { limit: 6, skip: 6 });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      'https://inventory.example/api/orders?limit=6&skip=6',
-      {
-        headers: { Authorization: 'Bearer secure-token' },
-        method: 'GET',
-      },
-    );
+    expect(fetchMock).toHaveBeenCalledWith('https://inventory.example/api/orders?limit=6&skip=6', {
+      headers: { Authorization: 'Bearer secure-token' },
+      method: 'GET',
+    });
   });
 
   it('cancels an owned order with the authenticated endpoint', async () => {

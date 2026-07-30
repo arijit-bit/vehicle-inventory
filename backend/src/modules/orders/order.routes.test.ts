@@ -63,9 +63,7 @@ describe('order HTTP API', () => {
   });
 
   it('allows a customer to cancel their own order', async () => {
-    const response = await request(app())
-      .post(`/api/orders/${orderId}/cancel`)
-      .set(authorized());
+    const response = await request(app()).post(`/api/orders/${orderId}/cancel`).set(authorized());
 
     expect(response.status).toBe(200);
     expect(orderService.cancel).toHaveBeenCalledWith(orderId, customerId);
@@ -73,31 +71,28 @@ describe('order HTTP API', () => {
     expect(response.body.vehicle.quantity).toBe(4);
   });
 
-  it.each(['EMPLOYEE', 'ADMIN'] as const)('does not allow %s users to cancel orders', async (role) => {
-    vi.mocked(tokenVerifier.verify).mockReturnValue({
-      sub: customerId,
-      email: `${role.toLowerCase()}@example.com`,
-      role,
-    });
+  it.each(['EMPLOYEE', 'ADMIN'] as const)(
+    'does not allow %s users to cancel orders',
+    async (role) => {
+      vi.mocked(tokenVerifier.verify).mockReturnValue({
+        sub: customerId,
+        email: `${role.toLowerCase()}@example.com`,
+        role,
+      });
 
-    const response = await request(app())
-      .post(`/api/orders/${orderId}/cancel`)
-      .set(authorized());
+      const response = await request(app()).post(`/api/orders/${orderId}/cancel`).set(authorized());
 
-    expect(response.status).toBe(403);
-    expect(orderService.cancel).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(403);
+      expect(orderService.cancel).not.toHaveBeenCalled();
+    },
+  );
 
   it('maps missing and repeated cancellation attempts to stable errors', async () => {
     orderService.cancel.mockRejectedValueOnce(new OrderNotFoundError());
-    const missing = await request(app())
-      .post(`/api/orders/${orderId}/cancel`)
-      .set(authorized());
+    const missing = await request(app()).post(`/api/orders/${orderId}/cancel`).set(authorized());
 
     orderService.cancel.mockRejectedValueOnce(new OrderAlreadyCancelledError());
-    const repeated = await request(app())
-      .post(`/api/orders/${orderId}/cancel`)
-      .set(authorized());
+    const repeated = await request(app()).post(`/api/orders/${orderId}/cancel`).set(authorized());
 
     expect(missing.status).toBe(404);
     expect(missing.body.error.code).toBe('ORDER_NOT_FOUND');

@@ -10,6 +10,8 @@ import { PrismaUserRepository } from './modules/auth/prisma-user.repository.js';
 import { UserManagementService } from './modules/auth/user-management.service.js';
 import { MediaAssetService } from './modules/media-assets/media-asset.service.js';
 import { PrismaMediaAssetRepository } from './modules/media-assets/prisma-media-asset.repository.js';
+import { OrderService } from './modules/orders/order.service.js';
+import { PrismaOrderRepository } from './modules/orders/prisma-order.repository.js';
 import { PrismaVehicleRepository } from './modules/vehicles/prisma-vehicle.repository.js';
 import { VehicleService } from './modules/vehicles/vehicle.service.js';
 
@@ -29,7 +31,12 @@ const vehicles = new PrismaVehicleRepository(database, {
   lockTimeoutMs: env.DATABASE_LOCK_TIMEOUT_MS,
   statementTimeoutMs: env.DATABASE_STATEMENT_TIMEOUT_MS,
 });
-const vehicleService = new VehicleService(vehicles);
+const orders = new PrismaOrderRepository(database, {
+  lockTimeoutMs: env.DATABASE_LOCK_TIMEOUT_MS,
+  statementTimeoutMs: env.DATABASE_STATEMENT_TIMEOUT_MS,
+});
+const vehicleService = new VehicleService(vehicles, orders);
+const orderService = new OrderService(orders);
 const mediaAssets = new PrismaMediaAssetRepository(database);
 const mediaAssetService = new MediaAssetService(mediaAssets);
 const adminCredentials =
@@ -45,6 +52,7 @@ const app = createApp({
   vehicleService,
   userManagementService,
   mediaAssetService,
+  orderService,
 });
 
 app.listen(env.PORT, () => {

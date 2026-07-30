@@ -138,9 +138,7 @@ describe('PrismaOrderRepository', () => {
   });
 
   it('paginates a customer own orders without exposing another user', async () => {
-    await expect(
-      repository.findForUser(customerId, { limit: 6, skip: 6 }),
-    ).resolves.toMatchObject({
+    await expect(repository.findForUser(customerId, { limit: 6, skip: 6 })).resolves.toMatchObject({
       orders: [{ id: orderId }],
       pagination: { limit: 6, skip: 6, total: 7 },
     });
