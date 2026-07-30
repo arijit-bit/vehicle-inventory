@@ -8,7 +8,7 @@ const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-    CORS_ORIGIN: z.string().url().default('http://localhost:5173'),
+    CORS_ORIGIN: z.string().optional(),
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
     DATABASE_LOCK_TIMEOUT_MS: z.coerce.number().int().min(100).max(30_000).default(2_000),
     DATABASE_STATEMENT_TIMEOUT_MS: z.coerce.number().int().min(500).max(60_000).default(10_000),

@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { createApp } from '../src/app.js';
 import { loadEnv } from '../src/config/env.js';
 import { createPrismaClient } from '../src/infrastructure/database/prisma.js';
@@ -14,45 +14,60 @@ import { OrderService } from '../src/modules/orders/order.service.js';
 import { PrismaOrderRepository } from '../src/modules/orders/prisma-order.repository.js';
 import { PrismaVehicleRepository } from '../src/modules/vehicles/prisma-vehicle.repository.js';
 import { VehicleService } from '../src/modules/vehicles/vehicle.service.js';
+import type { Express } from 'express';
 
-const env = loadEnv();
-const database = createPrismaClient(env.DATABASE_URL);
-const users = new PrismaUserRepository(database);
-const passwords = new BcryptPasswordHasher(env.BCRYPT_ROUNDS);
-const tokens = new JwtTokenService({
-  secret: env.JWT_SECRET,
-  expiresIn: env.JWT_EXPIRES_IN,
-  issuer: env.JWT_ISSUER,
-  audience: env.JWT_AUDIENCE,
-});
-const authService = new AuthService(users, passwords, tokens);
-const userManagementService = new UserManagementService(users, passwords);
-const vehicles = new PrismaVehicleRepository(database, {
-  lockTimeoutMs: env.DATABASE_LOCK_TIMEOUT_MS,
-  statementTimeoutMs: env.DATABASE_STATEMENT_TIMEOUT_MS,
-});
-const orders = new PrismaOrderRepository(database, {
-  lockTimeoutMs: env.DATABASE_LOCK_TIMEOUT_MS,
-  statementTimeoutMs: env.DATABASE_STATEMENT_TIMEOUT_MS,
-});
-const vehicleService = new VehicleService(vehicles, orders);
-const orderService = new OrderService(orders);
-const mediaAssets = new PrismaMediaAssetRepository(database);
-const mediaAssetService = new MediaAssetService(mediaAssets);
-const adminCredentials =
-  env.ADMIN_EMAIL && env.ADMIN_PASSWORD
-    ? { email: env.ADMIN_EMAIL, password: env.ADMIN_PASSWORD }
-    : undefined;
+// Lazy singleton — built once on first cold start, reused on warm invocations
+let appInstance: Express | null = null;
 
-await new AdminSeeder(users, passwords).seed(adminCredentials);
+async function buildApp(): Promise<Express> {
+  if (appInstance) return appInstance;
 
-const app = createApp({
-  authService,
-  tokenVerifier: tokens,
-  vehicleService,
-  userManagementService,
-  mediaAssetService,
-  orderService,
-});
+  const env = loadEnv();
+  const database = createPrismaClient(env.DATABASE_URL);
+  const users = new PrismaUserRepository(database);
+  const passwords = new BcryptPasswordHasher(env.BCRYPT_ROUNDS);
+  const tokens = new JwtTokenService({
+    secret: env.JWT_SECRET,
+    expiresIn: env.JWT_EXPIRES_IN,
+    issuer: env.JWT_ISSUER,
+    audience: env.JWT_AUDIENCE,
+  });
+  const authService = new AuthService(users, passwords, tokens);
+  const userManagementService = new UserManagementService(users, passwords);
+  const vehicles = new PrismaVehicleRepository(database, {
+    lockTimeoutMs: env.DATABASE_LOCK_TIMEOUT_MS,
+    statementTimeoutMs: env.DATABASE_STATEMENT_TIMEOUT_MS,
+  });
+  const orders = new PrismaOrderRepository(database, {
+    lockTimeoutMs: env.DATABASE_LOCK_TIMEOUT_MS,
+    statementTimeoutMs: env.DATABASE_STATEMENT_TIMEOUT_MS,
+  });
+  const vehicleService = new VehicleService(vehicles, orders);
+  const orderService = new OrderService(orders);
+  const mediaAssets = new PrismaMediaAssetRepository(database);
+  const mediaAssetService = new MediaAssetService(mediaAssets);
 
-export default app;
+  const adminCredentials =
+    env.ADMIN_EMAIL && env.ADMIN_PASSWORD
+      ? { email: env.ADMIN_EMAIL, password: env.ADMIN_PASSWORD }
+      : undefined;
+
+  await new AdminSeeder(users, passwords).seed(adminCredentials);
+
+  appInstance = createApp({
+    authService,
+    tokenVerifier: tokens,
+    vehicleService,
+    userManagementService,
+    mediaAssetService,
+    orderService,
+  });
+
+  return appInstance;
+}
+
+// Vercel serverless handler — receives each request, builds the app lazily
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
+  const app = await buildApp();
+  app(req, res);
+}
