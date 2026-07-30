@@ -17,6 +17,7 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
   void _next;
 
   if (error instanceof ZodError) {
+    console.error('[ZodError]', error.issues);
     response.status(400).json({
       error: {
         code: 'VALIDATION_ERROR',

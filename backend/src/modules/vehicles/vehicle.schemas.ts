@@ -119,7 +119,9 @@ export const paginatedSearchVehiclesSchema = z
     message: 'Skip must align with the six-vehicle page size',
   });
 
-export const vehicleIdSchema = z.uuid();
+export const vehicleIdSchema = z
+  .string()
+  .regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i, 'Invalid vehicle ID');
 
 export const inventoryMutationSchema = z.strictObject({
   quantity: inventoryQuantitySchema.default(1),
