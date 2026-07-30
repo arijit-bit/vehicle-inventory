@@ -69,7 +69,6 @@ npm install
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 npm run prisma:generate --workspace backend
-npm run prisma:migrate:deploy --workspace backend
 npm run dev
 ```
 
@@ -79,6 +78,16 @@ PowerShell equivalents:
 Copy-Item backend/.env.example backend/.env
 Copy-Item frontend/.env.example frontend/.env
 ```
+
+> **Local development note:** `frontend/.env.example` points to the deployed Vercel backend by
+> default. For local development, edit `frontend/.env` and set:
+> ```
+> VITE_API_URL=http://localhost:3000/api
+> ```
+
+> **Database migrations:** If you are using the shared Supabase project (URLs already in
+> `backend/.env`), the schema is already migrated — skip `prisma:migrate:deploy`. Only run it if
+> you are setting up a brand-new database or using the local Docker fallback (see below).
 
 The API starts at `http://localhost:3000` and the SPA at `http://localhost:5173`.
 
