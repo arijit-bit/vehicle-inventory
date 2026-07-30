@@ -58,7 +58,10 @@ describe('vehicle HTTP API', () => {
     vehicleService.search.mockResolvedValue(vehiclePage);
     vehicleService.update.mockResolvedValue(vehicle);
     vehicleService.delete.mockResolvedValue(undefined);
-    vehicleService.purchase.mockResolvedValue({ ...vehicle, quantity: 3 });
+    vehicleService.purchase.mockResolvedValue({
+      vehicle: { ...vehicle, quantity: 3 },
+      order: { id: '2e18dc0f-9dcf-4d1e-a915-a6c73cd29a30', status: 'RESERVED' },
+    });
     vehicleService.restock.mockResolvedValue({ ...vehicle, quantity: 6 });
     vi.mocked(tokenVerifier.verify).mockReturnValue({
       sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
@@ -293,8 +296,13 @@ describe('vehicle HTTP API', () => {
       .send({ quantity: 1 });
 
     expect(response.status).toBe(200);
-    expect(vehicleService.purchase).toHaveBeenCalledWith(vehicle.id, 1);
+    expect(vehicleService.purchase).toHaveBeenCalledWith(
+      vehicle.id,
+      1,
+      'f9117522-a624-4e2e-a489-3b2ec2840292',
+    );
     expect(response.body.vehicle.quantity).toBe(3);
+    expect(response.body.order.status).toBe('RESERVED');
   });
 
   it('purchases one vehicle when quantity is omitted', async () => {
@@ -303,7 +311,11 @@ describe('vehicle HTTP API', () => {
       .set(authorized());
 
     expect(response.status).toBe(200);
-    expect(vehicleService.purchase).toHaveBeenCalledWith(vehicle.id, 1);
+    expect(vehicleService.purchase).toHaveBeenCalledWith(
+      vehicle.id,
+      1,
+      'f9117522-a624-4e2e-a489-3b2ec2840292',
+    );
   });
 
   it('returns 409 when a purchase exceeds available stock', async () => {
