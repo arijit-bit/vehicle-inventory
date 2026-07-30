@@ -1,10 +1,36 @@
 import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 
+vi.mock('./features/media-assets/media-asset-api', async () => {
+  const actual = await vi.importActual<typeof import('./features/media-assets/media-asset-api')>(
+    './features/media-assets/media-asset-api',
+  );
+
+  return {
+    ...actual,
+    mediaAssetApi: {
+      list: vi.fn().mockResolvedValue({
+        assets: [
+          {
+            key: 'HERO_CAR',
+            bucket: 'Assets-SVG',
+            objectPath: 'site/final-car-hero.svg',
+            publicUrl:
+              'https://lzgmwzmyfilgwawjqejm.supabase.co/storage/v1/object/public/Assets-SVG/site/final-car-hero.svg',
+            altText: 'Silver exotic performance car',
+            createdAt: '2026-07-30T00:00:00.000Z',
+            updatedAt: '2026-07-30T00:00:00.000Z',
+          },
+        ],
+      }),
+    },
+  };
+});
+
 describe('App authentication routes', () => {
-  it('renders the luxury landing hero at the root route', () => {
+  it('renders the luxury landing hero at the root route from the bundled SVG', async () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <App />
@@ -29,7 +55,7 @@ describe('App authentication routes', () => {
     expect(primaryNavigation.getByText(/^about$/i)).toHaveAttribute('aria-disabled', 'true');
     expect(primaryNavigation.getByText(/^services$/i)).toHaveAttribute('aria-disabled', 'true');
     expect(primaryNavigation.getByText(/^contact$/i)).toHaveAttribute('aria-disabled', 'true');
-    const heroVehicle = screen.getByRole('img', { name: /exotic performance car/i });
+    const heroVehicle = await screen.findByRole('img', { name: /exotic performance car/i });
 
     expect(heroVehicle).toHaveAttribute('src', expect.stringContaining('Final-CarHero'));
     expect(heroVehicle).toHaveClass('lg:left-[43%]', 'lg:bottom-[15%]');
@@ -50,6 +76,10 @@ describe('App authentication routes', () => {
     expect(screen.queryByRole('button', { name: /continue with google/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /continue with apple/i })).not.toBeInTheDocument();
     expect(screen.getByTestId('auth-vehicle-art')).toHaveClass('max-w-7xl', 'bottom-[-4%]');
+    expect(screen.getByTestId('auth-vehicle-art').querySelector('img')).toHaveAttribute(
+      'src',
+      expect.stringContaining('Final-CarHero'),
+    );
     expect(
       within(screen.getByRole('navigation', { name: /primary/i })).getByRole('link', {
         name: /^home$/i,

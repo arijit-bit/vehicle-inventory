@@ -38,7 +38,7 @@ Milestone 7 is complete:
 - Accessible dialogs with Escape, backdrop, focus trapping, and scroll handling
 - Real signed-token verification that `DELETE /api/vehicles/:id` is administrator-only
 - End-to-end auth boundary proof from registration through profile restore and protected inventory
-- 146 automated tests across the API and SPA
+- 150 automated tests across the API and SPA
 
 ## Architecture
 
@@ -116,15 +116,34 @@ Create a Supabase PostgreSQL project and copy its pooler URLs from **Connect** i
 URL-encode special password characters. Database URLs are backend-only and must never use the
 `VITE_` prefix.
 
-The `users` and `vehicles` tables have RLS enabled. Supabase `anon` and `authenticated` roles have
-no table DML privileges because Express is the only public data boundary. No permissive RLS policy
-is intentionally defined.
+The `users`, `vehicles`, and `media_assets` tables have RLS enabled. Supabase `anon` and
+`authenticated` roles have no table DML privileges because Express is the only public data
+boundary. No permissive table RLS policy is intentionally defined.
 
-Vehicle SVGs remain versioned with the frontend bundle. The database stores a validated
-`imageKey`, so each catalog row chooses its artwork without storing a fragile build filename or
-duplicating repository-owned files in object storage. If future administrators upload arbitrary
-media, move those uploads to a dedicated public Supabase Storage bucket, keep write operations
-server-controlled, and persist the resulting object path rather than a temporary signed URL.
+Collection artwork is stored in the public `Assets-SVG/vehicles` Supabase Storage folder. The
+`media_assets` table maps each validated vehicle `imageKey` to its bucket, stable object path,
+public URL, and accessible alt text. `GET /api/assets` publishes that read-only catalog, and the
+React provider loads it once for all vehicle cards. Storage write/delete operations remain
+dashboard- or server-controlled; the browser receives no service-role key.
+
+The landing and authentication hero intentionally remain bundled from
+`frontend/src/assets/svg/Final-CarHero Page.svg`, so the primary above-the-fold artwork does not
+wait for the asset-catalog request.
+
+To add another collection image:
+
+1. Upload a transparent, centered SVG to `Assets-SVG/vehicles` using a unique lowercase
+   kebab-case filename. Do not overwrite an existing object.
+2. Add a `media_assets` metadata row with a new semantic key, bucket, object path, public URL, and
+   alt text.
+3. Extend the current `VehicleImageKey` Prisma/Zod/TypeScript allowlist and artwork Select with that
+   same key.
+4. Create or update the corresponding `vehicles` row with its complete specification and new key.
+5. Verify the public URL, `/api/assets`, `/api/vehicles`, tests, and rendered card.
+
+Uploading an SVG alone does not create a collection card. If artwork will be added frequently,
+replace the enum allowlist with a foreign key from `vehicles.image_key` to `media_assets.key` and
+add an authenticated Administrator upload/asset-picker workflow.
 
 Verify the live table security and seeded catalog count with:
 
@@ -399,8 +418,8 @@ GitHub Actions runs the same checks on every push and pull request. See
 - Transient lock, statement, and pool-acquisition timeouts return retryable `503 Service Unavailable`.
 - Search filters are combinable, case-insensitive, and validate price ranges.
 - `PUT` updates only supplied catalog metadata fields, rejects stock, and rejects an empty body.
-- Static repository-owned SVGs are selected by a validated database `imageKey`; Supabase Storage is
-  reserved for future user-managed media uploads.
+- Collection-card SVGs resolve through the DB-backed Supabase Storage catalog; the landing/auth
+  hero remains a bundled repository asset.
 
 ## My AI Usage
 
@@ -409,7 +428,8 @@ turn the assignment into milestones, research current library/security guidance,
 implement the matching Green code, inspect architecture and unused files, and improve documentation.
 It also generated the single MotoVault social-preview image from a project-specific visual brief.
 I reviewed the resulting behavior through tests, linting, type checking, production builds, Git
-diffs, and Supabase security checks.
+diffs, Supabase security checks, byte-for-byte Storage hash verification, and an actual localhost
+browser run.
 
 AI was most useful for accelerating repetitive setup and expanding edge-case coverage, including
 email normalization, bcrypt's 72-byte input boundary, generic login failures, JWT claim

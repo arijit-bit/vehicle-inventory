@@ -6,16 +6,16 @@ Recorded on 2026-07-30 using Node.js `v24.8.0` and npm `11.6.0` on Windows.
 
 | Area        | Test files | Tests | Result |
 | ----------- | ---------: | ----: | ------ |
-| Express API |         17 |   112 | Passed |
-| React SPA   |          7 |    34 | Passed |
-| Total       |         24 |   146 | Passed |
+| Express API |         19 |   114 | Passed |
+| React SPA   |          8 |    36 | Passed |
+| Total       |         27 |   150 | Passed |
 
 ## Coverage
 
 | Area        | Statements | Branches | Functions |  Lines |
 | ----------- | ---------: | -------: | --------: | -----: |
-| Express API |     82.80% |   71.64% |    83.48% | 82.57% |
-| React SPA   |     88.41% |   84.42% |    85.16% | 88.69% |
+| Express API |     82.95% |   71.93% |    82.90% | 82.73% |
+| React SPA   |     88.52% |   82.79% |    85.11% | 88.96% |
 
 Vehicle routes and schemas have 100% statement, branch, function, and line coverage. The vehicle
 service, Prisma adapter, exact two-decimal serialization, persisted catalog metadata, enum and color
@@ -24,9 +24,10 @@ transaction-local timeouts, pool-acquisition timeouts, default quantities, insuf
 missing-record paths have direct regression coverage. The React suite covers the luxury root-route
 hero, shared navigation across public routes, guest inventory browsing, authenticated purchases,
 combined search, brand filtering, price sorting, explicit database-key mapping to the centered
-White-RR, Bugatti, and black-car artwork, expanded engine/fuel details, social-provider removal, the
-accessible Shadcn account-type selector, Employee inventory controls, and Administrator create,
-edit, restock, and delete workflows.
+White-RR, Bugatti, and black-car Supabase Storage artwork, DB-backed media catalog loading, the
+bundled landing hero, expanded engine/fuel details, social-provider removal, the accessible Shadcn
+account-type selector, Employee inventory controls, and Administrator create, edit, restock, and
+delete workflows.
 Backend tests cover Customer, Employee, and Administrator route boundaries plus Admin-only user
 CRUD and role assignment. Integration tests use real bcrypt and JWT services to cross
 registration, profile restoration, protected inventory, role authorization, and
@@ -52,14 +53,20 @@ change; all RBAC files touched in this pass were formatted.
 
 - `public.users`: RLS enabled; no DML privileges for `anon` or `authenticated`
 - `public.vehicles`: RLS enabled; no DML privileges for `anon` or `authenticated`
+- `public.media_assets`: RLS enabled; no table privileges for `anon` or `authenticated`
 - The configured runtime database contains four seeded catalog vehicles with persisted artwork,
   year, color, engine, transmission, fuel, and descriptive metadata.
-- `GET /api/vehicles` and the rendered localhost dashboard both return all four records and seven
-  available units.
+- `GET /api/assets` returns five verified metadata rows; four are active collection-card assets and
+  the uploaded hero object is retained as an unused remote backup.
+- `GET /api/vehicles` and the rendered localhost dashboard both return all four records. The live
+  stock count at verification time was three available units.
 - The runtime project configured in `backend/.env` was migrated and verified through Prisma/direct
   PostgreSQL because the connected Supabase tool exposed a different project.
-- No Storage bucket or Storage policy was added; repository-owned SVGs remain bundled and are chosen
-  through the validated `imageKey`.
+- The public `Assets-SVG` bucket contains the four card SVGs under `vehicles/`; all returned HTTP
+  `200 image/svg+xml`, and every remote SHA-256 hash and byte length matched its source before local
+  collection copies were deleted.
+- The localhost collection rendered Rolls-Royce, Bugatti, Lamborghini, and McLaren cards using the
+  exact public Storage URLs. The Home route rendered the bundled `Final-CarHero Page.svg`.
 - The advisor reports informational no-policy notices. This is intentional because the Express API
   is the only data boundary and browser roles have no table access.
 - The live combined-search query plan uses `vehicles_price_idx` for inclusive price bounds.

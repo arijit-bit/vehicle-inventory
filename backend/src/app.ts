@@ -8,6 +8,10 @@ import {
   createUserManagementRouter,
   type UserManagementServicePort,
 } from './modules/auth/user-management.routes.js';
+import {
+  createMediaAssetRouter,
+  type MediaAssetServicePort,
+} from './modules/media-assets/media-asset.routes.js';
 import { createVehicleRouter, type VehicleServicePort } from './modules/vehicles/vehicle.routes.js';
 
 interface AppDependencies {
@@ -15,6 +19,7 @@ interface AppDependencies {
   tokenVerifier?: TokenVerifier;
   vehicleService?: VehicleServicePort;
   userManagementService?: UserManagementServicePort;
+  mediaAssetService?: MediaAssetServicePort;
 }
 
 export const createApp = ({
@@ -22,6 +27,7 @@ export const createApp = ({
   tokenVerifier,
   vehicleService,
   userManagementService,
+  mediaAssetService,
 }: AppDependencies = {}) => {
   const app = express();
 
@@ -50,6 +56,10 @@ export const createApp = ({
 
   if (userManagementService && tokenVerifier) {
     app.use('/api/users', createUserManagementRouter(userManagementService, tokenVerifier));
+  }
+
+  if (mediaAssetService) {
+    app.use('/api/assets', createMediaAssetRouter(mediaAssetService));
   }
 
   app.use((_request, response) => {

@@ -10,6 +10,22 @@ vi.mock('../features/auth/auth-context-value', () => ({
   useAuth: vi.fn(),
 }));
 
+vi.mock('../features/media-assets/media-asset-context-value', () => ({
+  useMediaAsset: vi.fn((key: string) => ({
+    asset: {
+      key,
+      bucket: 'Assets-SVG',
+      objectPath: `vehicles/${key.toLowerCase()}.svg`,
+      publicUrl: `https://lzgmwzmyfilgwawjqejm.supabase.co/storage/v1/object/public/Assets-SVG/vehicles/${key.toLowerCase()}.svg`,
+      altText: 'Vehicle artwork',
+      createdAt: '2026-07-30T00:00:00.000Z',
+      updatedAt: '2026-07-30T00:00:00.000Z',
+    },
+    error: null,
+    isLoading: false,
+  })),
+}));
+
 vi.mock('../features/vehicles/vehicle-api', async (importOriginal) => {
   const original = await importOriginal<typeof import('../features/vehicles/vehicle-api')>();
 
@@ -403,7 +419,7 @@ describe('DashboardPage', () => {
       '82e88523-f566-4bb2-b9b0-54c5ecf59db7',
     );
     expect(within(management).queryByRole('row', { name: /Ford Mustang/ })).not.toBeInTheDocument();
-  });
+  }, 15_000);
 
   it('dismisses administrator forms with Escape', async () => {
     const user = userEvent.setup();

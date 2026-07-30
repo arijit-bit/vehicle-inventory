@@ -68,3 +68,16 @@ model Vehicle {
   @@index([price])
   @@map("vehicles")
 }
+
+model MediaAsset {
+  key        String   @id @db.VarChar(64)
+  bucket     String   @db.VarChar(100)
+  objectPath String   @map("object_path") @db.VarChar(512)
+  publicUrl  String   @map("public_url") @db.VarChar(1024)
+  altText    String   @map("alt_text") @db.VarChar(255)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@unique([bucket, objectPath])
+  @@map("media_assets")
+}

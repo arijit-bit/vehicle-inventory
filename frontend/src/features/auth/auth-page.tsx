@@ -37,6 +37,7 @@ export const AuthPage = ({ mode }: AuthPageProps) => {
           <img
             alt=""
             className="size-full -translate-y-2 scale-110 object-contain object-bottom grayscale"
+            decoding="async"
             src={heroVehicle}
           />
         </div>

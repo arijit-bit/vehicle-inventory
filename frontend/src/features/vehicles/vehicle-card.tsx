@@ -1,21 +1,11 @@
 import { ArrowUpRight, ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import blackVehicle from '../../assets/svg/Middle-black-car-centered.svg';
-import whiteVehicle from '../../assets/svg/White-RR-centered.svg';
-import blueVehicle from '../../assets/svg/blue-bugatti-centered(1).svg';
-import greenVehicle from '../../assets/svg/green-lambo.svg';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
 import { cn } from '../../lib/utils';
-import type { Vehicle, VehicleImageKey } from './vehicle-api';
-
-const vehicleImages: Record<VehicleImageKey, string> = {
-  WHITE_RR: whiteVehicle,
-  BLUE_BUGATTI: blueVehicle,
-  GREEN_LAMBO: greenVehicle,
-  BLACK_CAR: blackVehicle,
-};
+import { useMediaAsset } from '../media-assets/media-asset-context-value';
+import type { Vehicle } from './vehicle-api';
 
 const titleCaseSpecification = (value: string) =>
   value
@@ -39,6 +29,7 @@ interface VehicleCardProps {
 
 export const VehicleCard = ({ vehicle, token, isBuying, onPurchase }: VehicleCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { asset: vehicleArtwork } = useMediaAsset(vehicle.imageKey);
   const soldOut = vehicle.quantity === 0;
 
   return (
@@ -71,11 +62,15 @@ export const VehicleCard = ({ vehicle, token, isBuying, onPurchase }: VehicleCar
           aria-hidden="true"
           className="absolute inset-x-12 bottom-8 h-8 rounded-full bg-black/70 blur-xl"
         />
-        <img
-          alt={`${vehicle.make} ${vehicle.model}`}
-          className="relative h-[90%] w-full object-contain drop-shadow-[0_24px_22px_rgba(0,0,0,0.8)] transition-transform duration-500 ease-out group-hover:scale-[1.04]"
-          src={vehicleImages[vehicle.imageKey]}
-        />
+        {vehicleArtwork && (
+          <img
+            alt={`${vehicle.make} ${vehicle.model}`}
+            className="relative h-[90%] w-full object-contain drop-shadow-[0_24px_22px_rgba(0,0,0,0.8)] transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+            decoding="async"
+            loading="lazy"
+            src={vehicleArtwork.publicUrl}
+          />
+        )}
       </div>
 
       <div className="p-4 pt-1 sm:p-5 sm:pt-1">

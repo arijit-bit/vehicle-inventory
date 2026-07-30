@@ -8,6 +8,8 @@ import { BcryptPasswordHasher } from './modules/auth/bcrypt-password-hasher.js';
 import { JwtTokenService } from './modules/auth/jwt-token.service.js';
 import { PrismaUserRepository } from './modules/auth/prisma-user.repository.js';
 import { UserManagementService } from './modules/auth/user-management.service.js';
+import { MediaAssetService } from './modules/media-assets/media-asset.service.js';
+import { PrismaMediaAssetRepository } from './modules/media-assets/prisma-media-asset.repository.js';
 import { PrismaVehicleRepository } from './modules/vehicles/prisma-vehicle.repository.js';
 import { VehicleService } from './modules/vehicles/vehicle.service.js';
 
@@ -28,6 +30,8 @@ const vehicles = new PrismaVehicleRepository(database, {
   statementTimeoutMs: env.DATABASE_STATEMENT_TIMEOUT_MS,
 });
 const vehicleService = new VehicleService(vehicles);
+const mediaAssets = new PrismaMediaAssetRepository(database);
+const mediaAssetService = new MediaAssetService(mediaAssets);
 const adminCredentials =
   env.ADMIN_EMAIL && env.ADMIN_PASSWORD
     ? { email: env.ADMIN_EMAIL, password: env.ADMIN_PASSWORD }
@@ -40,6 +44,7 @@ const app = createApp({
   tokenVerifier: tokens,
   vehicleService,
   userManagementService,
+  mediaAssetService,
 });
 
 app.listen(env.PORT, () => {

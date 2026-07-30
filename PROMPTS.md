@@ -474,3 +474,39 @@ with newly supplied centered versions and update the database mapping if require
 - Database rows continue to store semantic artwork keys rather than filesystem names. Replacing a
   presentation asset therefore requires one frontend mapping change without rewriting product
   records or coupling database data to Vite filenames.
+
+## 2026-07-30 - Supabase Storage migration and bundled hero exception
+
+**User prompt summary:** Connect to the existing public `Assets-SVG` bucket, safely migrate the
+collection SVGs out of the repository, load image metadata from the database, preserve the visual
+result, then keep the landing hero bundled locally and advise how to add more vehicle artwork.
+
+**AI-assisted work:**
+
+- Verified the configured Supabase project, public bucket, and initially empty object list through
+  the live database connection.
+- Reviewed current Supabase Storage public-serving, upload-policy, CLI, and security guidance.
+- Added failing API, repository, frontend catalog, card-mapping, and bundled-hero regression tests
+  before implementation.
+- Added the RLS-enabled `media_assets` table, read-only `/api/assets` route, Prisma repository and
+  service, typed React catalog client/provider, and Storage-backed vehicle cards.
+- Uploaded the four centered collection SVGs to `Assets-SVG/vehicles` using stable lowercase
+  filenames and retained the uploaded hero object as an unused backup.
+- Downloaded every public object and verified exact byte length plus SHA-256 equality before
+  deleting the four local collection SVGs.
+- Kept `Final-CarHero Page.svg` in `frontend/src/assets/svg` and used it directly on Home and Auth.
+- Applied and verified the live migration: five metadata rows, RLS enabled, and no
+  `anon`/`authenticated` table privileges.
+- Verified localhost end to end: four vehicle cards used the exact Supabase public URLs while the
+  landing hero used the local Vite asset path.
+- Ran 150 tests, coverage, lint, type checking, and production builds.
+
+**Adding more cars:**
+
+- Uploading another SVG to `Assets-SVG/vehicles` is the correct first step, but it does not create a
+  card by itself.
+- Each new image also needs a semantic media key/metadata row, an allowed vehicle image key in the
+  current backend/frontend contracts, and a complete vehicle database row.
+- For frequent additions, the recommended follow-up is replacing the enum allowlist with a
+  `vehicles.image_key -> media_assets.key` foreign key plus an Administrator upload/asset-picker
+  workflow.

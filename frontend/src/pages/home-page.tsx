@@ -59,6 +59,8 @@ export const HomePage = () => {
             <img
               alt="Silver exotic performance car"
               className="absolute bottom-[4%] left-1/2 w-[118%] max-w-none -translate-x-1/2 object-contain drop-shadow-[0_30px_35px_rgba(0,0,0,0.95)] sm:w-[108%] lg:bottom-[15%] lg:left-[43%] lg:w-[126%]"
+              decoding="async"
+              fetchPriority="high"
               src={heroVehicle}
             />
           </div>

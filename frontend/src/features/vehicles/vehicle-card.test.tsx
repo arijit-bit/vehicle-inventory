@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
+import { MediaAssetProvider } from '../media-assets/media-asset-context';
+import type { MediaAssetKey } from '../media-assets/media-asset-api';
 import type { Vehicle, VehicleImageKey } from './vehicle-api';
 import { VehicleCard } from './vehicle-card';
 
@@ -25,24 +27,43 @@ const vehicle: Vehicle = {
 
 describe('VehicleCard artwork', () => {
   it.each([
-    ['WHITE_RR', 'White-RR-centered.svg'],
-    ['BLUE_BUGATTI', 'blue-bugatti-centered(1).svg'],
-    ['BLACK_CAR', 'Middle-black-car-centered.svg'],
-  ] as const)('maps %s to its centered collection SVG', (imageKey, filename) => {
+    ['WHITE_RR', 'vehicles/white-rr-centered.svg'],
+    ['BLUE_BUGATTI', 'vehicles/blue-bugatti-centered.svg'],
+    ['BLACK_CAR', 'vehicles/middle-black-car-centered.svg'],
+  ] as const)('maps %s to its Supabase Storage object', async (imageKey, objectPath) => {
+    const publicUrl = `https://lzgmwzmyfilgwawjqejm.supabase.co/storage/v1/object/public/Assets-SVG/${objectPath}`;
+    const api = {
+      list: vi.fn().mockResolvedValue({
+        assets: [
+          {
+            key: imageKey as MediaAssetKey,
+            bucket: 'Assets-SVG',
+            objectPath,
+            publicUrl,
+            altText: 'Vehicle artwork',
+            createdAt: '2026-07-30T00:00:00.000Z',
+            updatedAt: '2026-07-30T00:00:00.000Z',
+          },
+        ],
+      }),
+    };
+
     render(
       <MemoryRouter>
-        <VehicleCard
-          isBuying={false}
-          onPurchase={vi.fn()}
-          token={null}
-          vehicle={{ ...vehicle, id: imageKey, imageKey: imageKey as VehicleImageKey }}
-        />
+        <MediaAssetProvider api={api}>
+          <VehicleCard
+            isBuying={false}
+            onPurchase={vi.fn()}
+            token={null}
+            vehicle={{ ...vehicle, id: imageKey, imageKey: imageKey as VehicleImageKey }}
+          />
+        </MediaAssetProvider>
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('img', { name: 'MotoVault Artwork Test' })).toHaveAttribute(
+    expect(await screen.findByRole('img', { name: 'MotoVault Artwork Test' })).toHaveAttribute(
       'src',
-      expect.stringContaining(filename),
+      publicUrl,
     );
   });
 });
