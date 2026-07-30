@@ -27,6 +27,15 @@ const vehicle: VehicleRecord = {
   createdAt: new Date('2026-07-29T00:00:00.000Z'),
   updatedAt: new Date('2026-07-29T00:00:00.000Z'),
 };
+const vehiclePage = {
+  vehicles: [vehicle],
+  pagination: {
+    limit: 6,
+    skip: 0,
+    total: 10,
+  },
+  brands: ['Toyota'],
+};
 
 describe('vehicle HTTP API', () => {
   const vehicleService = {
@@ -45,8 +54,8 @@ describe('vehicle HTTP API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vehicleService.create.mockResolvedValue(vehicle);
-    vehicleService.list.mockResolvedValue([vehicle]);
-    vehicleService.search.mockResolvedValue([vehicle]);
+    vehicleService.list.mockResolvedValue(vehiclePage);
+    vehicleService.search.mockResolvedValue(vehiclePage);
     vehicleService.update.mockResolvedValue(vehicle);
     vehicleService.delete.mockResolvedValue(undefined);
     vehicleService.purchase.mockResolvedValue({ ...vehicle, quantity: 3 });
@@ -65,20 +74,9 @@ describe('vehicle HTTP API', () => {
     const response = await request(app()).get('/api/vehicles');
 
     expect(response.status).toBe(200);
-    expect(vehicleService.list).toHaveBeenCalledOnce();
-  });
-
-  it('lists vehicles for an authenticated user', async () => {
-    vi.mocked(tokenVerifier.verify).mockReturnValue({
-      sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
-      email: 'driver@example.com',
-      role: 'CUSTOMER',
-    });
-
-    const response = await request(app()).get('/api/vehicles').set(authorized());
-
-    expect(response.status).toBe(200);
+    expect(vehicleService.list).toHaveBeenCalledWith({ limit: 6, skip: 0 });
     expect(response.body).toEqual({
+      ...vehiclePage,
       vehicles: [
         {
           ...vehicle,
@@ -89,6 +87,37 @@ describe('vehicle HTTP API', () => {
     });
   });
 
+  it('lists the second page for an authenticated user', async () => {
+    vi.mocked(tokenVerifier.verify).mockReturnValue({
+      sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
+      email: 'driver@example.com',
+      role: 'CUSTOMER',
+    });
+
+    const response = await request(app())
+      .get('/api/vehicles')
+      .query({ limit: 6, skip: 6 })
+      .set(authorized());
+
+    expect(response.status).toBe(200);
+    expect(vehicleService.list).toHaveBeenCalledWith({ limit: 6, skip: 6 });
+    expect(response.body).toEqual({
+      vehicles: [
+        {
+          ...vehicle,
+          createdAt: '2026-07-29T00:00:00.000Z',
+          updatedAt: '2026-07-29T00:00:00.000Z',
+        },
+      ],
+      pagination: {
+        limit: 6,
+        skip: 0,
+        total: 10,
+      },
+      brands: ['Toyota'],
+    });
+  });
+
   it('searches with combined normalized filters', async () => {
     const response = await request(app()).get('/api/vehicles/search').query({
       make: ' toy ',
@@ -96,15 +125,24 @@ describe('vehicle HTTP API', () => {
       category: ' sedan ',
       minPrice: '10000',
       maxPrice: '40000.5',
+      availability: 'available',
+      sort: 'price-desc',
+      limit: '6',
+      skip: '6',
     });
     expect(response.status).toBe(200);
-    expect(vehicleService.search).toHaveBeenCalledWith({
-      make: 'toy',
-      model: 'cam',
-      category: 'sedan',
-      minPrice: '10000.00',
-      maxPrice: '40000.50',
-    });
+    expect(vehicleService.search).toHaveBeenCalledWith(
+      {
+        make: 'toy',
+        model: 'cam',
+        category: 'sedan',
+        minPrice: '10000.00',
+        maxPrice: '40000.50',
+        availability: 'available',
+        sort: 'price-desc',
+      },
+      { limit: 6, skip: 6 },
+    );
   });
 
   it('allows an administrator to create a normalized vehicle', async () => {

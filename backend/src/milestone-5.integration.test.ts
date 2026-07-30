@@ -40,7 +40,11 @@ describe('Milestone 5 authentication to dashboard boundary', () => {
     );
     const vehicleService = {
       create: vi.fn(),
-      list: vi.fn().mockResolvedValue([]),
+      list: vi.fn().mockResolvedValue({
+        vehicles: [],
+        pagination: { limit: 6, skip: 0, total: 0 },
+        brands: [],
+      }),
       search: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -81,8 +85,12 @@ describe('Milestone 5 authentication to dashboard boundary', () => {
     expect(profile.status).toBe(200);
     expect(profile.body.user).toEqual(registration.body.user);
     expect(inventory.status).toBe(200);
-    expect(inventory.body).toEqual({ vehicles: [] });
-    expect(vehicleService.list).toHaveBeenCalledOnce();
+    expect(inventory.body).toEqual({
+      vehicles: [],
+      pagination: { limit: 6, skip: 0, total: 0 },
+      brands: [],
+    });
+    expect(vehicleService.list).toHaveBeenCalledWith({ limit: 6, skip: 0 });
     expect(adminAttempt.status).toBe(403);
     expect(adminAttempt.body.error.code).toBe('FORBIDDEN');
     expect(vehicleService.create).not.toHaveBeenCalled();

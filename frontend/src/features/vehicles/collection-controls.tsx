@@ -7,24 +7,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
-
-export type PriceSort = 'featured' | 'price-asc' | 'price-desc';
+import type { AvailabilityFilter, PriceSort } from './vehicle-api';
 
 interface CollectionControlsProps {
+  availability: AvailabilityFilter;
   brands: string[];
   brand: string;
   priceSort: PriceSort;
   searchExpanded: boolean;
+  onAvailabilityChange(value: AvailabilityFilter): void;
   onBrandChange(value: string): void;
   onPriceSortChange(value: PriceSort): void;
   onToggleSearch(): void;
 }
 
 export const CollectionControls = ({
+  availability,
   brands,
   brand,
   priceSort,
   searchExpanded,
+  onAvailabilityChange,
   onBrandChange,
   onPriceSortChange,
   onToggleSearch,
@@ -44,6 +47,23 @@ export const CollectionControls = ({
             {item}
           </SelectItem>
         ))}
+      </SelectContent>
+    </Select>
+
+    <Select
+      onValueChange={(value) => onAvailabilityChange(value as AvailabilityFilter)}
+      value={availability}
+    >
+      <SelectTrigger
+        aria-label="Filter By Availability"
+        className="flex-1 rounded-[var(--radius)] border-0 bg-transparent sm:flex-none"
+      >
+        <SelectValue placeholder="Filter By Availability" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All availability</SelectItem>
+        <SelectItem value="available">Available</SelectItem>
+        <SelectItem value="sold-out">Sold out</SelectItem>
       </SelectContent>
     </Select>
 

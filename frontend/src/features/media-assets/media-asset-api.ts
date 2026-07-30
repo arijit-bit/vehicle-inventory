@@ -1,4 +1,14 @@
-export type MediaAssetKey = 'HERO_CAR' | 'WHITE_RR' | 'BLUE_BUGATTI' | 'GREEN_LAMBO' | 'BLACK_CAR';
+export type MediaAssetKey =
+  | 'HERO_CAR'
+  | 'WHITE_RR'
+  | 'BLUE_BUGATTI'
+  | 'GREEN_LAMBO'
+  | 'BLACK_CAR'
+  | 'BLACK_BENTLEY'
+  | 'GREEN_PORSCHE_911'
+  | 'BROWN_MAYBACH'
+  | 'ORANGE_AUDI_R8'
+  | 'BLACK_RANGE_ROVER';
 
 export interface MediaAsset {
   key: MediaAssetKey;

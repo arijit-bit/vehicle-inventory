@@ -4,9 +4,10 @@ import type { TokenVerifier } from '../auth/auth.types.js';
 import {
   createVehicleSchema,
   inventoryMutationSchema,
-  searchVehiclesSchema,
+  paginatedSearchVehiclesSchema,
   updateVehicleSchema,
   vehicleIdSchema,
+  vehiclePaginationSchema,
 } from './vehicle.schemas.js';
 import type { VehicleService } from './vehicle.service.js';
 
@@ -27,19 +28,20 @@ export const createVehicleRouter = (service: VehicleServicePort, tokens: TokenVe
   router.get(
     '/search',
     asyncHandler(async (request, response) => {
-      const filters = searchVehiclesSchema.parse(request.query);
-      const vehicles = await service.search(filters);
+      const { limit, skip, ...filters } = paginatedSearchVehiclesSchema.parse(request.query);
+      const result = await service.search(filters, { limit, skip });
 
-      response.status(200).json({ vehicles });
+      response.status(200).json(result);
     }),
   );
 
   router.get(
     '/',
-    asyncHandler(async (_request, response) => {
-      const vehicles = await service.list();
+    asyncHandler(async (request, response) => {
+      const pagination = vehiclePaginationSchema.parse(request.query);
+      const result = await service.list(pagination);
 
-      response.status(200).json({ vehicles });
+      response.status(200).json(result);
     }),
   );
 

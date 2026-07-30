@@ -510,3 +510,82 @@ result, then keep the landing hero bundled locally and advise how to add more ve
 - For frequent additions, the recommended follow-up is replacing the enum allowlist with a
   `vehicles.image_key -> media_assets.key` foreign key plus an Administrator upload/asset-picker
   workflow.
+
+## 2026-07-30 - Milestone 7 additional vehicle catalog
+
+**User prompt summary:** Act as a senior DBMS and full-stack developer, use the attached database
+structure for five additional cars whose SVGs were uploaded to the existing `Assets-SVG` bucket,
+insert the data so more collection cards appear, follow the attached TDD/AI-usage rules, and create
+a Milestone 7 extra UI updates and corrections branch.
+
+**AI-assisted work:**
+
+- Created `codex/milestone-7-extra-ui-updates-corrections` from the clean `main` branch.
+- Reviewed the current Supabase changelog and Storage/database guidance before implementation.
+- Inspected the configured live database and public bucket through the backend-only PostgreSQL
+  connection after the Supabase connector reported insufficient project permission.
+- Confirmed none of the five vehicle or media rows existed and found that the uploaded object names
+  use `.svg.svg`, not the normalized `.svg` paths listed in the supplied draft response.
+- Added failing Zod coverage for all five new artwork keys and the `GASOLINE` fuel type, then
+  extended Prisma, backend validation, frontend API types, media types, card mapping coverage, and
+  Administrator artwork/fuel selectors.
+- Added separate ordered migrations for enum expansion and idempotent media/vehicle upserts, so
+  PostgreSQL commits new enum values before they are referenced and reruns do not reset stock.
+- Applied both migrations to the configured Supabase database.
+- Verified all five database joins, 10 live inventory rows in total, and HTTP 200
+  `image/svg+xml` responses from every new public artwork URL.
+
+**Architecture decisions:**
+
+- The media catalog stores the actual `.svg.svg` object names because those are the live,
+  byte-serving Storage objects; inventing normalized paths would render broken collection cards.
+- Existing inventory quantities are not overwritten by the migration's conflict-update path,
+  preserving purchases and restocks if the seed is reapplied.
+- RLS and the server-only database boundary remain unchanged; no service-role key is introduced
+  into the React application.
+
+## 2026-07-30 - Milestone 7 server-side collection pagination
+
+**User prompt summary:** Act as a senior frontend developer and add Shadcn pagination to the
+collection so only six cars are fetched and shown at a time, using `limit(6).skip(0)`,
+`limit(6).skip(6)`, and subsequent aligned offsets.
+
+**AI-assisted work:**
+
+- Added failing backend schema, route, service, repository, frontend API, and dashboard tests before
+  implementation.
+- Added a fixed six-record pagination contract with validated, aligned offsets and total counts.
+- Moved brand, availability, and price sorting into the database query so conditions apply before
+  the six-row window.
+- Returned global brand facets with every page, preserving the complete brand selector while only
+  transferring the requested vehicle records.
+- Added reusable Shadcn-style pagination primitives and an accessible collection navigation with
+  numbered, previous, next, active, and disabled states.
+- Kept search draft inputs separate from applied server filters, reset pagination on query changes,
+  and protected against stale async responses and out-of-range pages.
+- Ran 167 tests with coverage plus formatting, lint, TypeScript checking, and production builds.
+
+**Architecture decisions:**
+
+- Offset pagination matches the explicitly requested `limit`/`skip` contract. Stable secondary
+  ordering by vehicle ID prevents equal prices or timestamps from producing ambiguous page order.
+- Both catalog cards and the management table use the paginated result, avoiding a second
+  all-record download for privileged users.
+- No database migration was added: the existing dataset and indexes support this milestone, and
+  index additions should be driven by measured production query plans rather than assumptions.
+
+## 2026-07-30 - Consolidated collection availability filter
+
+**User prompt summary:** Remove the separate All, Available, and Sold out button section from the
+dashboard and place that filter in the top-right control bar beside All brands and Featured order.
+
+**AI-assisted work:**
+
+- Added a failing dashboard regression test requiring an accessible availability combobox and the
+  absence of the former availability button group.
+- Added a Shadcn Select with All availability, Available, and Sold out options to the shared
+  collection controls.
+- Preserved server-side availability filtering and reset pagination to page one when its value
+  changes.
+- Removed the redundant availability tab group while retaining the live result count above the
+  cards.

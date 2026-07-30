@@ -81,6 +81,14 @@ const vehicles: Vehicle[] = [
     updatedAt: '2026-01-02T00:00:00.000Z',
   },
 ];
+const pageResponse = (
+  pageVehicles = vehicles,
+  pagination = { limit: 6, skip: 0, total: pageVehicles.length },
+) => ({
+  vehicles: pageVehicles,
+  pagination,
+  brands: ['Ford', 'Toyota'],
+});
 
 const mockAuth = (role: 'CUSTOMER' | 'EMPLOYEE' | 'ADMIN') => {
   vi.mocked(useAuth).mockReturnValue({
@@ -100,8 +108,8 @@ const mockAuth = (role: 'CUSTOMER' | 'EMPLOYEE' | 'ADMIN') => {
 describe('DashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(vehicleApi.list).mockResolvedValue({ vehicles });
-    vi.mocked(vehicleApi.search).mockResolvedValue({ vehicles: [vehicles[0]!] });
+    vi.mocked(vehicleApi.list).mockResolvedValue(pageResponse());
+    vi.mocked(vehicleApi.search).mockResolvedValue(pageResponse([vehicles[0]!]));
   });
 
   it('lets a user purchase available stock and disables sold-out vehicles', async () => {
@@ -145,7 +153,7 @@ describe('DashboardPage', () => {
     );
 
     const camry = await screen.findByRole('article', { name: 'Toyota Camry' });
-    expect(vehicleApi.list).toHaveBeenCalledWith(null);
+    expect(vehicleApi.list).toHaveBeenCalledWith(null, { limit: 6, skip: 0 });
     expect(
       within(camry).getByRole('link', { name: /sign in to purchase toyota camry/i }),
     ).toHaveAttribute('href', '/login');
@@ -183,13 +191,21 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     expect(await screen.findByText('customer@example.com')).toBeInTheDocument();
-    expect(screen.getByText('2 vehicles')).toBeInTheDocument();
+    expect(screen.getByText('Showing 1–2 of 2 vehicles')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Available' }));
+    await user.click(screen.getByRole('combobox', { name: 'Filter By Availability' }));
+    await user.click(screen.getByRole('option', { name: 'Available' }));
 
-    expect(screen.getByRole('article', { name: 'Toyota Camry' })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(vehicleApi.search).toHaveBeenCalledWith(
+        'secure-token',
+        { availability: 'available' },
+        { limit: 6, skip: 0 },
+      ),
+    );
+    expect(await screen.findByRole('article', { name: 'Toyota Camry' })).toBeInTheDocument();
     expect(screen.queryByRole('article', { name: 'Ford Mustang' })).not.toBeInTheDocument();
-    expect(screen.getByText('1 vehicle')).toBeInTheDocument();
+    expect(screen.getByText('Showing 1 of 1 vehicle')).toBeInTheDocument();
   });
 
   it('renders the premium collection chrome and vehicle metadata', async () => {
@@ -205,7 +221,11 @@ describe('DashboardPage', () => {
       'page',
     );
     expect(screen.getByRole('combobox', { name: 'Filter By Brand' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Filter By Availability' })).toBeInTheDocument();
     expect(screen.getByRole('combobox', { name: 'Sort By Price' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', { name: 'Filter inventory by availability' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Automatic')).toBeInTheDocument();
     expect(screen.getByText('Manual')).toBeInTheDocument();
     expect(screen.getByText('Frozen Silver')).toHaveClass('rounded-full', 'border');
@@ -231,14 +251,29 @@ describe('DashboardPage', () => {
     await user.click(screen.getByRole('combobox', { name: 'Filter By Brand' }));
     await user.click(screen.getByRole('option', { name: 'Toyota' }));
 
-    expect(screen.getByRole('article', { name: 'Toyota Camry' })).toBeInTheDocument();
+    await waitFor(() =>
+      expect(vehicleApi.search).toHaveBeenCalledWith(
+        'secure-token',
+        { make: 'Toyota' },
+        { limit: 6, skip: 0 },
+      ),
+    );
+    expect(await screen.findByRole('article', { name: 'Toyota Camry' })).toBeInTheDocument();
     expect(screen.queryByRole('article', { name: 'Ford Mustang' })).not.toBeInTheDocument();
 
+    vi.mocked(vehicleApi.search).mockResolvedValueOnce(pageResponse([vehicles[1]!, vehicles[0]!]));
     await user.click(screen.getByRole('combobox', { name: 'Filter By Brand' }));
     await user.click(screen.getByRole('option', { name: 'All brands' }));
     await user.click(screen.getByRole('combobox', { name: 'Sort By Price' }));
     await user.click(screen.getByRole('option', { name: 'Price: high to low' }));
 
+    await waitFor(() =>
+      expect(vehicleApi.search).toHaveBeenCalledWith(
+        'secure-token',
+        { sort: 'price-desc' },
+        { limit: 6, skip: 0 },
+      ),
+    );
     const cards = screen.getAllByRole('article');
     expect(cards[0]).toHaveAccessibleName('Ford Mustang');
     expect(cards[1]).toHaveAccessibleName('Toyota Camry');
@@ -291,11 +326,49 @@ describe('DashboardPage', () => {
     await user.type(screen.getByLabelText('Minimum price'), '10000');
     await user.click(screen.getByRole('button', { name: 'Search inventory' }));
 
-    expect(vehicleApi.search).toHaveBeenCalledWith('secure-token', {
-      make: 'Toyota',
-      category: 'Sedan',
-      minPrice: '10000',
-    });
+    await waitFor(() =>
+      expect(vehicleApi.search).toHaveBeenCalledWith(
+        'secure-token',
+        {
+          make: 'Toyota',
+          category: 'Sedan',
+          minPrice: '10000',
+        },
+        { limit: 6, skip: 0 },
+      ),
+    );
+  });
+
+  it('shows six cards per page and requests the next offset', async () => {
+    const user = userEvent.setup();
+    mockAuth('CUSTOMER');
+    const firstPage = Array.from({ length: 6 }, (_, index) => ({
+      ...vehicles[0]!,
+      id: `page-one-${index}`,
+      model: `Page One ${index + 1}`,
+    }));
+    const secondPage = [{ ...vehicles[1]!, id: 'page-two-1', model: 'Page Two' }];
+    vi.mocked(vehicleApi.list)
+      .mockResolvedValueOnce(pageResponse(firstPage, { limit: 6, skip: 0, total: 7 }))
+      .mockResolvedValueOnce(pageResponse(secondPage, { limit: 6, skip: 6, total: 7 }));
+
+    render(<DashboardPage />);
+
+    expect(await screen.findAllByRole('article')).toHaveLength(6);
+    expect(screen.getByRole('navigation', { name: 'Collection pagination' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Go to page 2' }));
+
+    await waitFor(() =>
+      expect(vehicleApi.list).toHaveBeenLastCalledWith('secure-token', {
+        limit: 6,
+        skip: 6,
+      }),
+    );
+    expect(await screen.findByRole('article', { name: 'Ford Page Two' })).toBeInTheDocument();
+    expect(screen.getAllByRole('article')).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Go to previous page' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Go to next page' })).toBeDisabled();
   });
 
   it('explains retryable inventory contention to the buyer', async () => {

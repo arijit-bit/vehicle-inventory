@@ -6,11 +6,13 @@ import type {
   Transmission,
   UpdateVehicleInput,
   VehicleImageKey,
+  VehiclePagination,
   VehicleSearchFilters,
 } from './vehicle.schemas.js';
 import {
   InventoryBusyError,
   type PurchaseResult,
+  type VehiclePage,
   type VehicleRecord,
   type VehicleRepository,
 } from './vehicle.types.js';
@@ -147,16 +149,42 @@ export class PrismaVehicleRepository implements VehicleRepository {
     return toVehicleRecord(vehicle);
   }
 
-  async findAll(): Promise<VehicleRecord[]> {
-    const vehicles = await this.database.vehicle.findMany({
-      select: vehicleSelection,
-      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
-    });
+  private async findPage(
+    where: Prisma.VehicleWhereInput,
+    pagination: VehiclePagination,
+    orderBy: Prisma.VehicleOrderByWithRelationInput[],
+  ): Promise<VehiclePage> {
+    const [vehicles, total, brandRows] = await Promise.all([
+      this.database.vehicle.findMany({
+        where,
+        select: vehicleSelection,
+        orderBy,
+        take: pagination.limit,
+        skip: pagination.skip,
+      }),
+      this.database.vehicle.count({ where }),
+      this.database.vehicle.findMany({
+        distinct: ['make'],
+        select: { make: true },
+        orderBy: { make: 'asc' },
+      }),
+    ]);
 
-    return vehicles.map(toVehicleRecord);
+    return {
+      vehicles: vehicles.map(toVehicleRecord),
+      pagination: {
+        ...pagination,
+        total,
+      },
+      brands: brandRows.map(({ make }) => make),
+    };
   }
 
-  async search(filters: VehicleSearchFilters): Promise<VehicleRecord[]> {
+  findAll(pagination: VehiclePagination): Promise<VehiclePage> {
+    return this.findPage({}, pagination, [{ createdAt: 'desc' }, { id: 'asc' }]);
+  }
+
+  search(filters: VehicleSearchFilters, pagination: VehiclePagination): Promise<VehiclePage> {
     const where: Prisma.VehicleWhereInput = {
       ...(filters.make && {
         make: {
@@ -182,14 +210,21 @@ export class PrismaVehicleRepository implements VehicleRepository {
           ...(filters.maxPrice && { lte: filters.maxPrice }),
         },
       }),
+      ...(filters.availability === 'available' && {
+        quantity: { gt: 0 },
+      }),
+      ...(filters.availability === 'sold-out' && {
+        quantity: 0,
+      }),
     };
-    const vehicles = await this.database.vehicle.findMany({
-      where,
-      select: vehicleSelection,
-      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
-    });
+    const orderBy: Prisma.VehicleOrderByWithRelationInput[] =
+      filters.sort === 'price-asc'
+        ? [{ price: 'asc' }, { id: 'asc' }]
+        : filters.sort === 'price-desc'
+          ? [{ price: 'desc' }, { id: 'asc' }]
+          : [{ createdAt: 'desc' }, { id: 'asc' }];
 
-    return vehicles.map(toVehicleRecord);
+    return this.findPage(where, pagination, orderBy);
   }
 
   async update(id: string, input: UpdateVehicleInput): Promise<VehicleRecord | null> {

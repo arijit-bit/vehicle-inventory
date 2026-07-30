@@ -31,6 +31,7 @@ describe('PrismaVehicleRepository', () => {
     $transaction: vi.fn(),
     vehicle: {
       create: vi.fn(),
+      count: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
@@ -48,6 +49,7 @@ describe('PrismaVehicleRepository', () => {
     );
     database.vehicle.create.mockResolvedValue(storedVehicle);
     database.vehicle.findMany.mockResolvedValue([storedVehicle]);
+    database.vehicle.count.mockResolvedValue(14);
     database.vehicle.update.mockResolvedValue(storedVehicle);
     database.vehicle.delete.mockResolvedValue({ id: storedVehicle.id });
     database.vehicle.updateManyAndReturn.mockResolvedValue([{ ...storedVehicle, quantity: 3 }]);
@@ -83,25 +85,58 @@ describe('PrismaVehicleRepository', () => {
     );
   });
 
-  it('builds an AND search with case-insensitive text and inclusive price bounds', async () => {
-    await repository.search({
-      make: 'toy',
-      model: 'cam',
-      category: 'sedan',
-      minPrice: '10000.00',
-      maxPrice: '40000.00',
+  it('loads exactly six vehicles after the requested offset', async () => {
+    await expect(repository.findAll({ limit: 6, skip: 6 })).resolves.toMatchObject({
+      vehicles: [{ id: storedVehicle.id }],
+      pagination: { limit: 6, skip: 6, total: 14 },
+      brands: ['Toyota'],
     });
 
-    expect(database.vehicle.findMany).toHaveBeenCalledWith(
+    expect(database.vehicle.findMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        take: 6,
+        skip: 6,
+      }),
+    );
+    expect(database.vehicle.count).toHaveBeenCalledWith({ where: {} });
+  });
+
+  it('applies conditions and ordering before paginating search results', async () => {
+    await repository.search(
+      {
+        make: 'toy',
+        model: 'cam',
+        category: 'sedan',
+        minPrice: '10000.00',
+        maxPrice: '40000.00',
+        availability: 'available',
+        sort: 'price-desc',
+      },
+      { limit: 6, skip: 12 },
+    );
+
+    expect(database.vehicle.findMany).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         where: {
           make: { contains: 'toy', mode: 'insensitive' },
           model: { contains: 'cam', mode: 'insensitive' },
           category: { contains: 'sedan', mode: 'insensitive' },
           price: { gte: '10000.00', lte: '40000.00' },
+          quantity: { gt: 0 },
         },
+        orderBy: [{ price: 'desc' }, { id: 'asc' }],
+        take: 6,
+        skip: 12,
       }),
     );
+    expect(database.vehicle.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        make: { contains: 'toy', mode: 'insensitive' },
+        quantity: { gt: 0 },
+      }),
+    });
   });
 
   it('sends only supplied fields during a partial update', async () => {

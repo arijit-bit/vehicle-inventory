@@ -1,11 +1,13 @@
 import type {
   CreateVehicleInput,
   UpdateVehicleInput,
+  VehiclePagination,
   VehicleSearchFilters,
 } from './vehicle.schemas.js';
 import {
   InsufficientStockError,
   VehicleNotFoundError,
+  type VehiclePage,
   type VehicleRecord,
   type VehicleRepository,
 } from './vehicle.types.js';
@@ -17,12 +19,12 @@ export class VehicleService {
     return this.vehicles.create(input);
   }
 
-  list(): Promise<VehicleRecord[]> {
-    return this.vehicles.findAll();
+  list(pagination: VehiclePagination): Promise<VehiclePage> {
+    return this.vehicles.findAll(pagination);
   }
 
-  search(filters: VehicleSearchFilters): Promise<VehicleRecord[]> {
-    return this.vehicles.search(filters);
+  search(filters: VehicleSearchFilters, pagination: VehiclePagination): Promise<VehiclePage> {
+    return this.vehicles.search(filters, pagination);
   }
 
   async update(id: string, input: UpdateVehicleInput): Promise<VehicleRecord> {

@@ -29,7 +29,8 @@ Milestone 7 is complete:
 - An idempotent four-vehicle starter collection applied through the Prisma migration history
 - Dark-luxury collection with transparent vehicle artwork, brand filtering, price sorting, search,
   stock-aware purchasing, and sold-out states
-- Signed-in identity and role surface with responsive availability tabs and live result counts
+- Server-side six-vehicle pagination with accessible Shadcn page, previous, and next controls
+- Signed-in identity and role surface with a responsive availability select and live result counts
 - Session-race protection and automatic logout when protected APIs reject an expired token
 - Accessible form errors linked to the affected authentication controls
 - Radix-powered Shadcn Navigation Menu, Select, Dialog, Button, Card, Input, and Table primitives
@@ -38,7 +39,7 @@ Milestone 7 is complete:
 - Accessible dialogs with Escape, backdrop, focus trapping, and scroll handling
 - Real signed-token verification that `DELETE /api/vehicles/:id` is administrator-only
 - End-to-end auth boundary proof from registration through profile restore and protected inventory
-- 150 automated tests across the API and SPA
+- 167 automated tests across the API and SPA
 
 ## Architecture
 
@@ -130,6 +131,12 @@ The landing and authentication hero intentionally remain bundled from
 `frontend/src/assets/svg/Final-CarHero Page.svg`, so the primary above-the-fold artwork does not
 wait for the asset-catalog request.
 
+The Milestone 7 catalog migration adds Bentley Continental GT Speed, Porsche 911 Turbo S,
+Mercedes-Maybach S680, Audi R8 V10 Performance, and Range Rover SV Autobiography records. Their
+uploaded Storage objects currently end in `.svg.svg`; the `media_assets` rows deliberately retain
+those exact live object names so their public URLs resolve instead of relying on normalized but
+nonexistent `.svg` paths.
+
 To add another collection image:
 
 1. Upload a transparent, centered SVG to `Assets-SVG/vehicles` using a unique lowercase
@@ -196,15 +203,15 @@ Vehicle prices are returned as two-decimal strings so JSON clients do not lose d
 Guests can list and search. Any authenticated role can purchase. `EMPLOYEE` and `ADMIN` can create
 and update vehicles, while only `ADMIN` can delete or restock.
 
-| Method   | Endpoint                     | Access     | Result                                             |
-| -------- | ---------------------------- | ---------- | -------------------------------------------------- |
-| `GET`    | `/api/vehicles`              | Public     | Lists every inventory record                       |
-| `GET`    | `/api/vehicles/search`       | Public     | Searches with combinable query parameters          |
-| `POST`   | `/api/vehicles`              | Employee+  | Creates a vehicle with its initial quantity        |
-| `PUT`    | `/api/vehicles/:id`          | Employee+  | Updates supplied catalog fields, excluding stock   |
-| `DELETE` | `/api/vehicles/:id`          | Admin      | Deletes a vehicle in a short protected transaction |
-| `POST`   | `/api/vehicles/:id/purchase` | Bearer JWT | Atomically decreases available quantity            |
-| `POST`   | `/api/vehicles/:id/restock`  | Admin      | Atomically increases available quantity            |
+| Method   | Endpoint                     | Access     | Result                                              |
+| -------- | ---------------------------- | ---------- | --------------------------------------------------- |
+| `GET`    | `/api/vehicles`              | Public     | Lists a six-record inventory page                   |
+| `GET`    | `/api/vehicles/search`       | Public     | Searches, sorts, and pages with combined parameters |
+| `POST`   | `/api/vehicles`              | Employee+  | Creates a vehicle with its initial quantity         |
+| `PUT`    | `/api/vehicles/:id`          | Employee+  | Updates supplied catalog fields, excluding stock    |
+| `DELETE` | `/api/vehicles/:id`          | Admin      | Deletes a vehicle in a short protected transaction  |
+| `POST`   | `/api/vehicles/:id/purchase` | Bearer JWT | Atomically decreases available quantity             |
+| `POST`   | `/api/vehicles/:id/restock`  | Admin      | Atomically increases available quantity             |
 
 Create payload:
 
@@ -274,15 +281,26 @@ Update bodies deliberately exclude `quantity`:
 Stock can change only through `purchase` and `restock`. This prevents a stale administrator form
 from replacing a quantity that changed while a user was purchasing.
 
-Search parameters are optional and combined with AND semantics:
+List and search responses use a fixed page size of six. `skip` must be zero or a multiple of six:
 
 ```http
-GET /api/vehicles/search?make=toy&model=cam&category=sedan&minPrice=10000&maxPrice=40000
+GET /api/vehicles?limit=6&skip=6
+GET /api/vehicles/search?make=toy&category=sedan&availability=available&sort=price-desc&limit=6&skip=0
 ```
 
-Text matching is case-insensitive and contains-based. Price bounds are inclusive. An inverted or
-malformed range returns `400 VALIDATION_ERROR`; a missing update/delete target returns
-`404 VEHICLE_NOT_FOUND`.
+```json
+{
+  "vehicles": [],
+  "pagination": { "limit": 6, "skip": 6, "total": 10 },
+  "brands": ["Audi", "Bentley", "Land Rover"]
+}
+```
+
+Search parameters are optional and combined with AND semantics. Text matching is case-insensitive
+and contains-based; price bounds are inclusive. `availability` accepts `available` or `sold-out`,
+and `sort` accepts `price-asc` or `price-desc`. An inverted or malformed range, a page size other
+than six, or a misaligned offset returns `400 VALIDATION_ERROR`; a missing update/delete target
+returns `404 VEHICLE_NOT_FOUND`.
 
 Purchase and restock accept an optional positive integer quantity:
 
@@ -338,8 +356,14 @@ All errors use `{ "error": { "code": "...", "message": "..." } }`.
 The React collection uses an obsidian `#0B0B0C` canvas, charcoal `#161618` cards, silver
 `#8E8E93` supporting type, `#242427` borders, and a shared 12px radius. A single reference-led
 Navigation Menu now spans Home, Inventory, Login, and Register. Radix-powered Shadcn Select controls
-provide brand filtering, price sorting, and expandable advanced search. Availability tabs switch
-locally between all, purchasable, and sold-out records without another network request.
+provide brand filtering, availability filtering, price sorting, and expandable advanced search.
+The consolidated top-right control bar switches between all, purchasable, and sold-out records
+through the same paginated server query.
+
+The collection requests only six vehicles at a time. The API applies search, brand, availability,
+and price ordering before `take`/`skip`, returns the matching total and global brand facets, and
+uses deterministic secondary ordering by vehicle ID. The Shadcn-style navigation below the cards
+supports numbered pages plus disabled previous/next states without downloading the remaining rows.
 
 Vehicle cards use the repository's centered, non-hero transparent automotive assets with
 database-backed color, artwork selection, transmission, model year, engine, fuel, description,
@@ -417,6 +441,7 @@ GitHub Actions runs the same checks on every push and pull request. See
 - Insufficient stock returns `409 Conflict`.
 - Transient lock, statement, and pool-acquisition timeouts return retryable `503 Service Unavailable`.
 - Search filters are combinable, case-insensitive, and validate price ranges.
+- Vehicle lists use a fixed six-record page; offsets must be non-negative multiples of six.
 - `PUT` updates only supplied catalog metadata fields, rejects stock, and rejects an empty body.
 - Collection-card SVGs resolve through the DB-backed Supabase Storage catalog; the landing/auth
   hero remains a bundled repository asset.
@@ -434,10 +459,13 @@ browser run.
 AI was most useful for accelerating repetitive setup and expanding edge-case coverage, including
 email normalization, bcrypt's 72-byte input boundary, generic login failures, JWT claim
 verification, role middleware, decimal money validation, combined inventory filters, and missing
-database records. The important lesson was that generated code still required human-style
-verification: static analysis caught a React state-effect issue, an architecture review found the
-missing administrator seed path, and live query planning confirmed which inventory index the
-combined search actually used. Each issue was checked before handoff.
+database records. It also helped extend the Milestone 7 catalog while cross-checking the supplied
+vehicle metadata against live Supabase rows and the actual Storage object names. The important
+lesson was that generated code still required human-style verification: static analysis caught a
+React state-effect issue, an architecture review found the missing administrator seed path, live
+query planning confirmed which inventory index the combined search actually used, and Storage
+inspection caught five accidental `.svg.svg` filenames before broken URLs were persisted. Each
+issue was checked before handoff.
 
 Every AI-assisted commit includes:
 
