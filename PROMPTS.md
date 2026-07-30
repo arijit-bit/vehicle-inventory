@@ -655,3 +655,32 @@ the unused Contact option from navigation without creating a Contact page.
   dependency for an editorial page.
 - Content describes capabilities the product actually provides—curation, live stock, role-aware
   access, and durable order history—rather than introducing unsupported service claims.
+
+## 2026-07-30 - Pending artwork default and reservation confirmation
+
+**User prompt summary:** Use the supplied Supabase `default-image.svg` as a neutral Coming Soon
+default for newly created vehicles, warn administrators when no specific artwork is selected, and
+require customer confirmation before a dashboard reservation creates an order or changes stock.
+
+**AI-assisted work:**
+
+- Added Red tests for the new image key, omitted-artwork API default, Storage mapping, administrator
+  warning, and confirmation-gated reservation behavior before implementation.
+- Verified that the live Storage object is `Assets-SVG/vehicles/default-image.svg` with SVG MIME
+  type, then added the `ARTWORK_PENDING` enum value and `media_assets` row.
+- Made Coming Soon / Artwork pending the first and default artwork option while preserving all
+  deliberate model-specific selections.
+- Added a responsive reservation review dialog with vehicle, price, stock impact, cancellation
+  guidance, and explicit Keep browsing / Confirm reservation actions.
+- Applied the Prisma migration to the configured Supabase project and verified the enum, metadata
+  row, public URL, MIME type, byte size, and Storage object join.
+- Ran 194 tests plus formatting, lint, TypeScript checking, coverage, and both production builds.
+
+**Architecture decisions:**
+
+- The neutral placeholder is an explicit persisted state rather than an inferred fallback, so
+  inventory never silently displays another model's artwork.
+- The backend defaults omitted create payloads as well as the admin UI, keeping non-browser API
+  clients consistent.
+- Reservation confirmation is a client-side safety gate; the existing atomic database transaction
+  remains the sole authority for order creation and stock decrement.

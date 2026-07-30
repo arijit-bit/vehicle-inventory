@@ -25,11 +25,13 @@ Milestone 7 is complete:
 - Exact two-decimal price serialization and non-negative stock validation
 - Prisma persistence with stable not-found handling
 - Atomic purchasing and restocking with row-lock serialization and transaction-local deadlines
-- Atomic reservation history that stores an immutable vehicle snapshot with each order
+- Confirmation-gated atomic reservation history that stores an immutable vehicle snapshot with each
+  order
 - Customer-only cancellation that restores the exact reserved quantity once
 - Role-scoped Orders page: customers see their history; Employees/Admins see all customer orders
 - Retryable `503 INVENTORY_BUSY` responses for database and connection-pool contention
 - Persisted catalog year, artwork key, color, engine, transmission, fuel type, and description
+- Supabase-backed Coming Soon artwork default with an explicit administrator warning
 - An idempotent four-vehicle starter collection applied through the Prisma migration history
 - Dark-luxury collection with transparent vehicle artwork, brand filtering, price sorting, search,
   stock-aware purchasing, and sold-out states
@@ -43,7 +45,7 @@ Milestone 7 is complete:
 - Accessible dialogs with Escape, backdrop, focus trapping, and scroll handling
 - Real signed-token verification that `DELETE /api/vehicles/:id` is administrator-only
 - End-to-end auth boundary proof from registration through profile restore and protected inventory
-- 191 automated tests across the API and SPA
+- 194 automated tests across the API and SPA
 
 ## Architecture
 
@@ -130,6 +132,11 @@ Collection artwork is stored in the public `Assets-SVG/vehicles` Supabase Storag
 public URL, and accessible alt text. `GET /api/assets` publishes that read-only catalog, and the
 React provider loads it once for all vehicle cards. Storage write/delete operations remain
 dashboard- or server-controlled; the browser receives no service-role key.
+
+New vehicle records default to the `ARTWORK_PENDING` key. It resolves to
+`Assets-SVG/vehicles/default-image.svg`, a neutral Coming Soon image, until an Employee or
+Administrator deliberately selects model-specific artwork. The create form warns about the
+placeholder before submission, and the API applies the same default when `imageKey` is omitted.
 
 The landing and authentication hero intentionally remain bundled from
 `frontend/src/assets/svg/Final-CarHero Page.svg`, so the primary above-the-fold artwork does not
@@ -419,6 +426,8 @@ Vehicle cards use the repository's centered, non-hero transparent automotive ass
 database-backed color, artwork selection, transmission, model year, engine, fuel, description,
 price, and stock. Expanded details show the persisted specification instead of frontend
 placeholders. Guest visitors can browse and filter but must sign in before reserving a vehicle.
+Customer reservations open a review dialog showing the vehicle, price, current stock, and resulting
+stock before any order or inventory mutation is sent to the API.
 
 The glass navigation header shows the verified email and effective role returned by `/api/auth/me`.
 Expired or rejected bearer tokens immediately clear the tab-scoped session and return the user to
