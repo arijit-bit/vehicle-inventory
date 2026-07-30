@@ -1,12 +1,12 @@
 import { CarFront, LogOut, Menu, UserRound, X } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { AuthUser } from '../features/auth/auth-api';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 import {
   NavigationMenu,
   NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
 } from './ui/navigation-menu';
 
@@ -30,50 +30,62 @@ export const AppNavigation = ({ active = null, user = null, onLogout }: AppNavig
   return (
     <header className="sticky top-0 z-50 bg-background/75 px-5 backdrop-blur-xl sm:px-8 lg:px-12">
       <div className="mx-auto flex h-20 max-w-[1440px] items-center border-b border-white/15">
-        <a aria-label="MotoVault home" className="flex items-center gap-3 text-primary" href="/">
+        <Link aria-label="MotoVault home" className="flex items-center gap-3 text-primary" to="/">
           <span className="flex size-9 items-center justify-center rounded-full border border-white/30">
             <CarFront aria-hidden="true" className="size-4" />
           </span>
           <span className="text-xs font-semibold tracking-[-0.01em]">MotoVault</span>
-        </a>
+        </Link>
 
         <NavigationMenu aria-label="Primary" className="mx-auto hidden md:flex">
           <NavigationMenuList className="gap-2">
             <NavigationMenuItem>
-              <NavigationMenuLink
+              <Link
                 aria-current={active === 'home' ? 'page' : undefined}
-                className={cn(active === 'home' && 'bg-white/[0.04] text-primary')}
-                href="/"
+                className={cn(
+                  'group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50',
+                  active === 'home' && 'bg-white/[0.04] text-primary',
+                )}
+                to="/"
               >
                 Home
-              </NavigationMenuLink>
+              </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavigationMenuLink
+              <Link
                 aria-current={active === 'about' ? 'page' : undefined}
-                className={cn(active === 'about' && 'bg-white/[0.04] text-primary')}
-                href="/about"
+                className={cn(
+                  'group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50',
+                  active === 'about' && 'bg-white/[0.04] text-primary',
+                )}
+                to="/about"
               >
                 About
-              </NavigationMenuLink>
+              </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavigationMenuLink
+              <Link
                 aria-current={active === 'inventory' ? 'page' : undefined}
-                className={cn(active === 'inventory' && 'bg-white/[0.04] text-primary')}
-                href="/dashboard"
+                className={cn(
+                  'group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50',
+                  active === 'inventory' && 'bg-white/[0.04] text-primary',
+                )}
+                to="/dashboard"
               >
                 Inventory
-              </NavigationMenuLink>
+              </Link>
             </NavigationMenuItem>
             <NavigationMenuItem>
-              <NavigationMenuLink
+              <Link
                 aria-current={active === 'orders' ? 'page' : undefined}
-                className={cn(active === 'orders' && 'bg-white/[0.04] text-primary')}
-                href="/orders"
+                className={cn(
+                  'group inline-flex h-9 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50',
+                  active === 'orders' && 'bg-white/[0.04] text-primary',
+                )}
+                to="/orders"
               >
                 Orders
-              </NavigationMenuLink>
+              </Link>
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>
@@ -97,10 +109,10 @@ export const AppNavigation = ({ active = null, user = null, onLogout }: AppNavig
           ) : (
             <>
               <Button asChild className="hidden lg:inline-flex" variant="ghost">
-                <a href="/login">Sign in</a>
+                <Link to="/login">Sign in</Link>
               </Button>
               <Button asChild className="hidden sm:inline-flex" variant="outline">
-                <a href="/register">Request access</a>
+                <Link to="/register">Request access</Link>
               </Button>
             </>
           )}
@@ -131,57 +143,57 @@ export const AppNavigation = ({ active = null, user = null, onLogout }: AppNavig
         id="site-menu"
       >
         <nav aria-label="Menu">
-          <a
+          <Link
             aria-current={active === 'home' ? 'page' : undefined}
             className={cn(
               'block rounded-lg px-4 py-3 text-sm text-secondary transition-colors hover:bg-white/[0.04] hover:text-primary',
               active === 'home' && 'bg-white/[0.05] text-primary',
             )}
             onClick={() => setIsMenuOpen(false)}
-            href="/"
+            to="/"
           >
             Home
-          </a>
-          <a
+          </Link>
+          <Link
             aria-current={active === 'about' ? 'page' : undefined}
             className={cn(
               'mt-1 block rounded-lg px-4 py-3 text-sm text-secondary transition-colors hover:bg-white/[0.04] hover:text-primary',
               active === 'about' && 'bg-white/[0.05] text-primary',
             )}
-            href="/about"
+            to="/about"
             onClick={() => setIsMenuOpen(false)}
           >
             About
-          </a>
-          <a
+          </Link>
+          <Link
             aria-current={active === 'inventory' ? 'page' : undefined}
             className={cn(
               'mt-1 block rounded-lg px-4 py-3 text-sm text-secondary transition-colors hover:bg-white/[0.04] hover:text-primary',
               active === 'inventory' && 'bg-white/[0.05] text-primary',
             )}
             onClick={() => setIsMenuOpen(false)}
-            href="/dashboard"
+            to="/dashboard"
           >
             Inventory
-          </a>
-          <a
+          </Link>
+          <Link
             aria-current={active === 'orders' ? 'page' : undefined}
             className={cn(
               'mt-1 block rounded-lg px-4 py-3 text-sm text-secondary transition-colors hover:bg-white/[0.04] hover:text-primary',
               active === 'orders' && 'bg-white/[0.05] text-primary',
             )}
-            href="/orders"
+            to="/orders"
             onClick={() => setIsMenuOpen(false)}
           >
             Orders
-          </a>
+          </Link>
           {!user && (
             <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-3">
               <Button asChild variant="ghost">
-                <a href="/login">Sign in</a>
+                <Link to="/login">Sign in</Link>
               </Button>
               <Button asChild>
-                <a href="/register">Request access</a>
+                <Link to="/register">Request access</Link>
               </Button>
             </div>
           )}

@@ -37,8 +37,10 @@ export const createApp = ({
   const allowedOrigins: (string | RegExp)[] = [
     // Allow all *.vercel.app preview/production deployments
     /^https:\/\/.*\.vercel\.app$/,
-    // Allow local development
+    // Allow local development (5173 is default, 5174+ is Vite's fallback when port is in use)
     'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
     'http://localhost:3000',
     // Allow any extra origins listed in CORS_ORIGIN (comma-separated)
     ...(process.env.CORS_ORIGIN?.split(',')
