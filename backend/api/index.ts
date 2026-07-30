@@ -7,6 +7,7 @@ import { AuthService } from '../src/modules/auth/auth.service.js';
 import { BcryptPasswordHasher } from '../src/modules/auth/bcrypt-password-hasher.js';
 import { JwtTokenService } from '../src/modules/auth/jwt-token.service.js';
 import { PrismaUserRepository } from '../src/modules/auth/prisma-user.repository.js';
+import { PrismaRefreshTokenRepository, RefreshTokenService } from '../src/modules/auth/refresh-token.service.js';
 import { UserManagementService } from '../src/modules/auth/user-management.service.js';
 import { MediaAssetService } from '../src/modules/media-assets/media-asset.service.js';
 import { PrismaMediaAssetRepository } from '../src/modules/media-assets/prisma-media-asset.repository.js';
@@ -34,6 +35,8 @@ async function buildApp(): Promise<Express> {
   });
   const authService = new AuthService(users, passwords, tokens);
   const userManagementService = new UserManagementService(users, passwords);
+  const refreshTokenRepo = new PrismaRefreshTokenRepository(database);
+  const refreshTokenService = new RefreshTokenService(refreshTokenRepo, tokens);
   const vehicles = new PrismaVehicleRepository(database, {
     lockTimeoutMs: env.DATABASE_LOCK_TIMEOUT_MS,
     statementTimeoutMs: env.DATABASE_STATEMENT_TIMEOUT_MS,
@@ -57,6 +60,7 @@ async function buildApp(): Promise<Express> {
   appInstance = createApp({
     authService,
     tokenVerifier: tokens,
+    refreshTokenService,
     vehicleService,
     userManagementService,
     mediaAssetService,
