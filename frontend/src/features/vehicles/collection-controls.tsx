@@ -32,11 +32,11 @@ export const CollectionControls = ({
   onPriceSortChange,
   onToggleSearch,
 }: CollectionControlsProps) => (
-  <div className="flex w-full flex-wrap items-center gap-1 rounded-[calc(var(--radius)+0.35rem)] border border-white/15 bg-card/70 p-1 lg:w-auto lg:justify-end">
+  <div className="flex w-full flex-wrap items-center gap-1.5 rounded-full border border-white/15 bg-card/70 p-1.5 lg:w-auto lg:justify-end">
     <Select onValueChange={onBrandChange} value={brand}>
       <SelectTrigger
         aria-label="Filter By Brand"
-        className="flex-1 rounded-[var(--radius)] border-0 bg-transparent sm:flex-none"
+        className="flex-1 rounded-full border border-white/12 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 transition-colors sm:flex-none"
       >
         <SelectValue placeholder="Filter By Brand" />
       </SelectTrigger>
@@ -56,7 +56,7 @@ export const CollectionControls = ({
     >
       <SelectTrigger
         aria-label="Filter By Availability"
-        className="flex-1 rounded-[var(--radius)] border-0 bg-transparent sm:flex-none"
+        className="flex-1 rounded-full border border-white/12 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 transition-colors sm:flex-none"
       >
         <SelectValue placeholder="Filter By Availability" />
       </SelectTrigger>
@@ -70,7 +70,7 @@ export const CollectionControls = ({
     <Select onValueChange={(value) => onPriceSortChange(value as PriceSort)} value={priceSort}>
       <SelectTrigger
         aria-label="Sort By Price"
-        className="flex-1 rounded-[var(--radius)] border-0 bg-transparent sm:flex-none"
+        className="flex-1 rounded-full border border-white/12 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 transition-colors sm:flex-none"
       >
         <SelectValue placeholder="Sort By Price" />
       </SelectTrigger>

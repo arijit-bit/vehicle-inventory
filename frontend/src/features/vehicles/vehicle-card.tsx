@@ -42,7 +42,7 @@ export const VehicleCard = ({
   return (
     <Card
       aria-label={`${vehicle.make} ${vehicle.model}`}
-      className="group overflow-hidden border-white/15 bg-[linear-gradient(180deg,#090a0b_0%,#0b0b0c_58%,#151517_100%)]"
+      className="group overflow-hidden rounded-3xl border-white/15 bg-[linear-gradient(180deg,#090a0b_0%,#0b0b0c_58%,#151517_100%)]"
       role="article"
     >
       <div className="flex items-center justify-between gap-3 px-4 pt-4 text-[10px] font-medium text-secondary">

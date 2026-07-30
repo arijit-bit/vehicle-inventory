@@ -96,9 +96,19 @@ const readableInventoryError = (error: unknown) => {
   return error.message;
 };
 
-const FormField = ({ id, label, children }: { id: string; label: string; children: ReactNode }) => (
+const FormField = ({
+  id,
+  label,
+  labelClassName,
+  children,
+}: {
+  id: string;
+  label: string;
+  labelClassName?: string;
+  children: ReactNode;
+}) => (
   <div className="space-y-2">
-    <Label htmlFor={id}>{label}</Label>
+    <Label className={labelClassName} htmlFor={id}>{label}</Label>
     {children}
   </div>
 );
@@ -657,7 +667,7 @@ export const DashboardPage = () => {
           )}
 
           {searchExpanded && workspaceView === 'catalog' && (
-            <Card className="mt-6 p-5">
+            <Card className="mt-6 overflow-hidden rounded-3xl p-5">
               <form
                 className="grid items-end gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_0.8fr_0.8fr_auto]"
                 onSubmit={searchInventory}
@@ -669,8 +679,9 @@ export const DashboardPage = () => {
                   ['minPrice', 'Minimum price'],
                   ['maxPrice', 'Maximum price'],
                 ].map(([field, label]) => (
-                  <FormField id={`filter-${field}`} key={field} label={label!}>
+                  <FormField id={`filter-${field}`} key={field} label={label!} labelClassName="block text-center">
                     <Input
+                      className="rounded-full"
                       id={`filter-${field}`}
                       onChange={(event) =>
                         setFilters((current) => ({ ...current, [field!]: event.target.value }))
@@ -686,6 +697,7 @@ export const DashboardPage = () => {
                 <div className="flex gap-2">
                   <Button
                     aria-label="Search inventory"
+                    className="rounded-full"
                     disabled={isLoading}
                     size="icon"
                     type="submit"
@@ -694,6 +706,7 @@ export const DashboardPage = () => {
                   </Button>
                   <Button
                     aria-label="Clear search"
+                    className="rounded-full"
                     onClick={clearSearch}
                     size="icon"
                     type="button"
