@@ -68,6 +68,41 @@ async function buildApp(): Promise<Express> {
 
 // Vercel serverless handler — receives each request, builds the app lazily
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  const app = await buildApp();
-  app(req, res);
+  // Always set CORS headers so the browser can read error responses too
+  const origin = (req.headers['origin'] as string) ?? '';
+  const allowed =
+    !origin ||
+    /^https:\/\/.*\.vercel\.app$/.test(origin) ||
+    origin === 'http://localhost:5173' ||
+    origin === 'http://localhost:3000' ||
+    (process.env.CORS_ORIGIN ?? '')
+      .split(',')
+      .map((o) => o.trim())
+      .includes(origin);
+
+  if (allowed && origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Vary', 'Origin');
+  }
+
+  // Handle CORS pre-flight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  try {
+    const app = await buildApp();
+    app(req, res);
+  } catch (err) {
+    // Reset so the next warm invocation retries initialisation
+    appInstance = null;
+    console.error('[handler] Failed to initialise app:', err);
+    res.writeHead(503, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: { code: 'SERVICE_UNAVAILABLE', message: 'Service failed to start' } }));
+  }
 }
