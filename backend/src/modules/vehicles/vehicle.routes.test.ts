@@ -27,6 +27,15 @@ const vehicle: VehicleRecord = {
   createdAt: new Date('2026-07-29T00:00:00.000Z'),
   updatedAt: new Date('2026-07-29T00:00:00.000Z'),
 };
+const vehiclePage = {
+  vehicles: [vehicle],
+  pagination: {
+    limit: 6,
+    skip: 0,
+    total: 10,
+  },
+  brands: ['Toyota'],
+};
 
 describe('vehicle HTTP API', () => {
   const vehicleService = {
@@ -45,11 +54,14 @@ describe('vehicle HTTP API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vehicleService.create.mockResolvedValue(vehicle);
-    vehicleService.list.mockResolvedValue([vehicle]);
-    vehicleService.search.mockResolvedValue([vehicle]);
+    vehicleService.list.mockResolvedValue(vehiclePage);
+    vehicleService.search.mockResolvedValue(vehiclePage);
     vehicleService.update.mockResolvedValue(vehicle);
     vehicleService.delete.mockResolvedValue(undefined);
-    vehicleService.purchase.mockResolvedValue({ ...vehicle, quantity: 3 });
+    vehicleService.purchase.mockResolvedValue({
+      vehicle: { ...vehicle, quantity: 3 },
+      order: { id: '2e18dc0f-9dcf-4d1e-a915-a6c73cd29a30', status: 'RESERVED' },
+    });
     vehicleService.restock.mockResolvedValue({ ...vehicle, quantity: 6 });
     vi.mocked(tokenVerifier.verify).mockReturnValue({
       sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
@@ -60,25 +72,21 @@ describe('vehicle HTTP API', () => {
 
   const app = () => createApp({ tokenVerifier, vehicleService });
   const authorized = () => ({ Authorization: 'Bearer signed.jwt.token' });
-
-  it('allows a guest to list vehicles', async () => {
-    const response = await request(app()).get('/api/vehicles');
-
-    expect(response.status).toBe(200);
-    expect(vehicleService.list).toHaveBeenCalledOnce();
-  });
-
-  it('lists vehicles for an authenticated user', async () => {
+  const authenticateCustomer = () => {
     vi.mocked(tokenVerifier.verify).mockReturnValue({
       sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
       email: 'driver@example.com',
       role: 'CUSTOMER',
     });
+  };
 
-    const response = await request(app()).get('/api/vehicles').set(authorized());
+  it('allows a guest to list vehicles', async () => {
+    const response = await request(app()).get('/api/vehicles');
 
     expect(response.status).toBe(200);
+    expect(vehicleService.list).toHaveBeenCalledWith({ limit: 6, skip: 0 });
     expect(response.body).toEqual({
+      ...vehiclePage,
       vehicles: [
         {
           ...vehicle,
@@ -89,6 +97,37 @@ describe('vehicle HTTP API', () => {
     });
   });
 
+  it('lists the second page for an authenticated user', async () => {
+    vi.mocked(tokenVerifier.verify).mockReturnValue({
+      sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
+      email: 'driver@example.com',
+      role: 'CUSTOMER',
+    });
+
+    const response = await request(app())
+      .get('/api/vehicles')
+      .query({ limit: 6, skip: 6 })
+      .set(authorized());
+
+    expect(response.status).toBe(200);
+    expect(vehicleService.list).toHaveBeenCalledWith({ limit: 6, skip: 6 });
+    expect(response.body).toEqual({
+      vehicles: [
+        {
+          ...vehicle,
+          createdAt: '2026-07-29T00:00:00.000Z',
+          updatedAt: '2026-07-29T00:00:00.000Z',
+        },
+      ],
+      pagination: {
+        limit: 6,
+        skip: 0,
+        total: 10,
+      },
+      brands: ['Toyota'],
+    });
+  });
+
   it('searches with combined normalized filters', async () => {
     const response = await request(app()).get('/api/vehicles/search').query({
       make: ' toy ',
@@ -96,15 +135,24 @@ describe('vehicle HTTP API', () => {
       category: ' sedan ',
       minPrice: '10000',
       maxPrice: '40000.5',
+      availability: 'available',
+      sort: 'price-desc',
+      limit: '6',
+      skip: '6',
     });
     expect(response.status).toBe(200);
-    expect(vehicleService.search).toHaveBeenCalledWith({
-      make: 'toy',
-      model: 'cam',
-      category: 'sedan',
-      minPrice: '10000.00',
-      maxPrice: '40000.50',
-    });
+    expect(vehicleService.search).toHaveBeenCalledWith(
+      {
+        make: 'toy',
+        model: 'cam',
+        category: 'sedan',
+        minPrice: '10000.00',
+        maxPrice: '40000.50',
+        availability: 'available',
+        sort: 'price-desc',
+      },
+      { limit: 6, skip: 6 },
+    );
   });
 
   it('allows an administrator to create a normalized vehicle', async () => {
@@ -242,12 +290,8 @@ describe('vehicle HTTP API', () => {
     });
   });
 
-  it('purchases a requested quantity as an authenticated user', async () => {
-    vi.mocked(tokenVerifier.verify).mockReturnValue({
-      sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
-      email: 'driver@example.com',
-      role: 'CUSTOMER',
-    });
+  it('purchases a requested quantity as a customer', async () => {
+    authenticateCustomer();
 
     const response = await request(app())
       .post(`/api/vehicles/${vehicle.id}/purchase`)
@@ -255,20 +299,32 @@ describe('vehicle HTTP API', () => {
       .send({ quantity: 1 });
 
     expect(response.status).toBe(200);
-    expect(vehicleService.purchase).toHaveBeenCalledWith(vehicle.id, 1);
+    expect(vehicleService.purchase).toHaveBeenCalledWith(
+      vehicle.id,
+      1,
+      'f9117522-a624-4e2e-a489-3b2ec2840292',
+    );
     expect(response.body.vehicle.quantity).toBe(3);
+    expect(response.body.order.status).toBe('RESERVED');
   });
 
   it('purchases one vehicle when quantity is omitted', async () => {
+    authenticateCustomer();
+
     const response = await request(app())
       .post(`/api/vehicles/${vehicle.id}/purchase`)
       .set(authorized());
 
     expect(response.status).toBe(200);
-    expect(vehicleService.purchase).toHaveBeenCalledWith(vehicle.id, 1);
+    expect(vehicleService.purchase).toHaveBeenCalledWith(
+      vehicle.id,
+      1,
+      'f9117522-a624-4e2e-a489-3b2ec2840292',
+    );
   });
 
   it('returns 409 when a purchase exceeds available stock', async () => {
+    authenticateCustomer();
     vehicleService.purchase.mockRejectedValue(new InsufficientStockError());
 
     const response = await request(app())
@@ -281,6 +337,7 @@ describe('vehicle HTTP API', () => {
   });
 
   it('returns a retryable 503 when a database lock times out', async () => {
+    authenticateCustomer();
     vehicleService.purchase.mockRejectedValue(new InventoryBusyError());
 
     const response = await request(app())
@@ -297,6 +354,25 @@ describe('vehicle HTTP API', () => {
       },
     });
   });
+
+  it.each(['EMPLOYEE', 'ADMIN'] as const)(
+    'denies vehicle reservations to %s users',
+    async (role) => {
+      vi.mocked(tokenVerifier.verify).mockReturnValue({
+        sub: 'f9117522-a624-4e2e-a489-3b2ec2840292',
+        email: `${role.toLowerCase()}@example.com`,
+        role,
+      });
+
+      const response = await request(app())
+        .post(`/api/vehicles/${vehicle.id}/purchase`)
+        .set(authorized())
+        .send({ quantity: 1 });
+
+      expect(response.status).toBe(403);
+      expect(vehicleService.purchase).not.toHaveBeenCalled();
+    },
+  );
 
   it('allows an administrator to restock a vehicle', async () => {
     const response = await request(app())

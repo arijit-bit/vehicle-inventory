@@ -6,6 +6,7 @@ import {
   CannotDeleteSelfError,
   UserNotFoundError,
 } from '../modules/auth/user-management.types.js';
+import { OrderAlreadyCancelledError, OrderNotFoundError } from '../modules/orders/order.types.js';
 import {
   InsufficientStockError,
   InventoryBusyError,
@@ -74,6 +75,26 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, _ne
     response.status(404).json({
       error: {
         code: 'VEHICLE_NOT_FOUND',
+        message: error.message,
+      },
+    });
+    return;
+  }
+
+  if (error instanceof OrderNotFoundError) {
+    response.status(404).json({
+      error: {
+        code: 'ORDER_NOT_FOUND',
+        message: error.message,
+      },
+    });
+    return;
+  }
+
+  if (error instanceof OrderAlreadyCancelledError) {
+    response.status(409).json({
+      error: {
+        code: 'ORDER_ALREADY_CANCELLED',
         message: error.message,
       },
     });

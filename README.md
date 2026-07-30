@@ -16,7 +16,8 @@ Milestone 7 is complete:
 - Environment-seeded administrator; public registration supports `CUSTOMER` and `EMPLOYEE`
 - Reference-led dark-luxury landing page with metallic hero typography, responsive navigation, and
   the repository's exotic vehicle artwork
-- A shared reference-led navigation header across Home, Inventory, Login, and Register
+- A shared reference-led navigation header across Home, About, Inventory, Orders, Login, and Register
+- Responsive editorial About page covering MotoVault's standards and reservation experience
 - Premium centered login and registration flows with email/password authentication
 - Session restoration, logout, and protected React routes
 - Protected vehicle listing and combined make, model, category, and price-range search
@@ -24,12 +25,18 @@ Milestone 7 is complete:
 - Exact two-decimal price serialization and non-negative stock validation
 - Prisma persistence with stable not-found handling
 - Atomic purchasing and restocking with row-lock serialization and transaction-local deadlines
+- Confirmation-gated atomic reservation history that stores an immutable vehicle snapshot with each
+  order
+- Customer-only cancellation that restores the exact reserved quantity once
+- Role-scoped Orders page: customers see their history; Employees/Admins see all customer orders
 - Retryable `503 INVENTORY_BUSY` responses for database and connection-pool contention
 - Persisted catalog year, artwork key, color, engine, transmission, fuel type, and description
+- Supabase-backed Coming Soon artwork default with an explicit administrator warning
 - An idempotent four-vehicle starter collection applied through the Prisma migration history
 - Dark-luxury collection with transparent vehicle artwork, brand filtering, price sorting, search,
   stock-aware purchasing, and sold-out states
-- Signed-in identity and role surface with responsive availability tabs and live result counts
+- Server-side six-vehicle pagination with accessible Shadcn page, previous, and next controls
+- Signed-in identity and role surface with a responsive availability select and live result counts
 - Session-race protection and automatic logout when protected APIs reject an expired token
 - Accessible form errors linked to the affected authentication controls
 - Radix-powered Shadcn Navigation Menu, Select, Dialog, Button, Card, Input, and Table primitives
@@ -38,7 +45,7 @@ Milestone 7 is complete:
 - Accessible dialogs with Escape, backdrop, focus trapping, and scroll handling
 - Real signed-token verification that `DELETE /api/vehicles/:id` is administrator-only
 - End-to-end auth boundary proof from registration through profile restore and protected inventory
-- 150 automated tests across the API and SPA
+- 194 automated tests across the API and SPA
 
 ## Architecture
 
@@ -116,7 +123,7 @@ Create a Supabase PostgreSQL project and copy its pooler URLs from **Connect** i
 URL-encode special password characters. Database URLs are backend-only and must never use the
 `VITE_` prefix.
 
-The `users`, `vehicles`, and `media_assets` tables have RLS enabled. Supabase `anon` and
+The `users`, `vehicles`, `media_assets`, and `orders` tables have RLS enabled. Supabase `anon` and
 `authenticated` roles have no table DML privileges because Express is the only public data
 boundary. No permissive table RLS policy is intentionally defined.
 
@@ -126,9 +133,20 @@ public URL, and accessible alt text. `GET /api/assets` publishes that read-only 
 React provider loads it once for all vehicle cards. Storage write/delete operations remain
 dashboard- or server-controlled; the browser receives no service-role key.
 
+New vehicle records default to the `ARTWORK_PENDING` key. It resolves to
+`Assets-SVG/vehicles/default-image.svg`, a neutral Coming Soon image, until an Employee or
+Administrator deliberately selects model-specific artwork. The create form warns about the
+placeholder before submission, and the API applies the same default when `imageKey` is omitted.
+
 The landing and authentication hero intentionally remain bundled from
 `frontend/src/assets/svg/Final-CarHero Page.svg`, so the primary above-the-fold artwork does not
 wait for the asset-catalog request.
+
+The Milestone 7 catalog migration adds Bentley Continental GT Speed, Porsche 911 Turbo S,
+Mercedes-Maybach S680, Audi R8 V10 Performance, and Range Rover SV Autobiography records. Their
+uploaded Storage objects currently end in `.svg.svg`; the `media_assets` rows deliberately retain
+those exact live object names so their public URLs resolve instead of relying on normalized but
+nonexistent `.svg` paths.
 
 To add another collection image:
 
@@ -149,6 +167,12 @@ Verify the live table security and seeded catalog count with:
 
 ```bash
 npm run verify:database-security --workspace backend
+```
+
+Run the self-cleaning live reservation/cancellation check with:
+
+```bash
+npm run verify:order-history --workspace backend
 ```
 
 ### Local PostgreSQL fallback
@@ -193,18 +217,18 @@ Authorization: Bearer <token>
 ## Vehicle API
 
 Vehicle prices are returned as two-decimal strings so JSON clients do not lose decimal precision.
-Guests can list and search. Any authenticated role can purchase. `EMPLOYEE` and `ADMIN` can create
-and update vehicles, while only `ADMIN` can delete or restock.
+Guests can list and search. Customers can reserve. `EMPLOYEE` and `ADMIN` can create and update
+vehicles, while only `ADMIN` can delete or restock.
 
-| Method   | Endpoint                     | Access     | Result                                             |
-| -------- | ---------------------------- | ---------- | -------------------------------------------------- |
-| `GET`    | `/api/vehicles`              | Public     | Lists every inventory record                       |
-| `GET`    | `/api/vehicles/search`       | Public     | Searches with combinable query parameters          |
-| `POST`   | `/api/vehicles`              | Employee+  | Creates a vehicle with its initial quantity        |
-| `PUT`    | `/api/vehicles/:id`          | Employee+  | Updates supplied catalog fields, excluding stock   |
-| `DELETE` | `/api/vehicles/:id`          | Admin      | Deletes a vehicle in a short protected transaction |
-| `POST`   | `/api/vehicles/:id/purchase` | Bearer JWT | Atomically decreases available quantity            |
-| `POST`   | `/api/vehicles/:id/restock`  | Admin      | Atomically increases available quantity            |
+| Method   | Endpoint                     | Access    | Result                                              |
+| -------- | ---------------------------- | --------- | --------------------------------------------------- |
+| `GET`    | `/api/vehicles`              | Public    | Lists a six-record inventory page                   |
+| `GET`    | `/api/vehicles/search`       | Public    | Searches, sorts, and pages with combined parameters |
+| `POST`   | `/api/vehicles`              | Employee+ | Creates a vehicle with its initial quantity         |
+| `PUT`    | `/api/vehicles/:id`          | Employee+ | Updates supplied catalog fields, excluding stock    |
+| `DELETE` | `/api/vehicles/:id`          | Admin     | Deletes a vehicle in a short protected transaction  |
+| `POST`   | `/api/vehicles/:id/purchase` | Customer  | Atomically creates an order and decreases stock     |
+| `POST`   | `/api/vehicles/:id/restock`  | Admin     | Atomically increases available quantity             |
 
 Create payload:
 
@@ -274,15 +298,26 @@ Update bodies deliberately exclude `quantity`:
 Stock can change only through `purchase` and `restock`. This prevents a stale administrator form
 from replacing a quantity that changed while a user was purchasing.
 
-Search parameters are optional and combined with AND semantics:
+List and search responses use a fixed page size of six. `skip` must be zero or a multiple of six:
 
 ```http
-GET /api/vehicles/search?make=toy&model=cam&category=sedan&minPrice=10000&maxPrice=40000
+GET /api/vehicles?limit=6&skip=6
+GET /api/vehicles/search?make=toy&category=sedan&availability=available&sort=price-desc&limit=6&skip=0
 ```
 
-Text matching is case-insensitive and contains-based. Price bounds are inclusive. An inverted or
-malformed range returns `400 VALIDATION_ERROR`; a missing update/delete target returns
-`404 VEHICLE_NOT_FOUND`.
+```json
+{
+  "vehicles": [],
+  "pagination": { "limit": 6, "skip": 6, "total": 10 },
+  "brands": ["Audi", "Bentley", "Land Rover"]
+}
+```
+
+Search parameters are optional and combined with AND semantics. Text matching is case-insensitive
+and contains-based; price bounds are inclusive. `availability` accepts `available` or `sold-out`,
+and `sort` accepts `price-asc` or `price-desc`. An inverted or malformed range, a page size other
+than six, or a misaligned offset returns `400 VALIDATION_ERROR`; a missing update/delete target
+returns `404 VEHICLE_NOT_FOUND`.
 
 Purchase and restock accept an optional positive integer quantity:
 
@@ -292,10 +327,34 @@ Purchase and restock accept an optional positive integer quantity:
 }
 ```
 
-Omitting the body defaults to one vehicle. Purchasing uses one conditional database
-`UPDATE ... WHERE quantity >= requested RETURNING ...` statement, preventing concurrent requests
-from overselling stock. Insufficient quantity returns `409 INSUFFICIENT_STOCK`. Restocking uses an
-atomic database increment and remains administrator-only.
+Omitting the body defaults to one vehicle. Reserving uses one conditional database
+`UPDATE ... WHERE quantity >= requested RETURNING ...` statement and creates the order in the same
+transaction, preventing concurrent requests from overselling stock or creating history without a
+matching decrement. The response includes both the committed `vehicle` and immutable `order`
+snapshot. Insufficient quantity returns `409 INSUFFICIENT_STOCK`. Restocking uses an atomic
+database increment and remains administrator-only.
+
+## Order API
+
+Both order endpoints require a bearer JWT and use a fixed six-record page. Customers receive only
+their own history. Employees and Administrators receive all orders with customer email details.
+Only the Customer who owns an active reservation can cancel it.
+
+| Method | Endpoint                 | Access     | Result                                              |
+| ------ | ------------------------ | ---------- | --------------------------------------------------- |
+| `GET`  | `/api/orders`            | Bearer JWT | Returns the role-scoped six-order history page      |
+| `POST` | `/api/orders/:id/cancel` | Customer   | Cancels an owned reservation and restores its stock |
+
+```http
+GET /api/orders?limit=6&skip=6
+POST /api/orders/b4d31d35-bd4c-41b2-9319-a7eaa7a9fcf7/cancel
+```
+
+Each order stores price and vehicle presentation fields at reservation time, so historical details
+remain stable when the live catalog is edited. Cancellation conditionally changes only a
+`RESERVED` row and restores its recorded quantity in the same transaction. A repeated cancellation
+returns `409 ORDER_ALREADY_CANCELLED` without incrementing stock again; an unknown or another
+customer's order returns `404 ORDER_NOT_FOUND`.
 
 ## Atomicity and concurrency strategy
 
@@ -310,6 +369,8 @@ the Supabase transaction pool to a later request.
 | Purchase vs restock        | Relative decrement/increment operations wait for the same row lock | Both commit in lock order; no update is lost                  |
 | Purchase vs metadata edit  | Edit waits but never writes `quantity`                             | Purchased quantity is preserved                               |
 | Purchase vs delete         | Operations serialize; the later request observes committed state   | Purchase/delete succeeds or the later target receives `404`   |
+| Reserve vs order insert    | Stock decrement and history insert share one transaction           | Both commit, or both roll back                                |
+| Cancel vs cancel           | Conditional status update allows one cancellation winner           | Stock is restored exactly once; later request receives `409`  |
 | Lock/statement deadline    | PostgreSQL aborts and rolls back the transaction                   | `503 INVENTORY_BUSY` with `Retry-After: 1`                    |
 | Prisma pool-start deadline | No transaction begins and no data changes                          | `503 INVENTORY_BUSY` with `Retry-After: 1`                    |
 
@@ -324,27 +385,49 @@ No Milestone 4 schema migration is needed: PostgreSQL row locks are acquired by 
 
 All errors use `{ "error": { "code": "...", "message": "..." } }`.
 
-| Status | Code                 | Meaning                                                    |
-| -----: | -------------------- | ---------------------------------------------------------- |
-|    400 | `VALIDATION_ERROR`   | Invalid identifier, fields, price, or quantity             |
-|    401 | `UNAUTHENTICATED`    | Missing, expired, or invalid bearer token                  |
-|    403 | `FORBIDDEN`          | A non-admin attempted an administrator operation           |
-|    404 | `VEHICLE_NOT_FOUND`  | The vehicle does not exist or was deleted concurrently     |
-|    409 | `INSUFFICIENT_STOCK` | The purchase cannot be fulfilled from committed stock      |
-|    503 | `INVENTORY_BUSY`     | Lock, statement, or transaction-start deadline was reached |
+| Status | Code                      | Meaning                                                    |
+| -----: | ------------------------- | ---------------------------------------------------------- |
+|    400 | `VALIDATION_ERROR`        | Invalid identifier, fields, price, or quantity             |
+|    401 | `UNAUTHENTICATED`         | Missing, expired, or invalid bearer token                  |
+|    403 | `FORBIDDEN`               | The authenticated role cannot perform the operation        |
+|    404 | `VEHICLE_NOT_FOUND`       | The vehicle does not exist or was deleted concurrently     |
+|    404 | `ORDER_NOT_FOUND`         | The owned order does not exist                             |
+|    409 | `INSUFFICIENT_STOCK`      | The purchase cannot be fulfilled from committed stock      |
+|    409 | `ORDER_ALREADY_CANCELLED` | The reservation was already cancelled                      |
+|    503 | `INVENTORY_BUSY`          | Lock, statement, or transaction-start deadline was reached |
 
 ## Milestone 7 interface
 
 The React collection uses an obsidian `#0B0B0C` canvas, charcoal `#161618` cards, silver
 `#8E8E93` supporting type, `#242427` borders, and a shared 12px radius. A single reference-led
-Navigation Menu now spans Home, Inventory, Login, and Register. Radix-powered Shadcn Select controls
-provide brand filtering, price sorting, and expandable advanced search. Availability tabs switch
-locally between all, purchasable, and sold-out records without another network request.
+Navigation Menu now spans Home, About, Inventory, Orders, Login, and Register. The unused Contact
+placeholder has been removed from desktop and mobile navigation. Radix-powered Shadcn Select controls
+provide brand filtering, availability filtering, price sorting, and expandable advanced search.
+The consolidated top-right control bar switches between all, purchasable, and sold-out records
+through the same paginated server query.
+
+The collection requests only six vehicles at a time. The API applies search, brand, availability,
+and price ordering before `take`/`skip`, returns the matching total and global brand facets, and
+uses deterministic secondary ordering by vehicle ID. The Shadcn-style navigation below the cards
+supports numbered pages plus disabled previous/next states without downloading the remaining rows.
+
+The former Services placeholder is replaced by Orders on desktop and mobile navigation. The Orders
+page reuses the six-item Shadcn pagination. Customers see their immutable reservation details and
+can cancel active orders; Employee and Administrator views show all paged orders with customer
+email and current status, without customer-only cancellation controls.
+
+The public About route extends the same dark-luxury art direction into an editorial brand story.
+It explains MotoVault's curation, specification transparency, trusted inventory, and
+discover/reserve/track journey, with responsive collection calls to action. Its two automotive
+features use distinct bundled artwork: a black BMW M8 Competition hero and an orange McLaren
+editorial image.
 
 Vehicle cards use the repository's centered, non-hero transparent automotive assets with
 database-backed color, artwork selection, transmission, model year, engine, fuel, description,
 price, and stock. Expanded details show the persisted specification instead of frontend
 placeholders. Guest visitors can browse and filter but must sign in before reserving a vehicle.
+Customer reservations open a review dialog showing the vehicle, price, current stock, and resulting
+stock before any order or inventory mutation is sent to the API.
 
 The glass navigation header shows the verified email and effective role returned by `/api/auth/me`.
 Expired or rejected bearer tokens immediately clear the tab-scoped session and return the user to
@@ -413,10 +496,14 @@ GitHub Actions runs the same checks on every push and pull request. See
 
 - Create and update require an Employee or Administrator; delete and restock require Administrator.
 - Purchase and restock accept a positive integer quantity.
+- Reserving creates immutable order history and decrements stock in the same transaction.
+- Cancelling an owned active order restores its recorded quantity exactly once.
+- Order pages use a fixed six-record page and role-scoped server queries.
 - Zero-stock vehicles remain visible but cannot be purchased.
 - Insufficient stock returns `409 Conflict`.
 - Transient lock, statement, and pool-acquisition timeouts return retryable `503 Service Unavailable`.
 - Search filters are combinable, case-insensitive, and validate price ranges.
+- Vehicle lists use a fixed six-record page; offsets must be non-negative multiples of six.
 - `PUT` updates only supplied catalog metadata fields, rejects stock, and rejects an empty body.
 - Collection-card SVGs resolve through the DB-backed Supabase Storage catalog; the landing/auth
   hero remains a bundled repository asset.
@@ -434,10 +521,13 @@ browser run.
 AI was most useful for accelerating repetitive setup and expanding edge-case coverage, including
 email normalization, bcrypt's 72-byte input boundary, generic login failures, JWT claim
 verification, role middleware, decimal money validation, combined inventory filters, and missing
-database records. The important lesson was that generated code still required human-style
-verification: static analysis caught a React state-effect issue, an architecture review found the
-missing administrator seed path, and live query planning confirmed which inventory index the
-combined search actually used. Each issue was checked before handoff.
+database records. It also helped extend the Milestone 7 catalog while cross-checking the supplied
+vehicle metadata against live Supabase rows and the actual Storage object names. The important
+lesson was that generated code still required human-style verification: static analysis caught a
+React state-effect issue, an architecture review found the missing administrator seed path, live
+query planning confirmed which inventory index the combined search actually used, and Storage
+inspection caught five accidental `.svg.svg` filenames before broken URLs were persisted. Each
+issue was checked before handoff.
 
 Every AI-assisted commit includes:
 

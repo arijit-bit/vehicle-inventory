@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   createVehicleSchema,
   inventoryMutationSchema,
+  paginatedSearchVehiclesSchema,
   searchVehiclesSchema,
   updateVehicleSchema,
+  vehiclePaginationSchema,
 } from './vehicle.schemas.js';
 
 describe('vehicle schemas', () => {
@@ -39,6 +41,52 @@ describe('vehicle schemas', () => {
       price: '32999.90',
       quantity: 4,
     });
+  });
+
+  it.each([
+    'ARTWORK_PENDING',
+    'BLACK_BENTLEY',
+    'GREEN_PORSCHE_911',
+    'BROWN_MAYBACH',
+    'ORANGE_AUDI_R8',
+    'BLACK_RANGE_ROVER',
+  ] as const)('accepts the additional catalog artwork key %s', (imageKey) => {
+    expect(
+      createVehicleSchema.parse({
+        make: 'Catalog',
+        model: imageKey,
+        year: 2024,
+        category: 'Collector Vehicle',
+        imageKey,
+        colorName: 'Black',
+        colorHex: '#0B0C10',
+        engine: 'Test Engine',
+        transmission: 'AUTOMATIC',
+        fuelType: 'GASOLINE',
+        details: 'Additional catalog validation fixture.',
+        price: '230400.00',
+        quantity: 1,
+      }),
+    ).toMatchObject({ imageKey, fuelType: 'GASOLINE' });
+  });
+
+  it('defaults an omitted create artwork to the pending placeholder', () => {
+    expect(
+      createVehicleSchema.parse({
+        make: 'Lucid',
+        model: 'Air',
+        year: 2026,
+        category: 'Electric Sedan',
+        colorName: 'Stellar White',
+        colorHex: '#F2F2F0',
+        engine: 'Dual electric motors',
+        transmission: 'AUTOMATIC',
+        fuelType: 'ELECTRIC',
+        details: 'Awaiting final catalog photography.',
+        price: '89900.00',
+        quantity: 1,
+      }),
+    ).toMatchObject({ imageKey: 'ARTWORK_PENDING' });
   });
 
   it.each([
@@ -113,6 +161,40 @@ describe('vehicle schemas', () => {
         maxPrice: '10000',
       }),
     ).toThrow();
+  });
+
+  it('defaults to six vehicles on the first page and accepts the second-page offset', () => {
+    expect(vehiclePaginationSchema.parse({})).toEqual({ limit: 6, skip: 0 });
+    expect(vehiclePaginationSchema.parse({ limit: '6', skip: '6' })).toEqual({
+      limit: 6,
+      skip: 6,
+    });
+  });
+
+  it.each([
+    { limit: '7', skip: '0' },
+    { limit: '6', skip: '-1' },
+    { limit: '6', skip: '7' },
+  ])('rejects an invalid collection page %o', (query) => {
+    expect(() => vehiclePaginationSchema.parse(query)).toThrow();
+  });
+
+  it('combines normalized filters, ordering, and pagination', () => {
+    expect(
+      paginatedSearchVehiclesSchema.parse({
+        make: '  Porsche ',
+        availability: 'available',
+        sort: 'price-desc',
+        limit: '6',
+        skip: '12',
+      }),
+    ).toEqual({
+      make: 'Porsche',
+      availability: 'available',
+      sort: 'price-desc',
+      limit: 6,
+      skip: 12,
+    });
   });
 
   it('defaults an inventory mutation to one vehicle and accepts a positive quantity', () => {

@@ -4,6 +4,7 @@ import type {
   Transmission,
   UpdateVehicleInput,
   VehicleImageKey,
+  VehiclePagination,
   VehicleSearchFilters,
 } from './vehicle.schemas.js';
 
@@ -26,25 +27,20 @@ export interface VehicleRecord {
   updatedAt: Date;
 }
 
-export type PurchaseResult =
-  | {
-      status: 'UPDATED';
-      vehicle: VehicleRecord;
-    }
-  | {
-      status: 'NOT_FOUND';
-    }
-  | {
-      status: 'INSUFFICIENT_STOCK';
-    };
+export interface VehiclePage {
+  vehicles: VehicleRecord[];
+  pagination: VehiclePagination & {
+    total: number;
+  };
+  brands: string[];
+}
 
 export interface VehicleRepository {
   create(input: CreateVehicleInput): Promise<VehicleRecord>;
-  findAll(): Promise<VehicleRecord[]>;
-  search(filters: VehicleSearchFilters): Promise<VehicleRecord[]>;
+  findAll(pagination: VehiclePagination): Promise<VehiclePage>;
+  search(filters: VehicleSearchFilters, pagination: VehiclePagination): Promise<VehiclePage>;
   update(id: string, input: UpdateVehicleInput): Promise<VehicleRecord | null>;
   delete(id: string): Promise<boolean>;
-  purchase(id: string, quantity: number): Promise<PurchaseResult>;
   restock(id: string, quantity: number): Promise<VehicleRecord | null>;
 }
 

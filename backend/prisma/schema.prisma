@@ -14,10 +14,16 @@ enum Role {
 }
 
 enum VehicleImageKey {
+  ARTWORK_PENDING
   WHITE_RR
   BLUE_BUGATTI
   GREEN_LAMBO
   BLACK_CAR
+  BLACK_BENTLEY
+  GREEN_PORSCHE_911
+  BROWN_MAYBACH
+  ORANGE_AUDI_R8
+  BLACK_RANGE_ROVER
 }
 
 enum Transmission {
@@ -27,9 +33,15 @@ enum Transmission {
 
 enum FuelType {
   PETROL
+  GASOLINE
   DIESEL
   HYBRID
   ELECTRIC
+}
+
+enum OrderStatus {
+  RESERVED
+  CANCELLED
 }
 
 model User {
@@ -39,6 +51,7 @@ model User {
   role         Role     @default(CUSTOMER)
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  orders       Order[]
 
   @@map("users")
 }
@@ -60,6 +73,7 @@ model Vehicle {
   quantity     Int             @default(0)
   createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  orders       Order[]
 
   @@unique([make, model, year])
   @@index([make])
@@ -67,6 +81,36 @@ model Vehicle {
   @@index([category])
   @@index([price])
   @@map("vehicles")
+}
+
+model Order {
+  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String          @map("user_id") @db.Uuid
+  vehicleId           String          @map("vehicle_id") @db.Uuid
+  quantity            Int             @default(1)
+  unitPrice           Decimal         @map("unit_price") @db.Decimal(12, 2)
+  vehicleMake         String          @map("vehicle_make") @db.VarChar(100)
+  vehicleModel        String          @map("vehicle_model") @db.VarChar(100)
+  vehicleYear         Int             @map("vehicle_year")
+  vehicleCategory     String          @map("vehicle_category") @db.VarChar(100)
+  vehicleImageKey     VehicleImageKey @map("vehicle_image_key")
+  vehicleColorName    String          @map("vehicle_color_name") @db.VarChar(100)
+  vehicleColorHex     String          @map("vehicle_color_hex") @db.Char(7)
+  vehicleEngine       String          @map("vehicle_engine") @db.VarChar(160)
+  vehicleTransmission Transmission    @map("vehicle_transmission")
+  vehicleFuelType     FuelType        @map("vehicle_fuel_type")
+  vehicleDetails      String          @map("vehicle_details") @db.Text
+  status              OrderStatus     @default(RESERVED)
+  createdAt           DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  cancelledAt         DateTime?       @map("cancelled_at") @db.Timestamptz(3)
+  user                User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  vehicle             Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt(sort: Desc), id])
+  @@index([createdAt(sort: Desc), id])
+  @@index([vehicleId])
+  @@map("orders")
 }
 
 model MediaAsset {

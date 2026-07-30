@@ -1,0 +1,182 @@
+INSERT INTO "media_assets" (
+  "key",
+  "bucket",
+  "object_path",
+  "public_url",
+  "alt_text",
+  "created_at",
+  "updated_at"
+)
+VALUES
+  (
+    'BLACK_BENTLEY',
+    'Assets-SVG',
+    'vehicles/bentley-continental-gt-speed-black.svg.svg',
+    'https://lzgmwzmyfilgwawjqejm.supabase.co/storage/v1/object/public/Assets-SVG/vehicles/bentley-continental-gt-speed-black.svg.svg',
+    'Black Bentley Continental GT Speed',
+    '2026-07-30T00:00:00.000Z',
+    '2026-07-30T00:00:00.000Z'
+  ),
+  (
+    'GREEN_PORSCHE_911',
+    'Assets-SVG',
+    'vehicles/porsche-911-turbo-s-2024-bright-green.svg.svg',
+    'https://lzgmwzmyfilgwawjqejm.supabase.co/storage/v1/object/public/Assets-SVG/vehicles/porsche-911-turbo-s-2024-bright-green.svg.svg',
+    'Bright green 2024 Porsche 911 Turbo S',
+    '2026-07-30T00:00:00.000Z',
+    '2026-07-30T00:00:00.000Z'
+  ),
+  (
+    'BROWN_MAYBACH',
+    'Assets-SVG',
+    'vehicles/mercedes-maybach-s680-2024-brown.svg.svg',
+    'https://lzgmwzmyfilgwawjqejm.supabase.co/storage/v1/object/public/Assets-SVG/vehicles/mercedes-maybach-s680-2024-brown.svg.svg',
+    'Brown 2024 Mercedes-Maybach S680',
+    '2026-07-30T00:00:00.000Z',
+    '2026-07-30T00:00:00.000Z'
+  ),
+  (
+    'ORANGE_AUDI_R8',
+    'Assets-SVG',
+    'vehicles/audi-r8-v10-performance-2024-orange.svg.svg',
+    'https://lzgmwzmyfilgwawjqejm.supabase.co/storage/v1/object/public/Assets-SVG/vehicles/audi-r8-v10-performance-2024-orange.svg.svg',
+    'Orange 2024 Audi R8 V10 Performance',
+    '2026-07-30T00:00:00.000Z',
+    '2026-07-30T00:00:00.000Z'
+  ),
+  (
+    'BLACK_RANGE_ROVER',
+    'Assets-SVG',
+    'vehicles/range-rover-sv-autobiography-2024-black.svg.svg',
+    'https://lzgmwzmyfilgwawjqejm.supabase.co/storage/v1/object/public/Assets-SVG/vehicles/range-rover-sv-autobiography-2024-black.svg.svg',
+    'Black 2024 Range Rover SV Autobiography',
+    '2026-07-30T00:00:00.000Z',
+    '2026-07-30T00:00:00.000Z'
+  )
+ON CONFLICT ("key") DO UPDATE SET
+  "bucket" = EXCLUDED."bucket",
+  "object_path" = EXCLUDED."object_path",
+  "public_url" = EXCLUDED."public_url",
+  "alt_text" = EXCLUDED."alt_text",
+  "updated_at" = CURRENT_TIMESTAMP;
+
+INSERT INTO "vehicles" (
+  "id",
+  "make",
+  "model",
+  "year",
+  "category",
+  "image_key",
+  "color_name",
+  "color_hex",
+  "engine",
+  "transmission",
+  "fuel_type",
+  "details",
+  "price",
+  "quantity",
+  "created_at",
+  "updated_at"
+)
+VALUES
+  (
+    '1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d',
+    'Bentley',
+    'Continental GT Speed',
+    2024,
+    'Luxury Grand Tourer',
+    'BLACK_BENTLEY',
+    'Black',
+    '#0b0c10',
+    '6.0L Twin-Turbo W12',
+    'AUTOMATIC',
+    'GASOLINE',
+    'A pinnacle of grand touring, combining effortless power with exquisite craftsmanship.',
+    302500.00,
+    2,
+    '2026-07-30T00:00:00.000Z',
+    '2026-07-30T00:00:00.000Z'
+  ),
+  (
+    '2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e',
+    'Porsche',
+    '911 Turbo S',
+    2024,
+    'Sports Car',
+    'GREEN_PORSCHE_911',
+    'Bright Green',
+    '#39ff14',
+    '3.8L Twin-Turbo Flat-6',
+    'AUTOMATIC',
+    'GASOLINE',
+    'Iconic design paired with supercar performance and daily-driver usability.',
+    230400.00,
+    1,
+    '2026-07-30T00:00:00.000Z',
+    '2026-07-30T00:00:00.000Z'
+  ),
+  (
+    '3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f',
+    'Mercedes-Maybach',
+    'S680',
+    2024,
+    'Luxury Sedan',
+    'BROWN_MAYBACH',
+    'Brown',
+    '#4a3b32',
+    '6.0L V12 Biturbo',
+    'AUTOMATIC',
+    'GASOLINE',
+    'The ultimate expression of Mercedes-Benz luxury, featuring a powerful V12 and opulent rear seating.',
+    234000.00,
+    3,
+    '2026-07-30T00:00:00.000Z',
+    '2026-07-30T00:00:00.000Z'
+  ),
+  (
+    '4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a',
+    'Audi',
+    'R8 V10 Performance',
+    2024,
+    'Supercar',
+    'ORANGE_AUDI_R8',
+    'Orange',
+    '#ff7518',
+    '5.2L Naturally Aspirated V10',
+    'AUTOMATIC',
+    'GASOLINE',
+    'A naturally aspirated V10 supercar that delivers breathtaking performance and striking design.',
+    253295.00,
+    1,
+    '2026-07-30T00:00:00.000Z',
+    '2026-07-30T00:00:00.000Z'
+  ),
+  (
+    '5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b',
+    'Land Rover',
+    'Range Rover SV Autobiography',
+    2024,
+    'Luxury SUV',
+    'BLACK_RANGE_ROVER',
+    'Black',
+    '#0b0c10',
+    '4.4L Twin-Turbo V8',
+    'AUTOMATIC',
+    'GASOLINE',
+    'Uncompromising luxury and refinement integrated with legendary all-terrain capabilities.',
+    234000.00,
+    2,
+    '2026-07-30T00:00:00.000Z',
+    '2026-07-30T00:00:00.000Z'
+  )
+ON CONFLICT ("make", "model", "year") DO UPDATE SET
+  "category" = EXCLUDED."category",
+  "image_key" = EXCLUDED."image_key",
+  "color_name" = EXCLUDED."color_name",
+  "color_hex" = EXCLUDED."color_hex",
+  "engine" = EXCLUDED."engine",
+  "transmission" = EXCLUDED."transmission",
+  "fuel_type" = EXCLUDED."fuel_type",
+  "details" = EXCLUDED."details",
+  "price" = EXCLUDED."price",
+  "updated_at" = CURRENT_TIMESTAMP;

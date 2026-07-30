@@ -510,3 +510,177 @@ result, then keep the landing hero bundled locally and advise how to add more ve
 - For frequent additions, the recommended follow-up is replacing the enum allowlist with a
   `vehicles.image_key -> media_assets.key` foreign key plus an Administrator upload/asset-picker
   workflow.
+
+## 2026-07-30 - Milestone 7 additional vehicle catalog
+
+**User prompt summary:** Act as a senior DBMS and full-stack developer, use the attached database
+structure for five additional cars whose SVGs were uploaded to the existing `Assets-SVG` bucket,
+insert the data so more collection cards appear, follow the attached TDD/AI-usage rules, and create
+a Milestone 7 extra UI updates and corrections branch.
+
+**AI-assisted work:**
+
+- Created `codex/milestone-7-extra-ui-updates-corrections` from the clean `main` branch.
+- Reviewed the current Supabase changelog and Storage/database guidance before implementation.
+- Inspected the configured live database and public bucket through the backend-only PostgreSQL
+  connection after the Supabase connector reported insufficient project permission.
+- Confirmed none of the five vehicle or media rows existed and found that the uploaded object names
+  use `.svg.svg`, not the normalized `.svg` paths listed in the supplied draft response.
+- Added failing Zod coverage for all five new artwork keys and the `GASOLINE` fuel type, then
+  extended Prisma, backend validation, frontend API types, media types, card mapping coverage, and
+  Administrator artwork/fuel selectors.
+- Added separate ordered migrations for enum expansion and idempotent media/vehicle upserts, so
+  PostgreSQL commits new enum values before they are referenced and reruns do not reset stock.
+- Applied both migrations to the configured Supabase database.
+- Verified all five database joins, 10 live inventory rows in total, and HTTP 200
+  `image/svg+xml` responses from every new public artwork URL.
+
+**Architecture decisions:**
+
+- The media catalog stores the actual `.svg.svg` object names because those are the live,
+  byte-serving Storage objects; inventing normalized paths would render broken collection cards.
+- Existing inventory quantities are not overwritten by the migration's conflict-update path,
+  preserving purchases and restocks if the seed is reapplied.
+- RLS and the server-only database boundary remain unchanged; no service-role key is introduced
+  into the React application.
+
+## 2026-07-30 - Milestone 7 server-side collection pagination
+
+**User prompt summary:** Act as a senior frontend developer and add Shadcn pagination to the
+collection so only six cars are fetched and shown at a time, using `limit(6).skip(0)`,
+`limit(6).skip(6)`, and subsequent aligned offsets.
+
+**AI-assisted work:**
+
+- Added failing backend schema, route, service, repository, frontend API, and dashboard tests before
+  implementation.
+- Added a fixed six-record pagination contract with validated, aligned offsets and total counts.
+- Moved brand, availability, and price sorting into the database query so conditions apply before
+  the six-row window.
+- Returned global brand facets with every page, preserving the complete brand selector while only
+  transferring the requested vehicle records.
+- Added reusable Shadcn-style pagination primitives and an accessible collection navigation with
+  numbered, previous, next, active, and disabled states.
+- Kept search draft inputs separate from applied server filters, reset pagination on query changes,
+  and protected against stale async responses and out-of-range pages.
+- Ran 167 tests with coverage plus formatting, lint, TypeScript checking, and production builds.
+
+**Architecture decisions:**
+
+- Offset pagination matches the explicitly requested `limit`/`skip` contract. Stable secondary
+  ordering by vehicle ID prevents equal prices or timestamps from producing ambiguous page order.
+- Both catalog cards and the management table use the paginated result, avoiding a second
+  all-record download for privileged users.
+- No database migration was added: the existing dataset and indexes support this milestone, and
+  index additions should be driven by measured production query plans rather than assumptions.
+
+## 2026-07-30 - Consolidated collection availability filter
+
+**User prompt summary:** Remove the separate All, Available, and Sold out button section from the
+dashboard and place that filter in the top-right control bar beside All brands and Featured order.
+
+**AI-assisted work:**
+
+- Added a failing dashboard regression test requiring an accessible availability combobox and the
+  absence of the former availability button group.
+- Added a Shadcn Select with All availability, Available, and Sold out options to the shared
+  collection controls.
+- Preserved server-side availability filtering and reset pagination to page one when its value
+  changes.
+- Removed the redundant availability tab group while retaining the live result count above the
+  cards.
+
+## 2026-07-30 - Atomic user order history
+
+**User prompt summary:** Implement order history so a signed-in Customer reservation decrements
+stock and appears in Orders, cancellation restores stock, Employees and Administrators can review
+all customer orders, and the Services navigation placeholder becomes Orders.
+
+**AI-assisted work:**
+
+- Followed Red/Green TDD with backend repository/service/route tests and frontend API/page tests
+  committed before their implementations.
+- Added an `orders` schema with immutable vehicle and price snapshots, indexed user/global timeline
+  queries, consistency constraints, restrictive foreign keys, RLS, and revoked browser-role access.
+- Moved reservation stock decrement and order insertion into one Prisma transaction.
+- Added Customer-scoped and Employee/Administrator all-order queries with fixed six-record
+  pagination.
+- Added Customer-only cancellation with a conditional status update and stock restoration in one
+  transaction; repeated cancellation cannot restore inventory twice.
+- Added `/api/orders`, `/api/orders/:id/cancel`, the responsive Orders page, customer details for
+  staff, customer cancellation controls, and active Orders navigation in place of Services.
+- Applied the migration to the configured Supabase project and verified all application tables have
+  RLS enabled with no `anon` or `authenticated` table access.
+- Ran a self-cleaning live Supabase check that reserved stock, loaded the history, cancelled it,
+  restored the exact quantity, rejected a repeated cancellation, and removed all temporary rows.
+- Ran 190 tests plus lint, TypeScript checking, and both production builds.
+
+**Architecture decisions:**
+
+- Express/JWT remains the only public data boundary. The browser never receives direct table
+  privileges or a service-role credential.
+- Snapshot fields preserve what the Customer reserved even if the live catalog description or
+  price changes later.
+- Offset pagination matches the existing six-record collection contract and prevents staff order
+  history from becoming another unbounded dashboard fetch.
+- Vehicle and user deletion are restricted while order history references them, preserving the
+  audit trail.
+
+## 2026-07-30 - MotoVault About page and navigation cleanup
+
+**User prompt summary:** Create a relevant About page with senior frontend/UI-UX judgment and remove
+the unused Contact option from navigation without creating a Contact page.
+
+**AI-assisted work:**
+
+- Added a failing route/navigation regression test before implementation.
+- Replaced the disabled About placeholder with an active `/about` link and route on desktop and
+  mobile navigation.
+- Removed Contact completely from both navigation surfaces.
+- Designed a responsive editorial About experience using the existing MotoVault visual system and
+  bundled vehicle artwork.
+- Corrected the two automotive features to use the supplied black BMW M8 Competition and orange
+  McLaren SVGs instead of repeating the landing-page hero asset.
+- Added brand positioning, collection standards, live-system trust signals, a discover/reserve/
+  track journey, and direct inventory/access calls to action.
+- Verified the layout in the local browser at desktop and 390px mobile widths, including the mobile
+  navigation contents; no browser warnings or errors were emitted.
+- Ran 191 tests plus formatting, lint, TypeScript checking, coverage, and production builds.
+
+**Architecture decisions:**
+
+- The About page stays public and reflects the authenticated identity in the shared navigation,
+  matching Home and preserving a consistent entry point for prospective Customers.
+- Existing repository artwork is reused to preserve visual continuity and avoid another network
+  dependency for an editorial page.
+- Content describes capabilities the product actually provides—curation, live stock, role-aware
+  access, and durable order history—rather than introducing unsupported service claims.
+
+## 2026-07-30 - Pending artwork default and reservation confirmation
+
+**User prompt summary:** Use the supplied Supabase `default-image.svg` as a neutral Coming Soon
+default for newly created vehicles, warn administrators when no specific artwork is selected, and
+require customer confirmation before a dashboard reservation creates an order or changes stock.
+
+**AI-assisted work:**
+
+- Added Red tests for the new image key, omitted-artwork API default, Storage mapping, administrator
+  warning, and confirmation-gated reservation behavior before implementation.
+- Verified that the live Storage object is `Assets-SVG/vehicles/default-image.svg` with SVG MIME
+  type, then added the `ARTWORK_PENDING` enum value and `media_assets` row.
+- Made Coming Soon / Artwork pending the first and default artwork option while preserving all
+  deliberate model-specific selections.
+- Added a responsive reservation review dialog with vehicle, price, stock impact, cancellation
+  guidance, and explicit Keep browsing / Confirm reservation actions.
+- Applied the Prisma migration to the configured Supabase project and verified the enum, metadata
+  row, public URL, MIME type, byte size, and Storage object join.
+- Ran 194 tests plus formatting, lint, TypeScript checking, coverage, and both production builds.
+
+**Architecture decisions:**
+
+- The neutral placeholder is an explicit persisted state rather than an inferred fallback, so
+  inventory never silently displays another model's artwork.
+- The backend defaults omitted create payloads as well as the admin UI, keeping non-browser API
+  clients consistent.
+- Reservation confirmation is a client-side safety gate; the existing atomic database transaction
+  remains the sole authority for order creation and stock decrement.

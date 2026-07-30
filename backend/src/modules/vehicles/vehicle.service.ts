@@ -1,28 +1,34 @@
 import type {
   CreateVehicleInput,
   UpdateVehicleInput,
+  VehiclePagination,
   VehicleSearchFilters,
 } from './vehicle.schemas.js';
 import {
   InsufficientStockError,
   VehicleNotFoundError,
+  type VehiclePage,
   type VehicleRecord,
   type VehicleRepository,
 } from './vehicle.types.js';
+import type { OrderRecord, OrderRepository } from '../orders/order.types.js';
 
 export class VehicleService {
-  constructor(private readonly vehicles: VehicleRepository) {}
+  constructor(
+    private readonly vehicles: VehicleRepository,
+    private readonly orders: OrderRepository,
+  ) {}
 
   create(input: CreateVehicleInput): Promise<VehicleRecord> {
     return this.vehicles.create(input);
   }
 
-  list(): Promise<VehicleRecord[]> {
-    return this.vehicles.findAll();
+  list(pagination: VehiclePagination): Promise<VehiclePage> {
+    return this.vehicles.findAll(pagination);
   }
 
-  search(filters: VehicleSearchFilters): Promise<VehicleRecord[]> {
-    return this.vehicles.search(filters);
+  search(filters: VehicleSearchFilters, pagination: VehiclePagination): Promise<VehiclePage> {
+    return this.vehicles.search(filters, pagination);
   }
 
   async update(id: string, input: UpdateVehicleInput): Promise<VehicleRecord> {
@@ -43,8 +49,12 @@ export class VehicleService {
     }
   }
 
-  async purchase(id: string, quantity: number): Promise<VehicleRecord> {
-    const result = await this.vehicles.purchase(id, quantity);
+  async purchase(
+    id: string,
+    quantity: number,
+    userId: string,
+  ): Promise<{ vehicle: VehicleRecord; order: OrderRecord }> {
+    const result = await this.orders.reserve(userId, id, quantity);
 
     if (result.status === 'NOT_FOUND') {
       throw new VehicleNotFoundError();
@@ -54,7 +64,10 @@ export class VehicleService {
       throw new InsufficientStockError();
     }
 
-    return result.vehicle;
+    return {
+      vehicle: result.vehicle,
+      order: result.order,
+    };
   }
 
   async restock(id: string, quantity: number): Promise<VehicleRecord> {

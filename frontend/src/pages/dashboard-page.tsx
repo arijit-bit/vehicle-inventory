@@ -6,10 +6,12 @@ import {
   Plus,
   Search,
   Settings2,
+  ShieldCheck,
+  ShoppingBag,
   Trash2,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { AppNavigation } from '../components/app-navigation';
 import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
@@ -32,12 +34,16 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { useAuth } from '../features/auth/auth-context-value';
-import { CollectionControls, type PriceSort } from '../features/vehicles/collection-controls';
+import { CollectionControls } from '../features/vehicles/collection-controls';
+import { CollectionPagination } from '../features/vehicles/collection-pagination';
 import {
+  VEHICLES_PER_PAGE,
   VehicleApiError,
   vehicleApi,
+  type AvailabilityFilter,
   type CreateVehicleInput,
   type FuelType,
+  type PriceSort,
   type Transmission,
   type UpdateVehicleInput,
   type Vehicle,
@@ -51,10 +57,10 @@ type DialogState =
   | { type: 'create' }
   | { type: 'edit'; vehicle: Vehicle }
   | { type: 'restock'; vehicle: Vehicle }
+  | { type: 'reserve'; vehicle: Vehicle }
   | { type: 'delete'; vehicle: Vehicle };
 
 type WorkspaceView = 'catalog' | 'manage';
-type AvailabilityFilter = 'all' | 'available' | 'sold-out';
 
 interface Feedback {
   tone: 'error' | 'success';
@@ -106,6 +112,7 @@ interface VehicleFormProps {
 
 const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps) => {
   const mode = vehicle ? 'edit' : 'create';
+  const [imageKey, setImageKey] = useState<VehicleImageKey>(vehicle?.imageKey ?? 'ARTWORK_PENDING');
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -182,15 +189,25 @@ const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps)
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <FormField id="vehicle-artwork" label="Vehicle artwork">
-          <Select defaultValue={vehicle?.imageKey ?? 'WHITE_RR'} name="imageKey">
+          <Select
+            name="imageKey"
+            onValueChange={(value) => setImageKey(value as VehicleImageKey)}
+            value={imageKey}
+          >
             <SelectTrigger aria-label="Vehicle artwork" className="w-full" id="vehicle-artwork">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="ARTWORK_PENDING">Coming soon / Artwork pending</SelectItem>
               <SelectItem value="WHITE_RR">Silver grand tourer</SelectItem>
               <SelectItem value="BLUE_BUGATTI">Blue hypercar</SelectItem>
               <SelectItem value="GREEN_LAMBO">Green supercar</SelectItem>
               <SelectItem value="BLACK_CAR">Black supercar</SelectItem>
+              <SelectItem value="BLACK_BENTLEY">Black Bentley grand tourer</SelectItem>
+              <SelectItem value="GREEN_PORSCHE_911">Bright green Porsche 911</SelectItem>
+              <SelectItem value="BROWN_MAYBACH">Brown Mercedes-Maybach sedan</SelectItem>
+              <SelectItem value="ORANGE_AUDI_R8">Orange Audi R8</SelectItem>
+              <SelectItem value="BLACK_RANGE_ROVER">Black Range Rover SUV</SelectItem>
             </SelectContent>
           </Select>
         </FormField>
@@ -204,6 +221,17 @@ const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps)
           />
         </FormField>
       </div>
+      {imageKey === 'ARTWORK_PENDING' && (
+        <div
+          className="flex items-start gap-3 rounded-[var(--radius)] border border-amber-300/20 bg-amber-300/[0.06] px-4 py-3 text-amber-100"
+          role="status"
+        >
+          <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-amber-300" />
+          <p className="text-xs leading-5">
+            No specific artwork selected. The Coming Soon placeholder will be displayed.
+          </p>
+        </div>
+      )}
       <div className="grid gap-5 sm:grid-cols-2">
         <FormField id="vehicle-color-hex" label="Color hex">
           <Input
@@ -244,6 +272,7 @@ const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps)
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="PETROL">Petrol</SelectItem>
+              <SelectItem value="GASOLINE">Gasoline</SelectItem>
               <SelectItem value="DIESEL">Diesel</SelectItem>
               <SelectItem value="HYBRID">Hybrid</SelectItem>
               <SelectItem value="ELECTRIC">Electric</SelectItem>
@@ -312,11 +341,20 @@ export const DashboardPage = () => {
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [filters, setFilters] = useState<VehicleSearchFilters>({});
+  const [appliedFilters, setAppliedFilters] = useState<VehicleSearchFilters>({});
   const [availability, setAvailability] = useState<AvailabilityFilter>('all');
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('catalog');
   const [brand, setBrand] = useState('all');
+  const [brands, setBrands] = useState<string[]>([]);
   const [priceSort, setPriceSort] = useState<PriceSort>('featured');
   const [searchExpanded, setSearchExpanded] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    limit: VEHICLES_PER_PAGE,
+    skip: 0,
+    total: 0,
+  });
+  const [refreshVersion, setRefreshVersion] = useState(0);
 
   const handleInventoryError = useCallback(
     (error: unknown) => {
@@ -337,11 +375,34 @@ export const DashboardPage = () => {
     let active = true;
     setIsLoading(true);
 
-    vehicleApi
-      .list(token)
-      .then(({ vehicles: inventory }) => {
+    const requestFilters: VehicleSearchFilters = {
+      ...appliedFilters,
+      ...(brand === 'all' ? {} : { make: brand }),
+      ...(availability === 'all' ? {} : { availability }),
+      ...(priceSort === 'featured' ? {} : { sort: priceSort }),
+    };
+    const requestedPage = {
+      limit: VEHICLES_PER_PAGE,
+      skip: (page - 1) * VEHICLES_PER_PAGE,
+    };
+    const inventoryRequest =
+      Object.keys(requestFilters).length === 0
+        ? vehicleApi.list(token, requestedPage)
+        : vehicleApi.search(token, requestFilters, requestedPage);
+
+    inventoryRequest
+      .then((result) => {
         if (active) {
-          setVehicles(inventory);
+          const lastPage = Math.max(1, Math.ceil(result.pagination.total / VEHICLES_PER_PAGE));
+
+          if (page > lastPage) {
+            setPage(lastPage);
+            return;
+          }
+
+          setVehicles(result.vehicles);
+          setPagination(result.pagination);
+          setBrands(result.brands);
         }
       })
       .catch((error: unknown) => {
@@ -358,7 +419,16 @@ export const DashboardPage = () => {
     return () => {
       active = false;
     };
-  }, [handleInventoryError, token]);
+  }, [
+    appliedFilters,
+    availability,
+    brand,
+    handleInventoryError,
+    page,
+    priceSort,
+    refreshVersion,
+    token,
+  ]);
 
   const runAction = async (key: string, action: () => Promise<void>) => {
     setPendingAction(key);
@@ -373,22 +443,33 @@ export const DashboardPage = () => {
     }
   };
 
-  const purchase = (vehicle: Vehicle) => {
+  const requestReservation = (vehicle: Vehicle) => {
     if (!token || vehicle.quantity === 0) {
       return;
     }
 
-    void runAction(`purchase-${vehicle.id}`, async () => {
+    setFeedback(null);
+    setDialog({ type: 'reserve', vehicle });
+  };
+
+  const confirmReservation = async () => {
+    if (!token || dialog?.type !== 'reserve' || dialog.vehicle.quantity === 0) {
+      return;
+    }
+
+    const vehicle = dialog.vehicle;
+    await runAction(`purchase-${vehicle.id}`, async () => {
       const { vehicle: updated } = await vehicleApi.purchase(token, vehicle.id, 1);
       setVehicles((current) => replaceVehicle(current, updated));
       setFeedback({
         tone: 'success',
-        message: `${updated.make} ${updated.model} reserved. ${updated.quantity} remaining.`,
+        message: `${updated.make} ${updated.model} reserved. ${updated.quantity} remaining. View it in Orders.`,
       });
     });
+    setDialog(null);
   };
 
-  const searchInventory = async (event: FormEvent<HTMLFormElement>) => {
+  const searchInventory = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalized = Object.entries(filters).reduce<VehicleSearchFilters>(
       (result, [key, value]) => {
@@ -401,22 +482,17 @@ export const DashboardPage = () => {
       {},
     );
 
-    await runAction('search', async () => {
-      const result =
-        Object.keys(normalized).length === 0
-          ? await vehicleApi.list(token)
-          : await vehicleApi.search(token, normalized);
-      setVehicles(result.vehicles);
-      setBrand('all');
-    });
+    setAppliedFilters(normalized);
+    setBrand('all');
+    setPage(1);
+    setFeedback(null);
   };
 
   const clearSearch = () => {
     setFilters({});
-    void runAction('search', async () => {
-      const result = await vehicleApi.list(token);
-      setVehicles(result.vehicles);
-    });
+    setAppliedFilters({});
+    setPage(1);
+    setFeedback(null);
   };
 
   const saveVehicle = async (input: CreateVehicleInput | UpdateVehicleInput) => {
@@ -428,7 +504,20 @@ export const DashboardPage = () => {
     await runAction('save', async () => {
       if (currentDialog.type === 'create') {
         const result = await vehicleApi.create(token, input as CreateVehicleInput);
-        setVehicles((current) => [result.vehicle, ...current]);
+        if (
+          page === 1 &&
+          Object.keys(appliedFilters).length === 0 &&
+          brand === 'all' &&
+          availability === 'all' &&
+          priceSort === 'featured'
+        ) {
+          setVehicles((current) => [result.vehicle, ...current].slice(0, VEHICLES_PER_PAGE));
+          setPagination((current) => ({ ...current, total: current.total + 1 }));
+          setBrands((current) => [...new Set([...current, result.vehicle.make])].sort());
+        } else {
+          setPage(1);
+          setRefreshVersion((current) => current + 1);
+        }
         setFeedback({ tone: 'success', message: 'Vehicle added to the collection.' });
       } else {
         const result = await vehicleApi.update(
@@ -468,6 +557,12 @@ export const DashboardPage = () => {
     await runAction('delete', async () => {
       await vehicleApi.delete(token, vehicle.id);
       setVehicles((current) => current.filter((item) => item.id !== vehicle.id));
+      const nextTotal = Math.max(0, pagination.total - 1);
+      const lastPage = Math.max(1, Math.ceil(nextTotal / VEHICLES_PER_PAGE));
+      setPagination((current) => ({ ...current, total: nextTotal }));
+      if (page > lastPage) {
+        setPage(lastPage);
+      }
       setDialog(null);
       setFeedback({ tone: 'success', message: 'Vehicle removed from the collection.' });
     });
@@ -475,32 +570,15 @@ export const DashboardPage = () => {
 
   const isAdmin = user?.role === 'ADMIN';
   const canManageInventory = user?.role === 'EMPLOYEE' || isAdmin;
-  const brands = useMemo(
-    () => [...new Set(vehicles.map((vehicle) => vehicle.make))].sort(),
-    [vehicles],
-  );
-  const visibleVehicles = useMemo(() => {
-    const filtered = vehicles.filter((vehicle) => {
-      const matchesBrand = brand === 'all' || vehicle.make === brand;
-      const matchesAvailability =
-        availability === 'all' ||
-        (availability === 'available' ? vehicle.quantity > 0 : vehicle.quantity === 0);
-      return matchesBrand && matchesAvailability;
-    });
-
-    if (priceSort === 'price-asc') {
-      return [...filtered].sort((a, b) => Number(a.price) - Number(b.price));
-    }
-    if (priceSort === 'price-desc') {
-      return [...filtered].sort((a, b) => Number(b.price) - Number(a.price));
-    }
-    return filtered;
-  }, [availability, brand, priceSort, vehicles]);
-
-  const totalUnits = vehicles.reduce((sum, vehicle) => sum + vehicle.quantity, 0);
-  const resultLabel = `${visibleVehicles.length} ${
-    visibleVehicles.length === 1 ? 'vehicle' : 'vehicles'
-  }`;
+  const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.limit));
+  const firstResult = pagination.total === 0 ? 0 : pagination.skip + 1;
+  const lastResult = Math.min(pagination.skip + vehicles.length, pagination.total);
+  const resultLabel =
+    pagination.total === 0
+      ? '0 vehicles'
+      : pagination.total === 1
+        ? 'Showing 1 of 1 vehicle'
+        : `Showing ${firstResult}–${lastResult} of ${pagination.total} vehicles`;
 
   return (
     <div className="min-h-screen bg-background text-primary">
@@ -515,7 +593,8 @@ export const DashboardPage = () => {
           <div className="flex flex-col gap-8 pb-10 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-secondary">
-                Curated inventory · {totalUnits} available units
+                Curated inventory · {pagination.total}{' '}
+                {pagination.total === 1 ? 'vehicle' : 'vehicles'}
               </p>
               <h1 className="mt-3 text-4xl font-bold tracking-[-0.055em] sm:text-5xl">
                 Our Collection
@@ -525,10 +604,21 @@ export const DashboardPage = () => {
               </p>
             </div>
             <CollectionControls
+              availability={availability}
               brand={brand}
               brands={brands}
-              onBrandChange={setBrand}
-              onPriceSortChange={setPriceSort}
+              onAvailabilityChange={(value) => {
+                setAvailability(value);
+                setPage(1);
+              }}
+              onBrandChange={(value) => {
+                setBrand(value);
+                setPage(1);
+              }}
+              onPriceSortChange={(value) => {
+                setPriceSort(value);
+                setPage(1);
+              }}
               onToggleSearch={() => setSearchExpanded((expanded) => !expanded)}
               priceSort={priceSort}
               searchExpanded={searchExpanded}
@@ -596,7 +686,7 @@ export const DashboardPage = () => {
                 <div className="flex gap-2">
                   <Button
                     aria-label="Search inventory"
-                    disabled={pendingAction === 'search'}
+                    disabled={isLoading}
                     size="icon"
                     type="submit"
                   >
@@ -640,7 +730,7 @@ export const DashboardPage = () => {
                     </p>
                     <h2 className="mt-2 text-xl font-semibold">Inventory management</h2>
                     <p className="mt-1 text-xs text-secondary">
-                      {vehicles.length} inventory {vehicles.length === 1 ? 'record' : 'records'}
+                      {pagination.total} inventory {pagination.total === 1 ? 'record' : 'records'}
                     </p>
                   </div>
                   <Button onClick={() => setDialog({ type: 'create' })}>
@@ -718,45 +808,25 @@ export const DashboardPage = () => {
                   </Table>
                 )}
               </Card>
+              <CollectionPagination
+                currentPage={page}
+                disabled={isLoading}
+                onPageChange={setPage}
+                totalPages={totalPages}
+              />
             </section>
           ) : (
             <section aria-busy={isLoading} aria-label="Vehicle inventory" className="pt-8">
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                <p
-                  aria-live="polite"
-                  className="text-xs uppercase tracking-[0.16em] text-secondary"
-                >
-                  {resultLabel}
-                </p>
-                <div
-                  aria-label="Filter inventory by availability"
-                  className="inline-flex rounded-[var(--radius)] border border-border bg-card p-1"
-                  role="group"
-                >
-                  {[
-                    ['all', 'All'],
-                    ['available', 'Available'],
-                    ['sold-out', 'Sold out'],
-                  ].map(([value, label]) => (
-                    <button
-                      aria-pressed={availability === value}
-                      className={cn(
-                        'h-8 rounded-lg px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-secondary transition-colors',
-                        availability === value && 'bg-primary text-background',
-                      )}
-                      key={value}
-                      onClick={() => setAvailability(value as AvailabilityFilter)}
-                      type="button"
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <p
+                aria-live="polite"
+                className="mb-6 text-xs uppercase tracking-[0.16em] text-secondary"
+              >
+                {resultLabel}
+              </p>
 
               {isLoading ? (
                 <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                  {[0, 1, 2].map((item) => (
+                  {[0, 1, 2, 3, 4, 5].map((item) => (
                     <div
                       aria-hidden="true"
                       className="h-[420px] animate-pulse rounded-[var(--radius)] border border-border bg-card"
@@ -764,7 +834,7 @@ export const DashboardPage = () => {
                     />
                   ))}
                 </div>
-              ) : visibleVehicles.length === 0 ? (
+              ) : vehicles.length === 0 ? (
                 <Card className="p-12 text-center">
                   <AlertTriangle aria-hidden="true" className="mx-auto size-6 text-secondary" />
                   <h2 className="mt-4 text-lg font-semibold">No vehicles found</h2>
@@ -774,16 +844,24 @@ export const DashboardPage = () => {
                 </Card>
               ) : (
                 <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                  {visibleVehicles.map((vehicle) => (
+                  {vehicles.map((vehicle) => (
                     <VehicleCard
+                      canPurchase={user?.role === 'CUSTOMER'}
                       isBuying={pendingAction === `purchase-${vehicle.id}`}
                       key={vehicle.id}
-                      onPurchase={purchase}
+                      onPurchase={requestReservation}
                       token={token}
                       vehicle={vehicle}
                     />
                   ))}
                 </div>
+              )}
+              {!isLoading && vehicles.length > 0 && (
+                <CollectionPagination
+                  currentPage={page}
+                  onPageChange={setPage}
+                  totalPages={totalPages}
+                />
               )}
             </section>
           )}
@@ -873,6 +951,88 @@ export const DashboardPage = () => {
                 </Button>
               </div>
             </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {dialog?.type === 'reserve' && (
+        <Dialog onOpenChange={(open) => !open && setDialog(null)} open>
+          <DialogContent
+            description="Review the vehicle and reservation impact before placing the order."
+            title={`Reserve ${dialog.vehicle.make} ${dialog.vehicle.model}`}
+          >
+            <div className="overflow-hidden rounded-[var(--radius)] border border-white/15 bg-background/60">
+              <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-secondary">
+                  Reservation summary
+                </p>
+                <span className="rounded-full border border-white/15 px-2.5 py-1 text-[10px] text-secondary">
+                  {dialog.vehicle.year}
+                </span>
+              </div>
+              <div className="px-5 py-5">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-xl font-semibold tracking-[-0.035em]">
+                      {dialog.vehicle.make} {dialog.vehicle.model}
+                    </p>
+                    <p className="mt-1 text-xs text-secondary">{dialog.vehicle.category}</p>
+                  </div>
+                  <p className="text-lg font-semibold">
+                    {currency.format(Number(dialog.vehicle.price))}
+                  </p>
+                </div>
+                <div className="mt-5 grid grid-cols-3 divide-x divide-white/10 border-t border-white/10 pt-4 text-center">
+                  <div>
+                    <p className="text-lg font-semibold">{dialog.vehicle.quantity}</p>
+                    <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-secondary">
+                      In stock
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">1</p>
+                    <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-secondary">
+                      Reserving
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">{dialog.vehicle.quantity - 1}</p>
+                    <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-secondary">
+                      Remaining
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-start gap-3 rounded-[var(--radius)] border border-white/10 bg-white/[0.03] p-4">
+              <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-secondary" />
+              <p className="text-xs leading-5 text-secondary">
+                Confirming creates an order and immediately reduces stock by one. You can cancel
+                later from Orders to restore the vehicle to inventory.
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button
+                disabled={pendingAction === `purchase-${dialog.vehicle.id}`}
+                onClick={() => setDialog(null)}
+                type="button"
+                variant="ghost"
+              >
+                Keep browsing
+              </Button>
+              <Button
+                disabled={pendingAction === `purchase-${dialog.vehicle.id}`}
+                onClick={() => void confirmReservation()}
+                type="button"
+              >
+                <ShoppingBag aria-hidden="true" className="size-4" />
+                {pendingAction === `purchase-${dialog.vehicle.id}`
+                  ? 'Reserving...'
+                  : 'Confirm reservation'}
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       )}

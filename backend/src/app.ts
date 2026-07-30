@@ -1,6 +1,6 @@
 import cors from 'cors';
 import express from 'express';
-import helmet from 'helmet';
+import * as helmetModule from 'helmet';
 import { errorHandler } from './middleware/error-handler.js';
 import { createAuthRouter, type AuthServicePort } from './modules/auth/auth.routes.js';
 import type { TokenVerifier } from './modules/auth/auth.types.js';
@@ -12,6 +12,7 @@ import {
   createMediaAssetRouter,
   type MediaAssetServicePort,
 } from './modules/media-assets/media-asset.routes.js';
+import { createOrderRouter, type OrderServicePort } from './modules/orders/order.routes.js';
 import { createVehicleRouter, type VehicleServicePort } from './modules/vehicles/vehicle.routes.js';
 
 interface AppDependencies {
@@ -20,6 +21,7 @@ interface AppDependencies {
   vehicleService?: VehicleServicePort;
   userManagementService?: UserManagementServicePort;
   mediaAssetService?: MediaAssetServicePort;
+  orderService?: OrderServicePort;
 }
 
 export const createApp = ({
@@ -28,10 +30,11 @@ export const createApp = ({
   vehicleService,
   userManagementService,
   mediaAssetService,
+  orderService,
 }: AppDependencies = {}) => {
   const app = express();
 
-  app.use(helmet());
+  app.use(helmetModule.default());
   app.use(
     cors({
       origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173',
@@ -60,6 +63,10 @@ export const createApp = ({
 
   if (mediaAssetService) {
     app.use('/api/assets', createMediaAssetRouter(mediaAssetService));
+  }
+
+  if (orderService && tokenVerifier) {
+    app.use('/api/orders', createOrderRouter(orderService, tokenVerifier));
   }
 
   app.use((_request, response) => {

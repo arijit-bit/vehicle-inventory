@@ -21,13 +21,20 @@ const currency = new Intl.NumberFormat('en-US', {
 });
 
 interface VehicleCardProps {
+  canPurchase: boolean;
   vehicle: Vehicle;
   token: string | null;
   isBuying: boolean;
   onPurchase(vehicle: Vehicle): void;
 }
 
-export const VehicleCard = ({ vehicle, token, isBuying, onPurchase }: VehicleCardProps) => {
+export const VehicleCard = ({
+  canPurchase,
+  vehicle,
+  token,
+  isBuying,
+  onPurchase,
+}: VehicleCardProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { asset: vehicleArtwork } = useMediaAsset(vehicle.imageKey);
   const soldOut = vehicle.quantity === 0;
@@ -129,10 +136,14 @@ export const VehicleCard = ({ vehicle, token, isBuying, onPurchase }: VehicleCar
         )}
 
         <div className="mt-5">
-          {!token && !soldOut ? (
+          {token && !canPurchase ? (
+            <p className="rounded-[var(--radius)] border border-border px-4 py-3 text-center text-xs text-secondary">
+              Customer reservations only
+            </p>
+          ) : !token && !soldOut ? (
             <Button asChild className="w-full" variant="outline">
-              <Link aria-label={`Sign in to purchase ${vehicle.make} ${vehicle.model}`} to="/login">
-                Sign in to purchase
+              <Link aria-label={`Sign in to reserve ${vehicle.make} ${vehicle.model}`} to="/login">
+                Sign in to reserve
                 <ArrowUpRight aria-hidden="true" className="size-3.5" />
               </Link>
             </Button>
@@ -142,8 +153,8 @@ export const VehicleCard = ({ vehicle, token, isBuying, onPurchase }: VehicleCar
                 soldOut
                   ? 'Out of stock'
                   : isBuying
-                    ? `Purchasing ${vehicle.make} ${vehicle.model}`
-                    : `Purchase ${vehicle.make} ${vehicle.model}`
+                    ? `Reserving ${vehicle.make} ${vehicle.model}`
+                    : `Reserve ${vehicle.make} ${vehicle.model}`
               }
               className="w-full"
               disabled={soldOut || isBuying}

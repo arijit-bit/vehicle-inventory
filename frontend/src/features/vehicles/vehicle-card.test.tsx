@@ -27,9 +27,15 @@ const vehicle: Vehicle = {
 
 describe('VehicleCard artwork', () => {
   it.each([
+    ['ARTWORK_PENDING', 'default-image.svg'],
     ['WHITE_RR', 'vehicles/white-rr-centered.svg'],
     ['BLUE_BUGATTI', 'vehicles/blue-bugatti-centered.svg'],
     ['BLACK_CAR', 'vehicles/middle-black-car-centered.svg'],
+    ['BLACK_BENTLEY', 'vehicles/bentley-continental-gt-speed-black.svg.svg'],
+    ['GREEN_PORSCHE_911', 'vehicles/porsche-911-turbo-s-2024-bright-green.svg.svg'],
+    ['BROWN_MAYBACH', 'vehicles/mercedes-maybach-s680-2024-brown.svg.svg'],
+    ['ORANGE_AUDI_R8', 'vehicles/audi-r8-v10-performance-2024-orange.svg.svg'],
+    ['BLACK_RANGE_ROVER', 'vehicles/range-rover-sv-autobiography-2024-black.svg.svg'],
   ] as const)('maps %s to its Supabase Storage object', async (imageKey, objectPath) => {
     const publicUrl = `https://lzgmwzmyfilgwawjqejm.supabase.co/storage/v1/object/public/Assets-SVG/${objectPath}`;
     const api = {
@@ -52,6 +58,7 @@ describe('VehicleCard artwork', () => {
       <MemoryRouter>
         <MediaAssetProvider api={api}>
           <VehicleCard
+            canPurchase={false}
             isBuying={false}
             onPurchase={vi.fn()}
             token={null}

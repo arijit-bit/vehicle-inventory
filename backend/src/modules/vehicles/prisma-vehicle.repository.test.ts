@@ -31,11 +31,10 @@ describe('PrismaVehicleRepository', () => {
     $transaction: vi.fn(),
     vehicle: {
       create: vi.fn(),
+      count: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
-      updateManyAndReturn: vi.fn(),
-      findUnique: vi.fn(),
     },
   };
   const repository = new PrismaVehicleRepository(database as unknown as DatabaseClient);
@@ -48,10 +47,9 @@ describe('PrismaVehicleRepository', () => {
     );
     database.vehicle.create.mockResolvedValue(storedVehicle);
     database.vehicle.findMany.mockResolvedValue([storedVehicle]);
+    database.vehicle.count.mockResolvedValue(14);
     database.vehicle.update.mockResolvedValue(storedVehicle);
     database.vehicle.delete.mockResolvedValue({ id: storedVehicle.id });
-    database.vehicle.updateManyAndReturn.mockResolvedValue([{ ...storedVehicle, quantity: 3 }]);
-    database.vehicle.findUnique.mockResolvedValue({ id: storedVehicle.id });
   });
 
   it('persists a vehicle and serializes its decimal price exactly', async () => {
@@ -83,25 +81,58 @@ describe('PrismaVehicleRepository', () => {
     );
   });
 
-  it('builds an AND search with case-insensitive text and inclusive price bounds', async () => {
-    await repository.search({
-      make: 'toy',
-      model: 'cam',
-      category: 'sedan',
-      minPrice: '10000.00',
-      maxPrice: '40000.00',
+  it('loads exactly six vehicles after the requested offset', async () => {
+    await expect(repository.findAll({ limit: 6, skip: 6 })).resolves.toMatchObject({
+      vehicles: [{ id: storedVehicle.id }],
+      pagination: { limit: 6, skip: 6, total: 14 },
+      brands: ['Toyota'],
     });
 
-    expect(database.vehicle.findMany).toHaveBeenCalledWith(
+    expect(database.vehicle.findMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        take: 6,
+        skip: 6,
+      }),
+    );
+    expect(database.vehicle.count).toHaveBeenCalledWith({ where: {} });
+  });
+
+  it('applies conditions and ordering before paginating search results', async () => {
+    await repository.search(
+      {
+        make: 'toy',
+        model: 'cam',
+        category: 'sedan',
+        minPrice: '10000.00',
+        maxPrice: '40000.00',
+        availability: 'available',
+        sort: 'price-desc',
+      },
+      { limit: 6, skip: 12 },
+    );
+
+    expect(database.vehicle.findMany).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         where: {
           make: { contains: 'toy', mode: 'insensitive' },
           model: { contains: 'cam', mode: 'insensitive' },
           category: { contains: 'sedan', mode: 'insensitive' },
           price: { gte: '10000.00', lte: '40000.00' },
+          quantity: { gt: 0 },
         },
+        orderBy: [{ price: 'desc' }, { id: 'asc' }],
+        take: 6,
+        skip: 12,
       }),
     );
+    expect(database.vehicle.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        make: { contains: 'toy', mode: 'insensitive' },
+        quantity: { gt: 0 },
+      }),
+    });
   });
 
   it('sends only supplied fields during a partial update', async () => {
@@ -133,41 +164,6 @@ describe('PrismaVehicleRepository', () => {
     await expect(repository.delete(storedVehicle.id)).resolves.toBe(false);
   });
 
-  it('atomically purchases only when sufficient stock exists', async () => {
-    await expect(repository.purchase(storedVehicle.id, 1)).resolves.toMatchObject({
-      status: 'UPDATED',
-      vehicle: {
-        id: storedVehicle.id,
-        quantity: 3,
-      },
-    });
-    expect(database.vehicle.updateManyAndReturn).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          id: storedVehicle.id,
-          quantity: { gte: 1 },
-        },
-        data: {
-          quantity: { decrement: 1 },
-        },
-      }),
-    );
-  });
-
-  it('distinguishes insufficient stock from a missing purchase target', async () => {
-    database.vehicle.updateManyAndReturn.mockResolvedValue([]);
-
-    await expect(repository.purchase(storedVehicle.id, 5)).resolves.toEqual({
-      status: 'INSUFFICIENT_STOCK',
-    });
-
-    database.vehicle.findUnique.mockResolvedValue(null);
-
-    await expect(repository.purchase(storedVehicle.id, 1)).resolves.toEqual({
-      status: 'NOT_FOUND',
-    });
-  });
-
   it('atomically increments stock during restock', async () => {
     database.vehicle.update.mockResolvedValue({ ...storedVehicle, quantity: 6 });
 
@@ -191,7 +187,7 @@ describe('PrismaVehicleRepository', () => {
   });
 
   it('applies transaction-local timeouts around inventory mutations', async () => {
-    await repository.purchase(storedVehicle.id, 1);
+    await repository.restock(storedVehicle.id, 1);
 
     expect(database.$transaction).toHaveBeenCalledOnce();
     expect(database.$queryRawUnsafe).toHaveBeenCalledWith(
@@ -209,9 +205,9 @@ describe('PrismaVehicleRepository', () => {
       message: 'Transaction API error: Unable to start a transaction in the given time.',
     },
   ])('maps retryable database timeout errors to inventory busy', async (databaseError) => {
-    database.vehicle.updateManyAndReturn.mockRejectedValue(databaseError);
+    database.vehicle.update.mockRejectedValue(databaseError);
 
-    await expect(repository.purchase(storedVehicle.id, 1)).rejects.toBeInstanceOf(
+    await expect(repository.restock(storedVehicle.id, 1)).rejects.toBeInstanceOf(
       InventoryBusyError,
     );
   });
