@@ -112,9 +112,7 @@ interface VehicleFormProps {
 
 const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps) => {
   const mode = vehicle ? 'edit' : 'create';
-  const [imageKey, setImageKey] = useState<VehicleImageKey>(
-    vehicle?.imageKey ?? 'ARTWORK_PENDING',
-  );
+  const [imageKey, setImageKey] = useState<VehicleImageKey>(vehicle?.imageKey ?? 'ARTWORK_PENDING');
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
