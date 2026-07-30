@@ -573,3 +573,19 @@ collection so only six cars are fetched and shown at a time, using `limit(6).ski
   all-record download for privileged users.
 - No database migration was added: the existing dataset and indexes support this milestone, and
   index additions should be driven by measured production query plans rather than assumptions.
+
+## 2026-07-30 - Consolidated collection availability filter
+
+**User prompt summary:** Remove the separate All, Available, and Sold out button section from the
+dashboard and place that filter in the top-right control bar beside All brands and Featured order.
+
+**AI-assisted work:**
+
+- Added a failing dashboard regression test requiring an accessible availability combobox and the
+  absence of the former availability button group.
+- Added a Shadcn Select with All availability, Available, and Sold out options to the shared
+  collection controls.
+- Preserved server-side availability filtering and reset pagination to page one when its value
+  changes.
+- Removed the redundant availability tab group while retaining the live result count above the
+  cards.

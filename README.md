@@ -30,7 +30,7 @@ Milestone 7 is complete:
 - Dark-luxury collection with transparent vehicle artwork, brand filtering, price sorting, search,
   stock-aware purchasing, and sold-out states
 - Server-side six-vehicle pagination with accessible Shadcn page, previous, and next controls
-- Signed-in identity and role surface with responsive availability tabs and live result counts
+- Signed-in identity and role surface with a responsive availability select and live result counts
 - Session-race protection and automatic logout when protected APIs reject an expired token
 - Accessible form errors linked to the affected authentication controls
 - Radix-powered Shadcn Navigation Menu, Select, Dialog, Button, Card, Input, and Table primitives
@@ -356,8 +356,9 @@ All errors use `{ "error": { "code": "...", "message": "..." } }`.
 The React collection uses an obsidian `#0B0B0C` canvas, charcoal `#161618` cards, silver
 `#8E8E93` supporting type, `#242427` borders, and a shared 12px radius. A single reference-led
 Navigation Menu now spans Home, Inventory, Login, and Register. Radix-powered Shadcn Select controls
-provide brand filtering, price sorting, and expandable advanced search. Availability tabs switch
-between all, purchasable, and sold-out records through the same paginated server query.
+provide brand filtering, availability filtering, price sorting, and expandable advanced search.
+The consolidated top-right control bar switches between all, purchasable, and sold-out records
+through the same paginated server query.
 
 The collection requests only six vehicles at a time. The API applies search, brand, availability,
 and price ordering before `take`/`skip`, returns the matching total and global brand facets, and

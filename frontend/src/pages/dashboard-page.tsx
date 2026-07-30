@@ -573,8 +573,13 @@ export const DashboardPage = () => {
               </p>
             </div>
             <CollectionControls
+              availability={availability}
               brand={brand}
               brands={brands}
+              onAvailabilityChange={(value) => {
+                setAvailability(value);
+                setPage(1);
+              }}
               onBrandChange={(value) => {
                 setBrand(value);
                 setPage(1);
@@ -781,41 +786,12 @@ export const DashboardPage = () => {
             </section>
           ) : (
             <section aria-busy={isLoading} aria-label="Vehicle inventory" className="pt-8">
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-                <p
-                  aria-live="polite"
-                  className="text-xs uppercase tracking-[0.16em] text-secondary"
-                >
-                  {resultLabel}
-                </p>
-                <div
-                  aria-label="Filter inventory by availability"
-                  className="inline-flex rounded-[var(--radius)] border border-border bg-card p-1"
-                  role="group"
-                >
-                  {[
-                    ['all', 'All'],
-                    ['available', 'Available'],
-                    ['sold-out', 'Sold out'],
-                  ].map(([value, label]) => (
-                    <button
-                      aria-pressed={availability === value}
-                      className={cn(
-                        'h-8 rounded-lg px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-secondary transition-colors',
-                        availability === value && 'bg-primary text-background',
-                      )}
-                      key={value}
-                      onClick={() => {
-                        setAvailability(value as AvailabilityFilter);
-                        setPage(1);
-                      }}
-                      type="button"
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <p
+                aria-live="polite"
+                className="mb-6 text-xs uppercase tracking-[0.16em] text-secondary"
+              >
+                {resultLabel}
+              </p>
 
               {isLoading ? (
                 <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
