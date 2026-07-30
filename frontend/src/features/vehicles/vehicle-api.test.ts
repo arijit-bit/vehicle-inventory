@@ -10,45 +10,62 @@ const response = (body: unknown, init?: ResponseInit) =>
 describe('vehicle API', () => {
   const fetchMock = vi.fn<typeof fetch>();
   const api = createVehicleApi('https://inventory.example/api', fetchMock);
+  const page = {
+    vehicles: [],
+    pagination: { limit: 6, skip: 0, total: 0 },
+    brands: [],
+  };
 
   beforeEach(() => {
     fetchMock.mockReset();
   });
 
   it('authenticates list requests', async () => {
-    fetchMock.mockResolvedValue(response({ vehicles: [] }));
+    fetchMock.mockResolvedValue(response(page));
 
-    await api.list('secure-token');
+    await api.list('secure-token', { limit: 6, skip: 6 });
 
-    expect(fetchMock).toHaveBeenCalledWith('https://inventory.example/api/vehicles', {
-      headers: { Authorization: 'Bearer secure-token' },
-      method: 'GET',
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://inventory.example/api/vehicles?limit=6&skip=6',
+      {
+        headers: { Authorization: 'Bearer secure-token' },
+        method: 'GET',
+      },
+    );
   });
 
   it('allows guest list requests without an authorization header', async () => {
-    fetchMock.mockResolvedValue(response({ vehicles: [] }));
+    fetchMock.mockResolvedValue(response(page));
 
     await api.list();
 
-    expect(fetchMock).toHaveBeenCalledWith('https://inventory.example/api/vehicles', {
-      headers: {},
-      method: 'GET',
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://inventory.example/api/vehicles?limit=6&skip=0',
+      {
+        headers: {},
+        method: 'GET',
+      },
+    );
   });
 
-  it('encodes combined search filters', async () => {
-    fetchMock.mockResolvedValue(response({ vehicles: [] }));
+  it('encodes combined search filters and pagination', async () => {
+    fetchMock.mockResolvedValue(response(page));
 
-    await api.search('secure-token', {
-      make: ' Land Rover ',
-      category: 'SUV',
-      minPrice: '10000',
-      maxPrice: '90000',
-    });
+    await api.search(
+      'secure-token',
+      {
+        make: ' Land Rover ',
+        category: 'SUV',
+        minPrice: '10000',
+        maxPrice: '90000',
+        availability: 'available',
+        sort: 'price-desc',
+      },
+      { limit: 6, skip: 12 },
+    );
 
     expect(fetchMock).toHaveBeenCalledWith(
-      'https://inventory.example/api/vehicles/search?make=Land+Rover&category=SUV&minPrice=10000&maxPrice=90000',
+      'https://inventory.example/api/vehicles/search?make=Land+Rover&category=SUV&minPrice=10000&maxPrice=90000&availability=available&sort=price-desc&limit=6&skip=12',
       {
         headers: { Authorization: 'Bearer secure-token' },
         method: 'GET',

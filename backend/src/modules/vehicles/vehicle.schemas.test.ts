@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   createVehicleSchema,
   inventoryMutationSchema,
+  paginatedSearchVehiclesSchema,
   searchVehiclesSchema,
   updateVehicleSchema,
+  vehiclePaginationSchema,
 } from './vehicle.schemas.js';
 
 describe('vehicle schemas', () => {
@@ -139,6 +141,40 @@ describe('vehicle schemas', () => {
         maxPrice: '10000',
       }),
     ).toThrow();
+  });
+
+  it('defaults to six vehicles on the first page and accepts the second-page offset', () => {
+    expect(vehiclePaginationSchema.parse({})).toEqual({ limit: 6, skip: 0 });
+    expect(vehiclePaginationSchema.parse({ limit: '6', skip: '6' })).toEqual({
+      limit: 6,
+      skip: 6,
+    });
+  });
+
+  it.each([
+    { limit: '7', skip: '0' },
+    { limit: '6', skip: '-1' },
+    { limit: '6', skip: '7' },
+  ])('rejects an invalid collection page %o', (query) => {
+    expect(() => vehiclePaginationSchema.parse(query)).toThrow();
+  });
+
+  it('combines normalized filters, ordering, and pagination', () => {
+    expect(
+      paginatedSearchVehiclesSchema.parse({
+        make: '  Porsche ',
+        availability: 'available',
+        sort: 'price-desc',
+        limit: '6',
+        skip: '12',
+      }),
+    ).toEqual({
+      make: 'Porsche',
+      availability: 'available',
+      sort: 'price-desc',
+      limit: 6,
+      skip: 12,
+    });
   });
 
   it('defaults an inventory mutation to one vehicle and accepts a positive quantity', () => {

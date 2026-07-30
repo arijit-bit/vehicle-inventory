@@ -4,6 +4,7 @@ import {
   InsufficientStockError,
   VehicleNotFoundError,
   type VehicleRecord,
+  type VehiclePage,
   type VehicleRepository,
 } from './vehicle.types.js';
 
@@ -25,6 +26,11 @@ const vehicle: VehicleRecord = {
   createdAt: new Date('2026-07-29T00:00:00.000Z'),
   updatedAt: new Date('2026-07-29T00:00:00.000Z'),
 };
+const vehiclePage: VehiclePage = {
+  vehicles: [vehicle],
+  pagination: { limit: 6, skip: 0, total: 1 },
+  brands: ['Toyota'],
+};
 
 describe('VehicleService', () => {
   const repository: VehicleRepository = {
@@ -41,8 +47,8 @@ describe('VehicleService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(repository.create).mockResolvedValue(vehicle);
-    vi.mocked(repository.findAll).mockResolvedValue([vehicle]);
-    vi.mocked(repository.search).mockResolvedValue([vehicle]);
+    vi.mocked(repository.findAll).mockResolvedValue(vehiclePage);
+    vi.mocked(repository.search).mockResolvedValue(vehiclePage);
     vi.mocked(repository.update).mockResolvedValue(vehicle);
     vi.mocked(repository.delete).mockResolvedValue(true);
     vi.mocked(repository.purchase).mockResolvedValue({
@@ -73,12 +79,14 @@ describe('VehicleService', () => {
     expect(repository.create).toHaveBeenCalledWith(input);
   });
 
-  it('lists all inventory records', async () => {
-    await expect(service.list()).resolves.toEqual([vehicle]);
-    expect(repository.findAll).toHaveBeenCalledOnce();
+  it('lists one inventory page', async () => {
+    const pagination = { limit: 6, skip: 6 };
+
+    await expect(service.list(pagination)).resolves.toEqual(vehiclePage);
+    expect(repository.findAll).toHaveBeenCalledWith(pagination);
   });
 
-  it('forwards combined search filters', async () => {
+  it('forwards combined search filters and pagination', async () => {
     const filters = {
       make: 'toy',
       model: 'cam',
@@ -86,9 +94,10 @@ describe('VehicleService', () => {
       minPrice: '10000.00',
       maxPrice: '40000.00',
     };
+    const pagination = { limit: 6, skip: 12 };
 
-    await expect(service.search(filters)).resolves.toEqual([vehicle]);
-    expect(repository.search).toHaveBeenCalledWith(filters);
+    await expect(service.search(filters, pagination)).resolves.toEqual(vehiclePage);
+    expect(repository.search).toHaveBeenCalledWith(filters, pagination);
   });
 
   it('reports a missing vehicle during update', async () => {
