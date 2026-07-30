@@ -42,6 +42,32 @@ describe('vehicle schemas', () => {
   });
 
   it.each([
+    'BLACK_BENTLEY',
+    'GREEN_PORSCHE_911',
+    'BROWN_MAYBACH',
+    'ORANGE_AUDI_R8',
+    'BLACK_RANGE_ROVER',
+  ] as const)('accepts the additional catalog artwork key %s', (imageKey) => {
+    expect(
+      createVehicleSchema.parse({
+        make: 'Catalog',
+        model: imageKey,
+        year: 2024,
+        category: 'Collector Vehicle',
+        imageKey,
+        colorName: 'Black',
+        colorHex: '#0B0C10',
+        engine: 'Test Engine',
+        transmission: 'AUTOMATIC',
+        fuelType: 'GASOLINE',
+        details: 'Additional catalog validation fixture.',
+        price: '230400.00',
+        quantity: 1,
+      }),
+    ).toMatchObject({ imageKey, fuelType: 'GASOLINE' });
+  });
+
+  it.each([
     { year: 1800 },
     { imageKey: 'HERO_CAR' },
     { colorHex: 'silver' },

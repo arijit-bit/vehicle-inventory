@@ -38,7 +38,7 @@ Milestone 7 is complete:
 - Accessible dialogs with Escape, backdrop, focus trapping, and scroll handling
 - Real signed-token verification that `DELETE /api/vehicles/:id` is administrator-only
 - End-to-end auth boundary proof from registration through profile restore and protected inventory
-- 150 automated tests across the API and SPA
+- 160 automated tests across the API and SPA
 
 ## Architecture
 
@@ -129,6 +129,12 @@ dashboard- or server-controlled; the browser receives no service-role key.
 The landing and authentication hero intentionally remain bundled from
 `frontend/src/assets/svg/Final-CarHero Page.svg`, so the primary above-the-fold artwork does not
 wait for the asset-catalog request.
+
+The Milestone 7 catalog migration adds Bentley Continental GT Speed, Porsche 911 Turbo S,
+Mercedes-Maybach S680, Audi R8 V10 Performance, and Range Rover SV Autobiography records. Their
+uploaded Storage objects currently end in `.svg.svg`; the `media_assets` rows deliberately retain
+those exact live object names so their public URLs resolve instead of relying on normalized but
+nonexistent `.svg` paths.
 
 To add another collection image:
 
@@ -434,10 +440,13 @@ browser run.
 AI was most useful for accelerating repetitive setup and expanding edge-case coverage, including
 email normalization, bcrypt's 72-byte input boundary, generic login failures, JWT claim
 verification, role middleware, decimal money validation, combined inventory filters, and missing
-database records. The important lesson was that generated code still required human-style
-verification: static analysis caught a React state-effect issue, an architecture review found the
-missing administrator seed path, and live query planning confirmed which inventory index the
-combined search actually used. Each issue was checked before handoff.
+database records. It also helped extend the Milestone 7 catalog while cross-checking the supplied
+vehicle metadata against live Supabase rows and the actual Storage object names. The important
+lesson was that generated code still required human-style verification: static analysis caught a
+React state-effect issue, an architecture review found the missing administrator seed path, live
+query planning confirmed which inventory index the combined search actually used, and Storage
+inspection caught five accidental `.svg.svg` filenames before broken URLs were persisted. Each
+issue was checked before handoff.
 
 Every AI-assisted commit includes:
 

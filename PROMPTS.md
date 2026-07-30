@@ -510,3 +510,36 @@ result, then keep the landing hero bundled locally and advise how to add more ve
 - For frequent additions, the recommended follow-up is replacing the enum allowlist with a
   `vehicles.image_key -> media_assets.key` foreign key plus an Administrator upload/asset-picker
   workflow.
+
+## 2026-07-30 - Milestone 7 additional vehicle catalog
+
+**User prompt summary:** Act as a senior DBMS and full-stack developer, use the attached database
+structure for five additional cars whose SVGs were uploaded to the existing `Assets-SVG` bucket,
+insert the data so more collection cards appear, follow the attached TDD/AI-usage rules, and create
+a Milestone 7 extra UI updates and corrections branch.
+
+**AI-assisted work:**
+
+- Created `codex/milestone-7-extra-ui-updates-corrections` from the clean `main` branch.
+- Reviewed the current Supabase changelog and Storage/database guidance before implementation.
+- Inspected the configured live database and public bucket through the backend-only PostgreSQL
+  connection after the Supabase connector reported insufficient project permission.
+- Confirmed none of the five vehicle or media rows existed and found that the uploaded object names
+  use `.svg.svg`, not the normalized `.svg` paths listed in the supplied draft response.
+- Added failing Zod coverage for all five new artwork keys and the `GASOLINE` fuel type, then
+  extended Prisma, backend validation, frontend API types, media types, card mapping coverage, and
+  Administrator artwork/fuel selectors.
+- Added separate ordered migrations for enum expansion and idempotent media/vehicle upserts, so
+  PostgreSQL commits new enum values before they are referenced and reruns do not reset stock.
+- Applied both migrations to the configured Supabase database.
+- Verified all five database joins, 10 live inventory rows in total, and HTTP 200
+  `image/svg+xml` responses from every new public artwork URL.
+
+**Architecture decisions:**
+
+- The media catalog stores the actual `.svg.svg` object names because those are the live,
+  byte-serving Storage objects; inventing normalized paths would render broken collection cards.
+- Existing inventory quantities are not overwritten by the migration's conflict-update path,
+  preserving purchases and restocks if the seed is reapplied.
+- RLS and the server-only database boundary remain unchanged; no service-role key is introduced
+  into the React application.

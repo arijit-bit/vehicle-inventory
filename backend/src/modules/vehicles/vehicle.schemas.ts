@@ -10,9 +10,19 @@ const colorHexSchema = z
   .regex(/^#[0-9A-F]{6}$/i, 'Color must be a six-digit hexadecimal value')
   .transform((value) => value.toUpperCase());
 
-export const vehicleImageKeys = ['WHITE_RR', 'BLUE_BUGATTI', 'GREEN_LAMBO', 'BLACK_CAR'] as const;
+export const vehicleImageKeys = [
+  'WHITE_RR',
+  'BLUE_BUGATTI',
+  'GREEN_LAMBO',
+  'BLACK_CAR',
+  'BLACK_BENTLEY',
+  'GREEN_PORSCHE_911',
+  'BROWN_MAYBACH',
+  'ORANGE_AUDI_R8',
+  'BLACK_RANGE_ROVER',
+] as const;
 export const transmissions = ['MANUAL', 'AUTOMATIC'] as const;
-export const fuelTypes = ['PETROL', 'DIESEL', 'HYBRID', 'ELECTRIC'] as const;
+export const fuelTypes = ['PETROL', 'GASOLINE', 'DIESEL', 'HYBRID', 'ELECTRIC'] as const;
 
 const priceSchema = z.preprocess(
   (value) => (typeof value === 'number' && Number.isFinite(value) ? String(value) : value),

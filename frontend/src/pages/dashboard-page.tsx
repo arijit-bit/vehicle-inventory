@@ -191,6 +191,11 @@ const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps)
               <SelectItem value="BLUE_BUGATTI">Blue hypercar</SelectItem>
               <SelectItem value="GREEN_LAMBO">Green supercar</SelectItem>
               <SelectItem value="BLACK_CAR">Black supercar</SelectItem>
+              <SelectItem value="BLACK_BENTLEY">Black Bentley grand tourer</SelectItem>
+              <SelectItem value="GREEN_PORSCHE_911">Bright green Porsche 911</SelectItem>
+              <SelectItem value="BROWN_MAYBACH">Brown Mercedes-Maybach sedan</SelectItem>
+              <SelectItem value="ORANGE_AUDI_R8">Orange Audi R8</SelectItem>
+              <SelectItem value="BLACK_RANGE_ROVER">Black Range Rover SUV</SelectItem>
             </SelectContent>
           </Select>
         </FormField>
@@ -244,6 +249,7 @@ const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps)
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="PETROL">Petrol</SelectItem>
+              <SelectItem value="GASOLINE">Gasoline</SelectItem>
               <SelectItem value="DIESEL">Diesel</SelectItem>
               <SelectItem value="HYBRID">Hybrid</SelectItem>
               <SelectItem value="ELECTRIC">Electric</SelectItem>

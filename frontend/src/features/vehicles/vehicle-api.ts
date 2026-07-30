@@ -1,6 +1,15 @@
-export type VehicleImageKey = 'WHITE_RR' | 'BLUE_BUGATTI' | 'GREEN_LAMBO' | 'BLACK_CAR';
+export type VehicleImageKey =
+  | 'WHITE_RR'
+  | 'BLUE_BUGATTI'
+  | 'GREEN_LAMBO'
+  | 'BLACK_CAR'
+  | 'BLACK_BENTLEY'
+  | 'GREEN_PORSCHE_911'
+  | 'BROWN_MAYBACH'
+  | 'ORANGE_AUDI_R8'
+  | 'BLACK_RANGE_ROVER';
 export type Transmission = 'MANUAL' | 'AUTOMATIC';
-export type FuelType = 'PETROL' | 'DIESEL' | 'HYBRID' | 'ELECTRIC';
+export type FuelType = 'PETROL' | 'GASOLINE' | 'DIESEL' | 'HYBRID' | 'ELECTRIC';
 
 export interface Vehicle {
   id: string;
