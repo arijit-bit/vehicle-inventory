@@ -16,6 +16,8 @@ const envSchema = z
     JWT_EXPIRES_IN: durationSchema.default('15m'),
     JWT_ISSUER: z.string().min(1).default('vehicle-inventory-api'),
     JWT_AUDIENCE: z.string().min(1).default('vehicle-inventory-web'),
+    REFRESH_TOKEN_SECRET: z.string().min(32, 'REFRESH_TOKEN_SECRET must contain at least 32 characters').optional(),
+    REFRESH_TOKEN_EXPIRES_IN: durationSchema.default('7d'),
     BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(14).default(12),
     ADMIN_EMAIL: z.string().min(1).optional(),
     ADMIN_PASSWORD: z.string().min(1).optional(),

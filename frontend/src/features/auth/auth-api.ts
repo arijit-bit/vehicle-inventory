@@ -11,6 +11,7 @@ export interface AuthCredentials {
   email: string;
   password: string;
   role?: RegistrableRole;
+  rememberMe?: boolean;
 }
 
 export interface AuthResponse {
@@ -43,7 +44,12 @@ const normalizeCredentials = (credentials: AuthCredentials): AuthCredentials => 
 
 export const createAuthApi = (baseUrl: string) => {
   const request = async <T>(path: string, init: RequestInit): Promise<T> => {
-    const response = await fetch(`${baseUrl}${path}`, init);
+    const response = await fetch(`${baseUrl}${path}`, {
+      // credentials: 'include' ensures the httpOnly refresh_token cookie is
+      // sent automatically on every request to the same origin.
+      credentials: 'include',
+      ...init,
+    });
     const body = (await response.json()) as T & ApiErrorBody;
 
     if (!response.ok) {
@@ -75,6 +81,19 @@ export const createAuthApi = (baseUrl: string) => {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+      }),
+    /** Silently refresh the access token using the httpOnly cookie. */
+    refresh: () =>
+      request<{ token: string }>('/auth/refresh', {
+        method: 'POST',
+      }),
+    /** Revoke the refresh token server-side and clear the cookie. */
+    logout: () =>
+      fetch(`${baseUrl}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      }).catch(() => {
+        // best-effort — don't block client-side logout if server is unreachable
       }),
   };
 };

@@ -36,6 +36,7 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<RegistrableRole>('CUSTOMER');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
 
@@ -81,7 +82,7 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
       await onSubmit({
         email: email.trim().toLowerCase(),
         password,
-        ...(isRegistration ? { role } : {}),
+        ...(isRegistration ? { role } : { rememberMe }),
       });
     } catch (error) {
       setErrors({
@@ -181,6 +182,30 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
           </p>
         )}
       </div>
+
+      {!isRegistration && (
+        <label className="flex cursor-pointer items-center gap-2.5" htmlFor="login-remember-me">
+          <div className="relative flex items-center">
+            <input
+              checked={rememberMe}
+              className="peer sr-only"
+              id="login-remember-me"
+              onChange={(e) => setRememberMe(e.target.checked)}
+              type="checkbox"
+            />
+            <div className="flex size-4 items-center justify-center rounded border border-white/25 bg-background/65 transition peer-checked:border-primary/60 peer-checked:bg-primary/20 peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30">
+              {rememberMe && (
+                <svg className="size-2.5 text-primary" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 12 12">
+                  <path d="M2 6l3 3 5-5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+          </div>
+          <span className="text-sm text-secondary">
+            Remember me for 7 days
+          </span>
+        </label>
+      )}
 
       {isRegistration && (
         <div className="space-y-2">

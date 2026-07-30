@@ -30,12 +30,16 @@ Milestone 7 is complete:
 - Short-lived HS256 JWTs with issuer and audience verification
 - Authentication middleware and reusable role authorization
 - Environment-seeded administrator; public registration supports `CUSTOMER` and `EMPLOYEE`
+- **Refresh token flow**: httpOnly `SameSite=Strict` cookie with 7-day lifetime, token rotation on
+  every use, server-side revocation on logout, and a silent restore on page reload
+- **"Remember me" checkbox** on the login form; refresh token is only issued when checked
 - Reference-led dark-luxury landing page with metallic hero typography, responsive navigation, and
   the repository's exotic vehicle artwork
 - A shared reference-led navigation header across Home, About, Inventory, Orders, Login, and Register
 - Responsive editorial About page covering MotoVault's standards and reservation experience
 - Premium centered login and registration flows with email/password authentication
 - Session restoration, logout, and protected React routes
+- **Client-side navigation** via React Router `<Link>` — no full-page reloads between routes
 - Protected vehicle listing and combined make, model, category, and price-range search
 - Employee/Admin vehicle creation and updates; Administrator-only deletion and restocking
 - Exact two-decimal price serialization and non-negative stock validation
@@ -119,6 +123,8 @@ The API starts at `http://localhost:3000` and the SPA at `http://localhost:5173`
 | `JWT_EXPIRES_IN`                | Access-token lifetime, default `15m`                                       |
 | `JWT_ISSUER`                    | Expected JWT issuer                                                        |
 | `JWT_AUDIENCE`                  | Expected JWT audience                                                      |
+| `REFRESH_TOKEN_SECRET`          | Optional extra secret for refresh token signing (≥ 32 chars)              |
+| `REFRESH_TOKEN_EXPIRES_IN`      | Refresh-token lifetime, default `7d`                                       |
 | `BCRYPT_ROUNDS`                 | bcrypt work factor from 10 through 14, default `12`                        |
 | `ADMIN_EMAIL`                   | Optional administrator email; requires `ADMIN_PASSWORD`                    |
 | `ADMIN_PASSWORD`                | Optional administrator password; requires `ADMIN_EMAIL`                    |
@@ -220,13 +226,25 @@ Matching local connection strings are documented in `backend/.env.example`.
 
 All JSON error responses use `{ "error": { "code": "...", "message": "..." } }`.
 
-| Method | Endpoint             | Access     | Result                                                       |
-| ------ | -------------------- | ---------- | ------------------------------------------------------------ |
-| `POST` | `/api/auth/register` | Public     | Creates a Customer/Employee and returns the user and JWT     |
-| `POST` | `/api/auth/login`    | Public     | Verifies the bcrypt hash and returns the public user and JWT |
-| `GET`  | `/api/auth/me`       | Bearer JWT | Returns identity claims for the current session              |
+| Method | Endpoint              | Access       | Result                                                                  |
+| ------ | --------------------- | ------------ | ----------------------------------------------------------------------- |
+| `POST` | `/api/auth/register`  | Public       | Creates a Customer/Employee, returns `{ user, token }`; sets refresh cookie if `rememberMe` |
+| `POST` | `/api/auth/login`     | Public       | Verifies credentials, returns `{ user, token }`; sets refresh cookie if `rememberMe` |
+| `GET`  | `/api/auth/me`        | Bearer JWT   | Returns identity claims for the current session                         |
+| `POST` | `/api/auth/refresh`   | Cookie       | Rotates the refresh token and returns a new `{ token }` (access JWT)   |
+| `POST` | `/api/auth/logout`    | Cookie       | Revokes the refresh token server-side and clears the cookie             |
 
-Registration body:
+Login / register body (add `"rememberMe": true` to get the 7-day persistent cookie):
+
+```json
+{
+  "email": "driver@example.com",
+  "password": "SafePass123!",
+  "rememberMe": true
+}
+```
+
+Registration body also requires `"role": "CUSTOMER"` or `"role": "EMPLOYEE"`.
 
 ```json
 {
@@ -495,9 +513,20 @@ vehicle sold out, while authorization errors remain distinct.
 - Express applies Helmet, a configured CORS origin, and a 1 MB JSON body limit.
 - The SPA uses the declarative React Router API only. It does not enable React Server Components or
   server actions.
-- Tokens are kept in `sessionStorage`, limiting persistence to the current browser tab. An
-  HTTP-only secure-cookie design would be preferred when refresh tokens and CSRF protection are
-  introduced.
+- Access tokens are kept in **React state only** (memory) — never written to `localStorage` or
+  `sessionStorage`. They expire after 15 minutes.
+- Refresh tokens are stored in an **httpOnly cookie**, which JavaScript cannot
+  read. On page reload the SPA calls `POST /api/auth/refresh` to silently restore the session; the
+  access token is re-issued in the response body and never touches a cookie.
+  In production (`NODE_ENV=production`) the cookie uses `Secure` and `SameSite=None` to support
+  the cross-domain Vercel deployment (frontend and backend on separate subdomains). In development
+  `SameSite=Lax` is used instead since both origins are localhost.
+- Every refresh **rotates** the token: the old record is deleted and a new 64-character SHA-256 hash
+  is persisted. A stolen token can only be used once before it is invalidated.
+- `POST /api/auth/logout` revokes the refresh token **server-side** and clears the cookie, so
+  closing the browser tab without logging out is the only way a valid token survives.
+- Refresh tokens are stored **hashed** (SHA-256) in the `refresh_tokens` table; raw tokens never
+  reach the database.
 - Session restoration responses are ignored after logout, preventing a stale request from
   resurrecting local identity.
 - Any protected inventory `401` clears the client session instead of leaving stale dashboard

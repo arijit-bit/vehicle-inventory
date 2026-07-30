@@ -1,3 +1,4 @@
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
@@ -8,6 +9,7 @@ import {
   createUserManagementRouter,
   type UserManagementServicePort,
 } from './modules/auth/user-management.routes.js';
+import type { RefreshTokenService } from './modules/auth/refresh-token.service.js';
 import {
   createMediaAssetRouter,
   type MediaAssetServicePort,
@@ -18,6 +20,7 @@ import { createVehicleRouter, type VehicleServicePort } from './modules/vehicles
 interface AppDependencies {
   authService?: AuthServicePort;
   tokenVerifier?: TokenVerifier;
+  refreshTokenService?: RefreshTokenService;
   vehicleService?: VehicleServicePort;
   userManagementService?: UserManagementServicePort;
   mediaAssetService?: MediaAssetServicePort;
@@ -27,6 +30,7 @@ interface AppDependencies {
 export const createApp = ({
   authService,
   tokenVerifier,
+  refreshTokenService,
   vehicleService,
   userManagementService,
   mediaAssetService,
@@ -66,6 +70,7 @@ export const createApp = ({
       credentials: true,
     }),
   );
+  app.use(cookieParser());
   app.use(express.json({ limit: '1mb' }));
 
   app.get('/api/health', (_request, response) => {
@@ -75,8 +80,8 @@ export const createApp = ({
     });
   });
 
-  if (authService && tokenVerifier) {
-    app.use('/api/auth', createAuthRouter(authService, tokenVerifier));
+  if (authService && tokenVerifier && refreshTokenService) {
+    app.use('/api/auth', createAuthRouter(authService, tokenVerifier, refreshTokenService));
   }
 
   if (vehicleService && tokenVerifier) {

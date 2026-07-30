@@ -7,6 +7,7 @@ import { AuthService } from './modules/auth/auth.service.js';
 import { BcryptPasswordHasher } from './modules/auth/bcrypt-password-hasher.js';
 import { JwtTokenService } from './modules/auth/jwt-token.service.js';
 import { PrismaUserRepository } from './modules/auth/prisma-user.repository.js';
+import { PrismaRefreshTokenRepository, RefreshTokenService } from './modules/auth/refresh-token.service.js';
 import { UserManagementService } from './modules/auth/user-management.service.js';
 import { MediaAssetService } from './modules/media-assets/media-asset.service.js';
 import { PrismaMediaAssetRepository } from './modules/media-assets/prisma-media-asset.repository.js';
@@ -27,6 +28,8 @@ const tokens = new JwtTokenService({
 });
 const authService = new AuthService(users, passwords, tokens);
 const userManagementService = new UserManagementService(users, passwords);
+const refreshTokenRepo = new PrismaRefreshTokenRepository(database);
+const refreshTokenService = new RefreshTokenService(refreshTokenRepo, tokens);
 const vehicles = new PrismaVehicleRepository(database, {
   lockTimeoutMs: env.DATABASE_LOCK_TIMEOUT_MS,
   statementTimeoutMs: env.DATABASE_STATEMENT_TIMEOUT_MS,
@@ -49,6 +52,7 @@ await new AdminSeeder(users, passwords).seed(adminCredentials);
 const app = createApp({
   authService,
   tokenVerifier: tokens,
+  refreshTokenService,
   vehicleService,
   userManagementService,
   mediaAssetService,
