@@ -53,7 +53,11 @@ describe('App authentication routes', () => {
       '/dashboard',
     );
     expect(primaryNavigation.getByText(/^about$/i)).toHaveAttribute('aria-disabled', 'true');
-    expect(primaryNavigation.getByText(/^services$/i)).toHaveAttribute('aria-disabled', 'true');
+    expect(primaryNavigation.getByRole('link', { name: /^orders$/i })).toHaveAttribute(
+      'href',
+      '/orders',
+    );
+    expect(primaryNavigation.queryByText(/^services$/i)).not.toBeInTheDocument();
     expect(primaryNavigation.getByText(/^contact$/i)).toHaveAttribute('aria-disabled', 'true');
     const heroVehicle = await screen.findByRole('img', { name: /exotic performance car/i });
 
