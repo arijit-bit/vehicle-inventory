@@ -70,6 +70,25 @@ describe('vehicle schemas', () => {
     ).toMatchObject({ imageKey, fuelType: 'GASOLINE' });
   });
 
+  it('defaults an omitted create artwork to the pending placeholder', () => {
+    expect(
+      createVehicleSchema.parse({
+        make: 'Lucid',
+        model: 'Air',
+        year: 2026,
+        category: 'Electric Sedan',
+        colorName: 'Stellar White',
+        colorHex: '#F2F2F0',
+        engine: 'Dual electric motors',
+        transmission: 'AUTOMATIC',
+        fuelType: 'ELECTRIC',
+        details: 'Awaiting final catalog photography.',
+        price: '89900.00',
+        quantity: 1,
+      }),
+    ).toMatchObject({ imageKey: 'ARTWORK_PENDING' });
+  });
+
   it.each([
     { year: 1800 },
     { imageKey: 'HERO_CAR' },
