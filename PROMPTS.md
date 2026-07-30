@@ -625,3 +625,31 @@ all customer orders, and the Services navigation placeholder becomes Orders.
   history from becoming another unbounded dashboard fetch.
 - Vehicle and user deletion are restricted while order history references them, preserving the
   audit trail.
+
+## 2026-07-30 - MotoVault About page and navigation cleanup
+
+**User prompt summary:** Create a relevant About page with senior frontend/UI-UX judgment and remove
+the unused Contact option from navigation without creating a Contact page.
+
+**AI-assisted work:**
+
+- Added a failing route/navigation regression test before implementation.
+- Replaced the disabled About placeholder with an active `/about` link and route on desktop and
+  mobile navigation.
+- Removed Contact completely from both navigation surfaces.
+- Designed a responsive editorial About experience using the existing MotoVault visual system and
+  bundled vehicle artwork.
+- Added brand positioning, collection standards, live-system trust signals, a discover/reserve/
+  track journey, and direct inventory/access calls to action.
+- Verified the layout in the local browser at desktop and 390px mobile widths, including the mobile
+  navigation contents; no browser warnings or errors were emitted.
+- Ran 191 tests plus formatting, lint, TypeScript checking, coverage, and production builds.
+
+**Architecture decisions:**
+
+- The About page stays public and reflects the authenticated identity in the shared navigation,
+  matching Home and preserving a consistent entry point for prospective Customers.
+- Existing repository artwork is reused to preserve visual continuity and avoid another network
+  dependency for an editorial page.
+- Content describes capabilities the product actually provides—curation, live stock, role-aware
+  access, and durable order history—rather than introducing unsupported service claims.

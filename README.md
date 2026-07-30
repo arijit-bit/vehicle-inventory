@@ -16,7 +16,8 @@ Milestone 7 is complete:
 - Environment-seeded administrator; public registration supports `CUSTOMER` and `EMPLOYEE`
 - Reference-led dark-luxury landing page with metallic hero typography, responsive navigation, and
   the repository's exotic vehicle artwork
-- A shared reference-led navigation header across Home, Inventory, Login, and Register
+- A shared reference-led navigation header across Home, About, Inventory, Orders, Login, and Register
+- Responsive editorial About page covering MotoVault's standards and reservation experience
 - Premium centered login and registration flows with email/password authentication
 - Session restoration, logout, and protected React routes
 - Protected vehicle listing and combined make, model, category, and price-range search
@@ -42,7 +43,7 @@ Milestone 7 is complete:
 - Accessible dialogs with Escape, backdrop, focus trapping, and scroll handling
 - Real signed-token verification that `DELETE /api/vehicles/:id` is administrator-only
 - End-to-end auth boundary proof from registration through profile restore and protected inventory
-- 190 automated tests across the API and SPA
+- 191 automated tests across the API and SPA
 
 ## Architecture
 
@@ -392,7 +393,8 @@ All errors use `{ "error": { "code": "...", "message": "..." } }`.
 
 The React collection uses an obsidian `#0B0B0C` canvas, charcoal `#161618` cards, silver
 `#8E8E93` supporting type, `#242427` borders, and a shared 12px radius. A single reference-led
-Navigation Menu now spans Home, Inventory, Orders, Login, and Register. Radix-powered Shadcn Select controls
+Navigation Menu now spans Home, About, Inventory, Orders, Login, and Register. The unused Contact
+placeholder has been removed from desktop and mobile navigation. Radix-powered Shadcn Select controls
 provide brand filtering, availability filtering, price sorting, and expandable advanced search.
 The consolidated top-right control bar switches between all, purchasable, and sold-out records
 through the same paginated server query.
@@ -406,6 +408,10 @@ The former Services placeholder is replaced by Orders on desktop and mobile navi
 page reuses the six-item Shadcn pagination. Customers see their immutable reservation details and
 can cancel active orders; Employee and Administrator views show all paged orders with customer
 email and current status, without customer-only cancellation controls.
+
+The public About route extends the same dark-luxury art direction into an editorial brand story.
+It explains MotoVault's curation, specification transparency, trusted inventory, and
+discover/reserve/track journey, with responsive collection calls to action.
 
 Vehicle cards use the repository's centered, non-hero transparent automotive assets with
 database-backed color, artwork selection, transmission, model year, engine, fuel, description,

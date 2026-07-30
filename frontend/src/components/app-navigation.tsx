@@ -10,7 +10,7 @@ import {
   NavigationMenuList,
 } from './ui/navigation-menu';
 
-type ActivePage = 'home' | 'inventory' | 'orders' | null;
+type ActivePage = 'home' | 'inventory' | 'orders' | 'about' | null;
 
 interface AppNavigationProps {
   active?: ActivePage;
@@ -23,17 +23,6 @@ const roleLabel = {
   EMPLOYEE: 'Sales specialist',
   ADMIN: 'Administrator',
 } as const;
-
-const deferredNavigation = ['About', 'Contact'] as const;
-
-const DeferredNavigationItem = ({ label }: { label: (typeof deferredNavigation)[number] }) => (
-  <span
-    aria-disabled="true"
-    className="cursor-default rounded-lg px-3 py-2 text-xs font-medium text-secondary/65"
-  >
-    {label}
-  </span>
-);
 
 export const AppNavigation = ({ active = null, user = null, onLogout }: AppNavigationProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -61,6 +50,15 @@ export const AppNavigation = ({ active = null, user = null, onLogout }: AppNavig
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink
+                aria-current={active === 'about' ? 'page' : undefined}
+                className={cn(active === 'about' && 'bg-white/[0.04] text-primary')}
+                href="/about"
+              >
+                About
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+              <NavigationMenuLink
                 aria-current={active === 'inventory' ? 'page' : undefined}
                 className={cn(active === 'inventory' && 'bg-white/[0.04] text-primary')}
                 href="/dashboard"
@@ -77,11 +75,6 @@ export const AppNavigation = ({ active = null, user = null, onLogout }: AppNavig
                 Orders
               </NavigationMenuLink>
             </NavigationMenuItem>
-            {deferredNavigation.map((label) => (
-              <NavigationMenuItem className="flex" key={label}>
-                <DeferredNavigationItem label={label} />
-              </NavigationMenuItem>
-            ))}
           </NavigationMenuList>
         </NavigationMenu>
 
@@ -150,6 +143,17 @@ export const AppNavigation = ({ active = null, user = null, onLogout }: AppNavig
             Home
           </a>
           <a
+            aria-current={active === 'about' ? 'page' : undefined}
+            className={cn(
+              'mt-1 block rounded-lg px-4 py-3 text-sm text-secondary transition-colors hover:bg-white/[0.04] hover:text-primary',
+              active === 'about' && 'bg-white/[0.05] text-primary',
+            )}
+            href="/about"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            About
+          </a>
+          <a
             aria-current={active === 'inventory' ? 'page' : undefined}
             className={cn(
               'mt-1 block rounded-lg px-4 py-3 text-sm text-secondary transition-colors hover:bg-white/[0.04] hover:text-primary',
@@ -171,16 +175,6 @@ export const AppNavigation = ({ active = null, user = null, onLogout }: AppNavig
           >
             Orders
           </a>
-          {deferredNavigation.map((label) => (
-            <span
-              aria-disabled="true"
-              className="mt-1 block cursor-default rounded-lg px-4 py-3 text-sm text-secondary/55"
-              key={label}
-            >
-              {label}
-              <span className="float-right text-[9px] uppercase tracking-[0.14em]">Soon</span>
-            </span>
-          ))}
           {!user && (
             <div className="mt-2 grid grid-cols-2 gap-2 border-t border-border pt-3">
               <Button asChild variant="ghost">

@@ -7,15 +7,15 @@ Recorded on 2026-07-30 using Node.js `v24.8.0` and npm `11.6.0` on Windows.
 | Area        | Test files | Tests | Result |
 | ----------- | ---------: | ----: | ------ |
 | Express API |         22 |   142 | Passed |
-| React SPA   |         10 |    48 | Passed |
-| Total       |         32 |   190 | Passed |
+| React SPA   |         10 |    49 | Passed |
+| Total       |         32 |   191 | Passed |
 
 ## Coverage
 
 | Area        | Statements | Branches | Functions |  Lines |
 | ----------- | ---------: | -------: | --------: | -----: |
 | Express API |     84.39% |   69.54% |    85.91% | 84.13% |
-| React SPA   |     86.36% |   80.00% |    84.23% | 86.65% |
+| React SPA   |     86.28% |   80.42% |    83.90% | 86.57% |
 
 Vehicle routes and schemas have 100% statement, branch, function, and line coverage. The vehicle
 service, Prisma adapter, exact two-decimal serialization, persisted catalog metadata, enum and color
@@ -35,6 +35,8 @@ social-provider removal, the accessible Shadcn account-type selector, Employee i
 Administrator create, edit, restock, and delete workflows, and accessible page navigation below the
 six-card collection. Orders-page tests cover Customer cancellation, Employee/Administrator customer
 visibility, hidden staff cancellation controls, and second-page server requests.
+App routing coverage also verifies the responsive About navigation, active-page state, relevant
+brand content, collection calls to action, and complete removal of Contact navigation.
 Backend tests cover Customer, Employee, and Administrator route boundaries plus Admin-only user
 CRUD and role assignment. Integration tests use real bcrypt and JWT services to cross
 registration, profile restoration, protected inventory, role authorization, and
