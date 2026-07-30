@@ -169,7 +169,7 @@ describe('DashboardPage', () => {
     const camry = await screen.findByRole('article', { name: 'Toyota Camry' });
     expect(vehicleApi.list).toHaveBeenCalledWith(null, { limit: 6, skip: 0 });
     expect(
-      within(camry).getByRole('link', { name: /sign in to purchase toyota camry/i }),
+      within(camry).getByRole('link', { name: /sign in to reserve toyota camry/i }),
     ).toHaveAttribute('href', '/login');
     expect(screen.getByRole('link', { name: 'Request access' })).toHaveAttribute(
       'href',

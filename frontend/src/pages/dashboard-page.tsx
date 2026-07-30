@@ -6,6 +6,8 @@ import {
   Plus,
   Search,
   Settings2,
+  ShieldCheck,
+  ShoppingBag,
   Trash2,
   X,
 } from 'lucide-react';
@@ -55,6 +57,7 @@ type DialogState =
   | { type: 'create' }
   | { type: 'edit'; vehicle: Vehicle }
   | { type: 'restock'; vehicle: Vehicle }
+  | { type: 'reserve'; vehicle: Vehicle }
   | { type: 'delete'; vehicle: Vehicle };
 
 type WorkspaceView = 'catalog' | 'manage';
@@ -109,6 +112,9 @@ interface VehicleFormProps {
 
 const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps) => {
   const mode = vehicle ? 'edit' : 'create';
+  const [imageKey, setImageKey] = useState<VehicleImageKey>(
+    vehicle?.imageKey ?? 'ARTWORK_PENDING',
+  );
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -185,11 +191,16 @@ const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps)
       </div>
       <div className="grid gap-5 sm:grid-cols-2">
         <FormField id="vehicle-artwork" label="Vehicle artwork">
-          <Select defaultValue={vehicle?.imageKey ?? 'WHITE_RR'} name="imageKey">
+          <Select
+            name="imageKey"
+            onValueChange={(value) => setImageKey(value as VehicleImageKey)}
+            value={imageKey}
+          >
             <SelectTrigger aria-label="Vehicle artwork" className="w-full" id="vehicle-artwork">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="ARTWORK_PENDING">Coming soon / Artwork pending</SelectItem>
               <SelectItem value="WHITE_RR">Silver grand tourer</SelectItem>
               <SelectItem value="BLUE_BUGATTI">Blue hypercar</SelectItem>
               <SelectItem value="GREEN_LAMBO">Green supercar</SelectItem>
@@ -212,6 +223,17 @@ const VehicleForm = ({ vehicle, pending, onCancel, onSubmit }: VehicleFormProps)
           />
         </FormField>
       </div>
+      {imageKey === 'ARTWORK_PENDING' && (
+        <div
+          className="flex items-start gap-3 rounded-[var(--radius)] border border-amber-300/20 bg-amber-300/[0.06] px-4 py-3 text-amber-100"
+          role="status"
+        >
+          <AlertTriangle aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-amber-300" />
+          <p className="text-xs leading-5">
+            No specific artwork selected. The Coming Soon placeholder will be displayed.
+          </p>
+        </div>
+      )}
       <div className="grid gap-5 sm:grid-cols-2">
         <FormField id="vehicle-color-hex" label="Color hex">
           <Input
@@ -423,12 +445,22 @@ export const DashboardPage = () => {
     }
   };
 
-  const purchase = (vehicle: Vehicle) => {
+  const requestReservation = (vehicle: Vehicle) => {
     if (!token || vehicle.quantity === 0) {
       return;
     }
 
-    void runAction(`purchase-${vehicle.id}`, async () => {
+    setFeedback(null);
+    setDialog({ type: 'reserve', vehicle });
+  };
+
+  const confirmReservation = async () => {
+    if (!token || dialog?.type !== 'reserve' || dialog.vehicle.quantity === 0) {
+      return;
+    }
+
+    const vehicle = dialog.vehicle;
+    await runAction(`purchase-${vehicle.id}`, async () => {
       const { vehicle: updated } = await vehicleApi.purchase(token, vehicle.id, 1);
       setVehicles((current) => replaceVehicle(current, updated));
       setFeedback({
@@ -436,6 +468,7 @@ export const DashboardPage = () => {
         message: `${updated.make} ${updated.model} reserved. ${updated.quantity} remaining. View it in Orders.`,
       });
     });
+    setDialog(null);
   };
 
   const searchInventory = (event: FormEvent<HTMLFormElement>) => {
@@ -818,7 +851,7 @@ export const DashboardPage = () => {
                       canPurchase={user?.role === 'CUSTOMER'}
                       isBuying={pendingAction === `purchase-${vehicle.id}`}
                       key={vehicle.id}
-                      onPurchase={purchase}
+                      onPurchase={requestReservation}
                       token={token}
                       vehicle={vehicle}
                     />
@@ -920,6 +953,88 @@ export const DashboardPage = () => {
                 </Button>
               </div>
             </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {dialog?.type === 'reserve' && (
+        <Dialog onOpenChange={(open) => !open && setDialog(null)} open>
+          <DialogContent
+            description="Review the vehicle and reservation impact before placing the order."
+            title={`Reserve ${dialog.vehicle.make} ${dialog.vehicle.model}`}
+          >
+            <div className="overflow-hidden rounded-[var(--radius)] border border-white/15 bg-background/60">
+              <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-secondary">
+                  Reservation summary
+                </p>
+                <span className="rounded-full border border-white/15 px-2.5 py-1 text-[10px] text-secondary">
+                  {dialog.vehicle.year}
+                </span>
+              </div>
+              <div className="px-5 py-5">
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-xl font-semibold tracking-[-0.035em]">
+                      {dialog.vehicle.make} {dialog.vehicle.model}
+                    </p>
+                    <p className="mt-1 text-xs text-secondary">{dialog.vehicle.category}</p>
+                  </div>
+                  <p className="text-lg font-semibold">
+                    {currency.format(Number(dialog.vehicle.price))}
+                  </p>
+                </div>
+                <div className="mt-5 grid grid-cols-3 divide-x divide-white/10 border-t border-white/10 pt-4 text-center">
+                  <div>
+                    <p className="text-lg font-semibold">{dialog.vehicle.quantity}</p>
+                    <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-secondary">
+                      In stock
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">1</p>
+                    <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-secondary">
+                      Reserving
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-lg font-semibold">{dialog.vehicle.quantity - 1}</p>
+                    <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-secondary">
+                      Remaining
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-start gap-3 rounded-[var(--radius)] border border-white/10 bg-white/[0.03] p-4">
+              <ShieldCheck aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-secondary" />
+              <p className="text-xs leading-5 text-secondary">
+                Confirming creates an order and immediately reduces stock by one. You can cancel
+                later from Orders to restore the vehicle to inventory.
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <Button
+                disabled={pendingAction === `purchase-${dialog.vehicle.id}`}
+                onClick={() => setDialog(null)}
+                type="button"
+                variant="ghost"
+              >
+                Keep browsing
+              </Button>
+              <Button
+                disabled={pendingAction === `purchase-${dialog.vehicle.id}`}
+                onClick={() => void confirmReservation()}
+                type="button"
+              >
+                <ShoppingBag aria-hidden="true" className="size-4" />
+                {pendingAction === `purchase-${dialog.vehicle.id}`
+                  ? 'Reserving...'
+                  : 'Confirm reservation'}
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       )}

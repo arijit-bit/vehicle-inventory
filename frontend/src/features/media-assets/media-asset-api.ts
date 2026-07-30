@@ -1,5 +1,6 @@
 export type MediaAssetKey =
   | 'HERO_CAR'
+  | 'ARTWORK_PENDING'
   | 'WHITE_RR'
   | 'BLUE_BUGATTI'
   | 'GREEN_LAMBO'

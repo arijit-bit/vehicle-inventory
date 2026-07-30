@@ -142,8 +142,8 @@ export const VehicleCard = ({
             </p>
           ) : !token && !soldOut ? (
             <Button asChild className="w-full" variant="outline">
-              <Link aria-label={`Sign in to purchase ${vehicle.make} ${vehicle.model}`} to="/login">
-                Sign in to purchase
+              <Link aria-label={`Sign in to reserve ${vehicle.make} ${vehicle.model}`} to="/login">
+                Sign in to reserve
                 <ArrowUpRight aria-hidden="true" className="size-3.5" />
               </Link>
             </Button>
@@ -153,8 +153,8 @@ export const VehicleCard = ({
                 soldOut
                   ? 'Out of stock'
                   : isBuying
-                    ? `Purchasing ${vehicle.make} ${vehicle.model}`
-                    : `Purchase ${vehicle.make} ${vehicle.model}`
+                    ? `Reserving ${vehicle.make} ${vehicle.model}`
+                    : `Reserve ${vehicle.make} ${vehicle.model}`
               }
               className="w-full"
               disabled={soldOut || isBuying}

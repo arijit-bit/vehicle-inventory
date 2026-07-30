@@ -11,6 +11,7 @@ const colorHexSchema = z
   .transform((value) => value.toUpperCase());
 
 export const vehicleImageKeys = [
+  'ARTWORK_PENDING',
   'WHITE_RR',
   'BLUE_BUGATTI',
   'GREEN_LAMBO',
@@ -21,6 +22,7 @@ export const vehicleImageKeys = [
   'ORANGE_AUDI_R8',
   'BLACK_RANGE_ROVER',
 ] as const;
+const vehicleImageKeySchema = z.enum(vehicleImageKeys);
 export const transmissions = ['MANUAL', 'AUTOMATIC'] as const;
 export const fuelTypes = ['PETROL', 'GASOLINE', 'DIESEL', 'HYBRID', 'ELECTRIC'] as const;
 export const availabilityFilters = ['available', 'sold-out'] as const;
@@ -50,7 +52,7 @@ const vehicleDetailsSchema = z.strictObject({
   model: vehicleTextSchema,
   year: yearSchema,
   category: vehicleTextSchema,
-  imageKey: z.enum(vehicleImageKeys),
+  imageKey: vehicleImageKeySchema,
   colorName: vehicleTextSchema,
   colorHex: colorHexSchema,
   engine: engineSchema,
@@ -61,6 +63,7 @@ const vehicleDetailsSchema = z.strictObject({
 });
 
 export const createVehicleSchema = vehicleDetailsSchema.extend({
+  imageKey: vehicleImageKeySchema.default('ARTWORK_PENDING'),
   quantity: quantitySchema,
 });
 
