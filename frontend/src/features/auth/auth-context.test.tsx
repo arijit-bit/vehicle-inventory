@@ -91,4 +91,3 @@ describe('AuthProvider', () => {
     expect(screen.queryByText('driver@example.com')).not.toBeInTheDocument();
   });
 });
-
