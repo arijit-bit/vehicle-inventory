@@ -29,7 +29,7 @@ const refreshCookieOptions = (isProduction: boolean): CookieOptions => ({
 export const createAuthRouter = (
   service: AuthServicePort,
   tokens: TokenVerifier,
-  refreshTokenService: RefreshTokenService,
+  refreshTokenService?: RefreshTokenService,
 ) => {
   const router = Router();
   const isProduction = process.env.NODE_ENV === 'production';
@@ -50,7 +50,7 @@ export const createAuthRouter = (
       const { rememberMe } = request.body as { rememberMe?: boolean };
       const result = await service.register(credentials);
 
-      if (rememberMe) {
+      if (rememberMe && refreshTokenService) {
         const rawToken = await refreshTokenService.issue(result.user.id);
         setRefreshCookie(response, rawToken);
       }
@@ -66,7 +66,7 @@ export const createAuthRouter = (
       const { rememberMe } = request.body as { rememberMe?: boolean };
       const result = await service.login(credentials);
 
-      if (rememberMe) {
+      if (rememberMe && refreshTokenService) {
         const rawToken = await refreshTokenService.issue(result.user.id);
         setRefreshCookie(response, rawToken);
       }
@@ -88,56 +88,53 @@ export const createAuthRouter = (
   });
 
   /**
-   * POST /api/auth/refresh
-   * Reads the httpOnly refresh_token cookie, rotates it, and returns a new access token.
-   * The rotated refresh token is set as a new cookie automatically.
+   * POST /api/auth/refresh and POST /api/auth/logout are only registered when
+   * a RefreshTokenService is available (not required in unit-test environments).
    */
-  router.post(
-    '/refresh',
-    asyncHandler(async (request, response) => {
-      const rawToken = request.cookies?.[REFRESH_COOKIE] as string | undefined;
+  if (refreshTokenService) {
+    router.post(
+      '/refresh',
+      asyncHandler(async (request, response) => {
+        const rawToken = request.cookies?.[REFRESH_COOKIE] as string | undefined;
 
-      if (!rawToken) {
-        response
-          .status(401)
-          .json({ error: { code: 'NO_REFRESH_TOKEN', message: 'No refresh token provided' } });
-        return;
-      }
-
-      try {
-        const { accessToken, newRawToken } = await refreshTokenService.rotate(rawToken);
-        setRefreshCookie(response, newRawToken);
-        response.status(200).json({ token: accessToken });
-      } catch (error) {
-        if (error instanceof InvalidRefreshTokenError) {
-          response.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
+        if (!rawToken) {
           response
             .status(401)
-            .json({ error: { code: 'INVALID_REFRESH_TOKEN', message: error.message } });
+            .json({ error: { code: 'NO_REFRESH_TOKEN', message: 'No refresh token provided' } });
           return;
         }
-        throw error;
-      }
-    }),
-  );
 
-  /**
-   * POST /api/auth/logout
-   * Revokes the refresh token server-side and clears the cookie.
-   */
-  router.post(
-    '/logout',
-    asyncHandler(async (request, response) => {
-      const rawToken = request.cookies?.[REFRESH_COOKIE] as string | undefined;
+        try {
+          const { accessToken, newRawToken } = await refreshTokenService.rotate(rawToken);
+          setRefreshCookie(response, newRawToken);
+          response.status(200).json({ token: accessToken });
+        } catch (error) {
+          if (error instanceof InvalidRefreshTokenError) {
+            response.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
+            response
+              .status(401)
+              .json({ error: { code: 'INVALID_REFRESH_TOKEN', message: error.message } });
+            return;
+          }
+          throw error;
+        }
+      }),
+    );
 
-      if (rawToken) {
-        await refreshTokenService.revoke(rawToken);
-      }
+    router.post(
+      '/logout',
+      asyncHandler(async (request, response) => {
+        const rawToken = request.cookies?.[REFRESH_COOKIE] as string | undefined;
 
-      response.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
-      response.status(204).send();
-    }),
-  );
+        if (rawToken) {
+          await refreshTokenService.revoke(rawToken);
+        }
+
+        response.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
+        response.status(204).send();
+      }),
+    );
+  }
 
   return router;
 };

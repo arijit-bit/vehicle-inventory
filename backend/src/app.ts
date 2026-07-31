@@ -80,7 +80,7 @@ export const createApp = ({
     });
   });
 
-  if (authService && tokenVerifier && refreshTokenService) {
+  if (authService && tokenVerifier) {
     app.use('/api/auth', createAuthRouter(authService, tokenVerifier, refreshTokenService));
   }
 
