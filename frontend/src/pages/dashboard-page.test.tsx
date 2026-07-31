@@ -99,6 +99,7 @@ const mockAuth = (role: 'CUSTOMER' | 'EMPLOYEE' | 'ADMIN') => {
     },
     token: 'secure-token',
     isLoading: false,
+    sessionExpired: false,
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
@@ -123,7 +124,11 @@ describe('DashboardPage', () => {
       },
     });
 
-    render(<DashboardPage />);
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
 
     const camry = await screen.findByRole('article', { name: 'Toyota Camry' });
     const mustang = screen.getByRole('article', { name: 'Ford Mustang' });
@@ -155,6 +160,7 @@ describe('DashboardPage', () => {
       user: null,
       token: null,
       isLoading: false,
+      sessionExpired: false,
       login: vi.fn(),
       register: vi.fn(),
       logout: vi.fn(),
@@ -181,7 +187,11 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     mockAuth('EMPLOYEE');
 
-    render(<DashboardPage />);
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
     const camry = await screen.findByRole('article', { name: 'Toyota Camry' });
     expect(within(camry).getByText('Customer reservations only')).toBeInTheDocument();
     expect(within(camry).queryByRole('button', { name: /purchase/i })).not.toBeInTheDocument();
@@ -204,7 +214,11 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     mockAuth('CUSTOMER');
 
-    render(<DashboardPage />);
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
 
     expect(await screen.findByText('customer@example.com')).toBeInTheDocument();
     expect(screen.getByText('Showing 1–2 of 2 vehicles')).toBeInTheDocument();
@@ -228,7 +242,11 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     mockAuth('CUSTOMER');
 
-    render(<DashboardPage />);
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
 
     expect(await screen.findByRole('heading', { name: 'Our Collection' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /^home$/i })).toHaveAttribute('href', '/');
@@ -261,7 +279,11 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     mockAuth('CUSTOMER');
 
-    render(<DashboardPage />);
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
     await screen.findByRole('article', { name: 'Toyota Camry' });
 
     await user.click(screen.getByRole('combobox', { name: 'Filter By Brand' }));
@@ -298,7 +320,11 @@ describe('DashboardPage', () => {
   it('keeps inventory management hidden from non-administrators', async () => {
     mockAuth('CUSTOMER');
 
-    render(<DashboardPage />);
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
 
     await screen.findByRole('article', { name: 'Toyota Camry' });
     expect(screen.queryByRole('button', { name: 'Manage inventory' })).not.toBeInTheDocument();
@@ -316,6 +342,7 @@ describe('DashboardPage', () => {
       },
       token: 'expired-token',
       isLoading: false,
+      sessionExpired: false,
       login: vi.fn(),
       register: vi.fn(),
       logout,
@@ -324,7 +351,11 @@ describe('DashboardPage', () => {
       new VehicleApiError('Authentication is required', 'UNAUTHENTICATED', 401),
     );
 
-    render(<DashboardPage />);
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
 
     await waitFor(() => expect(logout).toHaveBeenCalledOnce());
   });
@@ -333,7 +364,11 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     mockAuth('CUSTOMER');
 
-    render(<DashboardPage />);
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
     await screen.findByRole('article', { name: 'Toyota Camry' });
 
     await user.click(screen.getByRole('button', { name: 'Open search' }));
@@ -368,7 +403,11 @@ describe('DashboardPage', () => {
       .mockResolvedValueOnce(pageResponse(firstPage, { limit: 6, skip: 0, total: 7 }))
       .mockResolvedValueOnce(pageResponse(secondPage, { limit: 6, skip: 6, total: 7 }));
 
-    render(<DashboardPage />);
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
 
     expect(await screen.findAllByRole('article')).toHaveLength(6);
     expect(screen.getByRole('navigation', { name: 'Collection pagination' })).toBeInTheDocument();
@@ -394,7 +433,11 @@ describe('DashboardPage', () => {
       new VehicleApiError('Inventory is busy; retry the request', 'INVENTORY_BUSY', 503),
     );
 
-    render(<DashboardPage />);
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
     const camry = await screen.findByRole('article', { name: 'Toyota Camry' });
     await user.click(within(camry).getByRole('button', { name: 'Reserve Toyota Camry' }));
     await user.click(screen.getByRole('button', { name: 'Confirm reservation' }));
@@ -425,7 +468,11 @@ describe('DashboardPage', () => {
     });
     vi.mocked(vehicleApi.delete).mockResolvedValue();
 
-    render(<DashboardPage />);
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
     await screen.findByRole('article', { name: 'Toyota Camry' });
     await user.click(screen.getByRole('button', { name: 'Manage inventory' }));
 
@@ -521,7 +568,11 @@ describe('DashboardPage', () => {
     const user = userEvent.setup();
     mockAuth('ADMIN');
 
-    render(<DashboardPage />);
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
     await screen.findByRole('article', { name: 'Toyota Camry' });
     await user.click(screen.getByRole('button', { name: 'Manage inventory' }));
     await user.click(screen.getByRole('button', { name: 'Add vehicle' }));

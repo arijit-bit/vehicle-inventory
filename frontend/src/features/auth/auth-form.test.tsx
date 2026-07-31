@@ -58,6 +58,7 @@ describe('AuthForm', () => {
       email: 'owner@garage.io',
       password: 'SafePass123!',
       role: 'CUSTOMER',
+      rememberMe: true,
     });
   });
 
@@ -77,6 +78,7 @@ describe('AuthForm', () => {
       email: 'sales@example.com',
       password: 'SafePass123!',
       role: 'EMPLOYEE',
+      rememberMe: true,
     });
   });
 

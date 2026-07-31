@@ -13,7 +13,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   // isLoading is true while we're doing the initial silent refresh attempt on mount.
   const [isLoading, setIsLoading] = useState(true);
+  // sessionExpired is true when a background refresh failed (not a manual logout).
+  // Consumers can watch this flag to redirect the user back to /login.
+  const [sessionExpired, setSessionExpired] = useState(false);
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Tracks whether the current session bootstrap (refresh → me) is still active.
+  // Set to false on logout so any in-flight me() response is ignored.
+  const sessionActiveRef = useRef(true);
 
   const clearRefreshTimer = () => {
     if (refreshTimerRef.current !== null) {
@@ -28,27 +34,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const { token: newToken } = await authApi.refresh();
         setToken(newToken);
-      } catch {
-        // Refresh failed (e.g. token expired on server) — log the user out silently.
+      } catch (error) {
+        // Refresh failed — the session has ended server-side (rotated or expired).
+        // Log for visibility in DevTools, then signal consumers to redirect to login.
+        console.error('[auth] Background token refresh failed — session expired:', error);
         setToken(null);
         setUser(null);
+        setSessionExpired(true);
         clearRefreshTimer();
       }
     }, AUTO_REFRESH_INTERVAL_MS);
+    // currentToken is intentionally unused beyond triggering the timer.
+    void currentToken;
   }, []);
 
   // On mount: attempt a silent refresh. If the browser has a valid refresh token
   // cookie, this restores the session without the user needing to log in again.
   useEffect(() => {
     let active = true;
+    sessionActiveRef.current = true;
 
     authApi
       .refresh()
       .then(async ({ token: newToken }) => {
-        if (!active) return;
+        if (!active || !sessionActiveRef.current) return;
         setToken(newToken);
         const { user: currentUser } = await authApi.me(newToken);
-        if (active) {
+        if (active && sessionActiveRef.current) {
           setUser(currentUser);
           startRefreshTimer(newToken);
         }
@@ -81,6 +93,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setToken(result.token);
     setUser(result.user);
     setIsLoading(false);
+    // Clear any prior session-expired state so a re-login starts fresh.
+    setSessionExpired(false);
     startRefreshTimer(result.token);
   };
 
@@ -89,9 +103,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(async () => {
     clearRefreshTimer();
+    // Cancel any in-flight refresh → me() chain so a stale response
+    // cannot restore the session after logout completes.
+    sessionActiveRef.current = false;
     setToken(null);
     setUser(null);
     setIsLoading(false);
+    // A manual logout is not an expiry event — keep sessionExpired false.
+    setSessionExpired(false);
     // Revoke the refresh token server-side (best-effort).
     await authApi.logout();
   }, []);
@@ -100,6 +119,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     token,
     isLoading,
+    sessionExpired,
     login,
     register,
     logout,

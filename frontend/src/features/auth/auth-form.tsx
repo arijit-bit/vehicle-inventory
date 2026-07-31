@@ -82,7 +82,9 @@ export const AuthForm = ({ mode, onSubmit }: AuthFormProps) => {
       await onSubmit({
         email: email.trim().toLowerCase(),
         password,
-        ...(isRegistration ? { role } : { rememberMe }),
+        // Always issue a refresh token on registration so the new session is persistent.
+        // On login, honour the user's "Remember me" checkbox choice.
+        ...(isRegistration ? { role, rememberMe: true } : { rememberMe }),
       });
     } catch (error) {
       setErrors({

@@ -14,6 +14,8 @@ vi.mock('./auth-api', async (importOriginal) => {
       login: vi.fn(),
       register: vi.fn(),
       me: vi.fn(),
+      refresh: vi.fn(),
+      logout: vi.fn(),
     },
   };
 });
@@ -34,11 +36,10 @@ const SessionProbe = () => {
 describe('AuthProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    sessionStorage.clear();
   });
 
   it('restores a stored session through the authenticated profile endpoint', async () => {
-    sessionStorage.setItem('motorvault.session', 'stored-token');
+    vi.mocked(authApi.refresh).mockResolvedValue({ token: 'refreshed-token' });
     vi.mocked(authApi.me).mockResolvedValue({
       user: {
         id: 'user-1',
@@ -55,19 +56,21 @@ describe('AuthProvider', () => {
 
     expect(screen.getByText('Restoring')).toBeInTheDocument();
     expect(await screen.findByText('driver@example.com')).toBeInTheDocument();
-    expect(authApi.me).toHaveBeenCalledWith('stored-token');
+    expect(authApi.refresh).toHaveBeenCalledOnce();
+    expect(authApi.me).toHaveBeenCalledWith('refreshed-token');
   });
 
   it('does not allow a late profile response to restore a session after logout', async () => {
     const user = userEvent.setup();
-    sessionStorage.setItem('motorvault.session', 'stored-token');
     let resolveProfile!: (value: Awaited<ReturnType<typeof authApi.me>>) => void;
+    vi.mocked(authApi.refresh).mockResolvedValue({ token: 'refreshed-token' });
     vi.mocked(authApi.me).mockImplementation(
       () =>
         new Promise((resolve) => {
           resolveProfile = resolve;
         }),
     );
+    vi.mocked(authApi.logout).mockResolvedValue(undefined);
 
     render(
       <AuthProvider>
@@ -86,6 +89,6 @@ describe('AuthProvider', () => {
 
     await waitFor(() => expect(screen.getByText('Anonymous')).toBeInTheDocument());
     expect(screen.queryByText('driver@example.com')).not.toBeInTheDocument();
-    expect(sessionStorage.getItem('motorvault.session')).toBeNull();
   });
 });
+

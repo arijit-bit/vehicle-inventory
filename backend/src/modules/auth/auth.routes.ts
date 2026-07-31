@@ -35,6 +35,10 @@ export const createAuthRouter = (
   const isProduction = process.env.NODE_ENV === 'production';
   const cookieOpts = refreshCookieOptions(isProduction);
 
+  // Log once on cold-start so the effective cookie policy is visible in server logs.
+  // Check Vercel function logs to confirm: secure=true, sameSite='none' in production.
+  console.log('[auth] NODE_ENV=%s | refresh cookie opts: %o', process.env.NODE_ENV, cookieOpts);
+
   const setRefreshCookie = (response: Parameters<RequestHandler>[1], rawToken: string) => {
     response.cookie(REFRESH_COOKIE, rawToken, cookieOpts);
   };
