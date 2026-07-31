@@ -602,7 +602,7 @@ export const DashboardPage = () => {
 
       <main className="relative mx-auto max-w-[1440px] px-4 pb-16 pt-14 sm:px-6 lg:px-10">
         <section id="collection">
-          <div className="flex flex-col gap-8 pb-10 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-8 pb-10 min-[1170px]:flex-row min-[1170px]:items-center min-[1170px]:justify-between">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-secondary">
                 Curated inventory · {pagination.total}{' '}

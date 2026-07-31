@@ -32,11 +32,11 @@ export const CollectionControls = ({
   onPriceSortChange,
   onToggleSearch,
 }: CollectionControlsProps) => (
-  <div className="flex w-full flex-wrap items-center gap-1.5 rounded-full border border-white/15 bg-card/70 p-1.5 lg:w-auto lg:justify-end">
+  <div className="flex w-full max-w-full flex-col items-stretch gap-1.5 rounded-[1.75rem] border border-white/15 bg-card/70 p-1.5 min-[630px]:w-fit min-[630px]:flex-row min-[630px]:items-center min-[630px]:rounded-full min-[1170px]:shrink-0">
     <Select onValueChange={onBrandChange} value={brand}>
       <SelectTrigger
         aria-label="Filter By Brand"
-        className="flex-1 rounded-full border border-white/12 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 transition-colors sm:flex-none"
+        className="w-full min-w-0 rounded-full border border-white/12 bg-white/[0.03] transition-colors hover:border-white/20 hover:bg-white/[0.06] min-[630px]:w-44"
       >
         <SelectValue placeholder="Filter By Brand" />
       </SelectTrigger>
@@ -56,7 +56,7 @@ export const CollectionControls = ({
     >
       <SelectTrigger
         aria-label="Filter By Availability"
-        className="flex-1 rounded-full border border-white/12 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 transition-colors sm:flex-none"
+        className="w-full min-w-0 rounded-full border border-white/12 bg-white/[0.03] transition-colors hover:border-white/20 hover:bg-white/[0.06] min-[630px]:w-44"
       >
         <SelectValue placeholder="Filter By Availability" />
       </SelectTrigger>
@@ -70,7 +70,7 @@ export const CollectionControls = ({
     <Select onValueChange={(value) => onPriceSortChange(value as PriceSort)} value={priceSort}>
       <SelectTrigger
         aria-label="Sort By Price"
-        className="flex-1 rounded-full border border-white/12 bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/20 transition-colors sm:flex-none"
+        className="w-full min-w-0 rounded-full border border-white/12 bg-white/[0.03] transition-colors hover:border-white/20 hover:bg-white/[0.06] min-[630px]:w-44"
       >
         <SelectValue placeholder="Sort By Price" />
       </SelectTrigger>
@@ -83,7 +83,7 @@ export const CollectionControls = ({
 
     <Button
       aria-label={searchExpanded ? 'Close search' : 'Open search'}
-      className="rounded-full"
+      className="self-end rounded-full min-[630px]:self-auto"
       onClick={onToggleSearch}
       size="icon"
       variant={searchExpanded ? 'default' : 'outline'}
