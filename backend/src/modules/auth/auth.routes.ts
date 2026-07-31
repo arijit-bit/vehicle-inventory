@@ -18,10 +18,10 @@ const REFRESH_COOKIE = 'refresh_token';
 const refreshCookieOptions = (isProduction: boolean): CookieOptions => ({
   httpOnly: true,
   secure: isProduction,
-  // SameSite=None is required for cross-domain requests (frontend and backend on different subdomains).
-  // SameSite=None MUST be paired with Secure=true (enforced above in production).
-  // In development we use 'lax' since both origins are localhost.
-  sameSite: isProduction ? 'none' : 'lax',
+  // The browser calls /api on the frontend origin in both development and
+  // production. Vite/Vercel proxy that request to the API, keeping this cookie
+  // first-party and allowing the safer Lax policy.
+  sameSite: 'lax',
   path: '/api/auth',
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
 });
@@ -36,7 +36,7 @@ export const createAuthRouter = (
   const cookieOpts = refreshCookieOptions(isProduction);
 
   // Log once on cold-start so the effective cookie policy is visible in server logs.
-  // Check Vercel function logs to confirm: secure=true, sameSite='none' in production.
+  // Check Vercel function logs to confirm: secure=true, sameSite='lax' in production.
   console.log('[auth] NODE_ENV=%s | refresh cookie opts: %o', process.env.NODE_ENV, cookieOpts);
 
   const setRefreshCookie = (response: Parameters<RequestHandler>[1], rawToken: string) => {

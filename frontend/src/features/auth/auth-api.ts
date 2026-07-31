@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../../config/api-base-url';
+
 export type UserRole = 'CUSTOMER' | 'EMPLOYEE' | 'ADMIN';
 export type RegistrableRole = Extract<UserRole, 'CUSTOMER' | 'EMPLOYEE'>;
 
@@ -98,6 +100,4 @@ export const createAuthApi = (baseUrl: string) => {
   };
 };
 
-export const authApi = createAuthApi(
-  import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? 'http://localhost:3000/api',
-);
+export const authApi = createAuthApi(API_BASE_URL);

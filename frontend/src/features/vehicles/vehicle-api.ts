@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../../config/api-base-url';
+
 export type VehicleImageKey =
   | 'ARTWORK_PENDING'
   | 'WHITE_RR'
@@ -201,6 +203,4 @@ export const createVehicleApi = (baseUrl: string, fetcher: typeof fetch = fetch)
   };
 };
 
-export const vehicleApi = createVehicleApi(
-  import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? 'http://localhost:3000/api',
-);
+export const vehicleApi = createVehicleApi(API_BASE_URL);

@@ -7,6 +7,7 @@ import {
   type AuthResult,
   type TokenVerifier,
 } from './auth.types.js';
+import { RefreshTokenService, type RefreshTokenRepository } from './refresh-token.service.js';
 
 const authResult: AuthResult = {
   user: {
@@ -115,4 +116,58 @@ describe('authentication HTTP API', () => {
       role: 'CUSTOMER',
     });
   });
+
+  it.each([
+    { nodeEnv: 'development', secure: false },
+    { nodeEnv: 'production', secure: true },
+  ] as const)(
+    'sets a first-party persistent refresh cookie in $nodeEnv',
+    async ({ nodeEnv, secure }) => {
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = nodeEnv;
+
+      const refreshTokenRepository: RefreshTokenRepository = {
+        createToken: vi.fn().mockResolvedValue(undefined),
+        findByHash: vi.fn(),
+        findUserById: vi.fn(),
+        deleteByHash: vi.fn(),
+        deleteAllForUser: vi.fn(),
+      };
+      const refreshTokenService = new RefreshTokenService(refreshTokenRepository, {
+        sign: vi.fn().mockReturnValue('signed.jwt.token'),
+      });
+
+      try {
+        const response = await request(
+          createApp({ authService, tokenVerifier, refreshTokenService }),
+        )
+          .post('/api/auth/login')
+          .send({
+            email: 'driver@example.com',
+            password: 'SafePass123!',
+            rememberMe: true,
+          });
+
+        expect(response.status).toBe(200);
+        expect(response.headers['set-cookie']).toHaveLength(1);
+
+        const cookie = response.headers['set-cookie']?.[0];
+        expect(cookie).toBeDefined();
+        if (!cookie) throw new Error('Expected the response to set a refresh cookie');
+
+        expect(cookie).toContain('refresh_token=');
+        expect(cookie).toContain('Max-Age=604800');
+        expect(cookie).toContain('Path=/api/auth');
+        expect(cookie).toContain('HttpOnly');
+        expect(cookie).toContain('SameSite=Lax');
+        expect(cookie.includes('Secure')).toBe(secure);
+      } finally {
+        if (originalNodeEnv === undefined) {
+          delete process.env.NODE_ENV;
+        } else {
+          process.env.NODE_ENV = originalNodeEnv;
+        }
+      }
+    },
+  );
 });

@@ -30,7 +30,7 @@ Milestone 7 is complete:
 - Short-lived HS256 JWTs with issuer and audience verification
 - Authentication middleware and reusable role authorization
 - Environment-seeded administrator; public registration supports `CUSTOMER` and `EMPLOYEE`
-- **Refresh token flow**: httpOnly `SameSite=Strict` cookie with 7-day lifetime, token rotation on
+- **Refresh token flow**: httpOnly `SameSite=Lax` cookie with 7-day lifetime, token rotation on
   every use, server-side revocation on logout, and a silent restore on page reload
 - **"Remember me" checkbox** on the login form; refresh token is only issued when checked
 - Reference-led dark-luxury landing page with metallic hero typography, responsive navigation, and
@@ -99,8 +99,8 @@ Copy-Item backend/.env.example backend/.env
 Copy-Item frontend/.env.example frontend/.env
 ```
 
-> **Local development note:** `frontend/.env.example` points to the deployed Vercel backend by
-> default. For local development, edit `frontend/.env` and set:
+> **Local development note:** `frontend/.env.example` uses the Vite `/api` proxy by default. To
+> bypass that proxy during development, edit `frontend/.env` and set:
 >
 > ```
 > VITE_API_URL=http://localhost:3000/api
@@ -130,7 +130,7 @@ The API starts at `http://localhost:3000` and the SPA at `http://localhost:5173`
 | `ADMIN_EMAIL`                   | Optional administrator email; requires `ADMIN_PASSWORD`                    |
 | `ADMIN_PASSWORD`                | Optional administrator password; requires `ADMIN_EMAIL`                    |
 | `CORS_ORIGIN`                   | Allowed frontend origin                                                    |
-| `VITE_API_URL`                  | Browser-visible API base URL, default `http://localhost:3000/api`          |
+| `VITE_API_URL`                  | Development API override; production always uses same-origin `/api`        |
 
 Generate a development JWT secret with:
 
@@ -519,9 +519,9 @@ vehicle sold out, while authorization errors remain distinct.
 - Refresh tokens are stored in an **httpOnly cookie**, which JavaScript cannot
   read. On page reload the SPA calls `POST /api/auth/refresh` to silently restore the session; the
   access token is re-issued in the response body and never touches a cookie.
-  In production (`NODE_ENV=production`) the cookie uses `Secure` and `SameSite=None` to support
-  the cross-domain Vercel deployment (frontend and backend on separate subdomains). In development
-  `SameSite=Lax` is used instead since both origins are localhost.
+  In production the browser calls the frontend's same-origin `/api` path and Vercel reverse-proxies
+  it to the backend. This keeps the cookie first-party, avoiding browser third-party-cookie blocking.
+  The cookie uses `Secure` in production and `SameSite=Lax` in every environment.
 - Every refresh **rotates** the token: the old record is deleted and a new 64-character SHA-256 hash
   is persisted. A stolen token can only be used once before it is invalidated.
 - `POST /api/auth/logout` revokes the refresh token **server-side** and clears the cookie, so

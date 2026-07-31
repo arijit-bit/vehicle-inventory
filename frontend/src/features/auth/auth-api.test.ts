@@ -66,4 +66,20 @@ describe('auth API client', () => {
       }),
     ).rejects.toEqual(new AuthApiError('Invalid email or password', 'INVALID_CREDENTIALS', 400));
   });
+
+  it('sends the refresh request with credentials included', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ token: 'renewed.jwt.token' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const api = createAuthApi('/api');
+    await api.refresh();
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/refresh', {
+      credentials: 'include',
+      method: 'POST',
+    });
+  });
 });

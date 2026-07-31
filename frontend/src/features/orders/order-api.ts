@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../../config/api-base-url';
 import type {
   FuelType,
   Transmission,
@@ -110,6 +111,4 @@ export const createOrderApi = (baseUrl: string, fetcher: typeof fetch = fetch) =
   };
 };
 
-export const orderApi = createOrderApi(
-  import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? 'http://localhost:3000/api',
-);
+export const orderApi = createOrderApi(API_BASE_URL);

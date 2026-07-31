@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../../config/api-base-url';
+
 export type MediaAssetKey =
   | 'HERO_CAR'
   | 'ARTWORK_PENDING'
@@ -60,6 +62,4 @@ export const createMediaAssetApi = (baseUrl: string, fetcher: typeof fetch = fet
   },
 });
 
-export const mediaAssetApi = createMediaAssetApi(
-  import.meta.env.VITE_API_URL?.replace(/\/$/, '') ?? 'http://localhost:3000/api',
-);
+export const mediaAssetApi = createMediaAssetApi(API_BASE_URL);
