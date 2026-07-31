@@ -71,6 +71,7 @@ const mockAuth = (role: 'CUSTOMER' | 'EMPLOYEE' | 'ADMIN') => {
     },
     token: 'secure-token',
     isLoading: false,
+    sessionExpired: false,
     login: vi.fn(),
     register: vi.fn(),
     logout: vi.fn(),
