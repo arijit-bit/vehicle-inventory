@@ -51,6 +51,7 @@ import {
   type VehicleSearchFilters,
 } from '../features/vehicles/vehicle-api';
 import { VehicleCard } from '../features/vehicles/vehicle-card';
+import { VehiclePreviewDialog } from '../features/vehicles/vehicle-preview-dialog';
 import { cn } from '../lib/utils';
 
 type DialogState =
@@ -351,6 +352,7 @@ export const DashboardPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
+  const [previewVehicleId, setPreviewVehicleId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [filters, setFilters] = useState<VehicleSearchFilters>({});
   const [appliedFilters, setAppliedFilters] = useState<VehicleSearchFilters>({});
@@ -463,6 +465,29 @@ export const DashboardPage = () => {
     setFeedback(null);
     setDialog({ type: 'reserve', vehicle });
   };
+
+  const requestReservationFromPreview = (vehicle: Vehicle) => {
+    setPreviewVehicleId(null);
+    requestReservation(vehicle);
+  };
+
+  const showPreviousPreview = useCallback(() => {
+    setPreviewVehicleId((currentId) => {
+      if (!currentId || vehicles.length < 2) return currentId;
+      const currentIndex = vehicles.findIndex((vehicle) => vehicle.id === currentId);
+      const previousIndex = (currentIndex - 1 + vehicles.length) % vehicles.length;
+      return vehicles[previousIndex]?.id ?? currentId;
+    });
+  }, [vehicles]);
+
+  const showNextPreview = useCallback(() => {
+    setPreviewVehicleId((currentId) => {
+      if (!currentId || vehicles.length < 2) return currentId;
+      const currentIndex = vehicles.findIndex((vehicle) => vehicle.id === currentId);
+      const nextIndex = (currentIndex + 1) % vehicles.length;
+      return vehicles[nextIndex]?.id ?? currentId;
+    });
+  }, [vehicles]);
 
   const confirmReservation = async () => {
     if (!token || dialog?.type !== 'reserve' || dialog.vehicle.quantity === 0) {
@@ -585,6 +610,8 @@ export const DashboardPage = () => {
   const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.limit));
   const firstResult = pagination.total === 0 ? 0 : pagination.skip + 1;
   const lastResult = Math.min(pagination.skip + vehicles.length, pagination.total);
+  const previewVehicleIndex = vehicles.findIndex((vehicle) => vehicle.id === previewVehicleId);
+  const previewVehicle = previewVehicleIndex >= 0 ? vehicles[previewVehicleIndex] : undefined;
   const resultLabel =
     pagination.total === 0
       ? '0 vehicles'
@@ -870,6 +897,7 @@ export const DashboardPage = () => {
                       isBuying={pendingAction === `purchase-${vehicle.id}`}
                       key={vehicle.id}
                       onPurchase={requestReservation}
+                      onPreview={(selectedVehicle) => setPreviewVehicleId(selectedVehicle.id)}
                       token={token}
                       vehicle={vehicle}
                     />
@@ -912,6 +940,21 @@ export const DashboardPage = () => {
           ))}
         </section>
       </main>
+
+      {previewVehicle && (
+        <VehiclePreviewDialog
+          canPurchase={user?.role === 'CUSTOMER'}
+          isBuying={pendingAction === `purchase-${previewVehicle.id}`}
+          onClose={() => setPreviewVehicleId(null)}
+          onNext={showNextPreview}
+          onPrevious={showPreviousPreview}
+          onReserve={requestReservationFromPreview}
+          position={previewVehicleIndex + 1}
+          token={token}
+          total={vehicles.length}
+          vehicle={previewVehicle}
+        />
+      )}
 
       {dialog?.type === 'create' && (
         <Dialog onOpenChange={(open) => !open && setDialog(null)} open>

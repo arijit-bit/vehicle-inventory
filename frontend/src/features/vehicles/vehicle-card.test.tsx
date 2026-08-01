@@ -61,6 +61,7 @@ describe('VehicleCard artwork', () => {
             canPurchase={false}
             isBuying={false}
             onPurchase={vi.fn()}
+            onPreview={vi.fn()}
             token={null}
             vehicle={{ ...vehicle, id: imageKey, imageKey: imageKey as VehicleImageKey }}
           />

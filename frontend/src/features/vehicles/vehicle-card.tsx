@@ -1,5 +1,4 @@
 import { ArrowUpRight, ShoppingBag } from 'lucide-react';
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Card } from '../../components/ui/card';
@@ -26,6 +25,7 @@ interface VehicleCardProps {
   token: string | null;
   isBuying: boolean;
   onPurchase(vehicle: Vehicle): void;
+  onPreview(vehicle: Vehicle): void;
 }
 
 export const VehicleCard = ({
@@ -34,8 +34,8 @@ export const VehicleCard = ({
   token,
   isBuying,
   onPurchase,
+  onPreview,
 }: VehicleCardProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
   const { asset: vehicleArtwork } = useMediaAsset(vehicle.imageKey);
   const soldOut = vehicle.quantity === 0;
 
@@ -94,46 +94,18 @@ export const VehicleCard = ({
             </p>
           </div>
           <button
-            aria-expanded={isExpanded}
+            aria-haspopup="dialog"
             aria-label={`View ${vehicle.make} ${vehicle.model} details`}
             className="flex size-11 shrink-0 items-center justify-center rounded-full border border-border text-primary transition-colors hover:border-secondary hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-            onClick={() => setIsExpanded((expanded) => !expanded)}
+            onClick={() => onPreview(vehicle)}
             type="button"
           >
             <ArrowUpRight
               aria-hidden="true"
-              className={cn('size-4 transition-transform', isExpanded && 'rotate-90')}
+              className="size-4 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
             />
           </button>
         </div>
-
-        {isExpanded && (
-          <div className="mt-5 border-t border-border pt-4 text-xs">
-            <p className="leading-5 text-secondary">{vehicle.details}</p>
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-secondary">Engine</p>
-                <p className="mt-1 font-medium text-primary">{vehicle.engine}</p>
-              </div>
-              <div>
-                <p className="text-secondary">Fuel</p>
-                <p className="mt-1 font-medium text-primary">
-                  {titleCaseSpecification(vehicle.fuelType)}
-                </p>
-              </div>
-              <div>
-                <p className="text-secondary">Category</p>
-                <p className="mt-1 font-medium text-primary">{vehicle.category}</p>
-              </div>
-              <div>
-                <p className="text-secondary">Availability</p>
-                <p className="mt-1 font-medium text-primary">
-                  {soldOut ? 'Sold out' : `${vehicle.quantity} available`}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="mt-5">
           {token && !canPurchase ? (

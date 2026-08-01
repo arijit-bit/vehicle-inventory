@@ -271,8 +271,22 @@ describe('DashboardPage', () => {
     );
 
     await user.click(screen.getByRole('button', { name: 'View Toyota Camry details' }));
-    expect(screen.getByText('2.5L Hybrid')).toBeInTheDocument();
-    expect(screen.getByText('Hybrid')).toBeInTheDocument();
+    const preview = screen.getByRole('dialog', { name: 'Toyota Camry preview' });
+    expect(within(preview).getByText('2.5L Hybrid')).toBeInTheDocument();
+    expect(within(preview).getByText('Hybrid')).toBeInTheDocument();
+    expect(within(preview).getByRole('img', { name: 'Toyota Camry' })).toBeInTheDocument();
+    expect(within(preview).getByText('$33,000')).toBeInTheDocument();
+
+    await user.click(within(preview).getByRole('button', { name: 'Next vehicle' }));
+    expect(screen.getByRole('dialog', { name: 'Ford Mustang preview' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Close vehicle preview' }));
+    expect(screen.queryByRole('dialog', { name: /preview/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'View Toyota Camry details' }));
+    await user.click(screen.getByRole('button', { name: 'Reserve this vehicle' }));
+    expect(screen.getByRole('dialog', { name: 'Reserve Toyota Camry' })).toBeInTheDocument();
+    expect(vehicleApi.purchase).not.toHaveBeenCalled();
   });
 
   it('filters by brand and sorts the collection by price', async () => {
